@@ -1,8 +1,8 @@
-"""country code
+"""ss
 
-Revision ID: bf20da9d1813
-Revises: 74921a4c0395
-Create Date: 2025-10-18 22:24:51.145309
+Revision ID: 4ccf50c11a74
+Revises: 
+Create Date: 2025-10-18 19:26:07.471244
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'bf20da9d1813'
-down_revision = '74921a4c0395'
+revision = '4ccf50c11a74'
+down_revision = None
 branch_labels = None
 depends_on = None
 
