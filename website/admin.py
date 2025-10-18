@@ -1973,6 +1973,8 @@ def exams_data():
             "created_at": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
             "last_edited_by": last_edited_user.name if last_edited_user else None,
             "last_edited_at": e.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if e.last_edited_at else None,
+            "student_whatsapp": e.student_whatsapp,
+            "parent_whatsapp": e.parent_whatsapp,
         })
 
     return jsonify(exams_list)
@@ -2232,6 +2234,8 @@ def assignments():
                 "submitted_students_count": submitted_count,
                 "qualified_students_count": qualified_count,
                 "out_of": new_assignment.out_of,
+                "student_whatsapp": new_assignment.student_whatsapp,
+                "parent_whatsapp": new_assignment.parent_whatsapp,
             }
             return jsonify({"success": True, "message": "Assignment added successfully!", "assignment": response_payload})
 
