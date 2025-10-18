@@ -165,6 +165,7 @@
     }
 
     /* Phone Input with Country Code */
+    /* This class is no longer used, but we'll keep it for .country-code-input */
     .phone-input-container {
       display: flex;
       gap: 0.5rem;
@@ -191,6 +192,8 @@
     .phone-input-container input[type="tel"]:not(.country-code-input) {
       flex: 1;
     }
+    
+    /* End phone input */
 
     .non-egyptian-checkbox {
       display: flex;
@@ -422,24 +425,29 @@
             <label for="student_name">Student Name</label>
             <input type="text" id="student_name" name="student_name" required placeholder="Enter first 3 names" />
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="student_phone">Student Phone Number</label>
-              <div class="phone-input-container">
+
+          <div class="form-group">
+            <div class="form-row">
+              <div class="form-group" id="student_country_code_group" style="display: none; margin-bottom: 0;">
+                <label for="student_phone_country_code">Country Code</label>
                 <input type="tel" id="student_phone_country_code" name="student_phone_country_code"
-                  placeholder="Code" class="country-code-input" style="display: none;" />
+                  placeholder="e.g., 971" />
+              </div>
+              <div class="form-group" id="student_phone_number_group" style="margin-bottom: 0;">
+                <label for="student_phone" id="student_phone_label">Student Phone Number</label>
                 <input type="tel" id="student_phone" name="student_phone" required placeholder="e.g., 01xxxxxxxxx" />
               </div>
-              <label class="non-egyptian-checkbox">
-                <input type="checkbox" id="student_non_egyptian" />
-                <span>Non-Egyptian number</span>
-              </label>
             </div>
-            <div class="form-group">
-              <label for="student_email">Student Email Address</label>
-              <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
-            </div>
+            <label class="non-egyptian-checkbox">
+              <input type="checkbox" id="student_non_egyptian" />
+              <span>Non-Egyptian number</span>
+            </label>
           </div>
+          <div class="form-group">
+            <label for="student_email">Student Email Address</label>
+            <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
+          </div>
+
 
           <div class="form-group">
             <label for="subject">Subject</label>
@@ -521,28 +529,33 @@
 
         <section class="form-section">
           <h2>Parent & Account Information</h2>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="parent_type">Parent Type</label>
-              <select name="parent_type" id="parent_type" required>
-                <option value="" disabled selected>Select parent type</option>
-                <option value="father">Father</option>
-                <option value="mother">Mother</option>
-                <option value="guardian">Guardian</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="parent_phone">Parent Phone Number</label>
-              <div class="phone-input-container">
+
+          <div class="form-group">
+            <label for="parent_type">Parent Type</label>
+            <select name="parent_type" id="parent_type" required>
+              <option value="" disabled selected>Select parent type</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="guardian">Guardian</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <div class="form-row">
+              <div class="form-group" id="parent_country_code_group" style="display: none; margin-bottom: 0;">
+                <label for="parent_phone_country_code">Country Code</label>
                 <input type="tel" id="parent_phone_country_code" name="parent_phone_country_code"
-                  placeholder="Code" class="country-code-input" style="display: none;" />
+                  placeholder="e.g., 971" />
+              </div>
+              <div class="form-group" id="parent_phone_number_group" style="margin-bottom: 0;">
+                <label for="parent_phone" id="parent_phone_label">Parent Phone Number</label>
                 <input type="tel" id="parent_phone" name="parent_phone" required placeholder="e.g., 01xxxxxxxxx" />
               </div>
-              <label class="non-egyptian-checkbox">
-                <input type="checkbox" id="parent_non_egyptian" />
-                <span>Non-Egyptian number</span>
-              </label>
             </div>
+            <label class="non-egyptian-checkbox">
+              <input type="checkbox" id="parent_non_egyptian" />
+              <span>Non-Egyptian number</span>
+            </label>
           </div>
           <div class="form-group">
             <label for="password">Password (min. 8 characters)</label>
@@ -584,36 +597,52 @@
         });
       }
 
-      // --- Country Code Toggle ---
+      // --- ⬇️ MODIFIED COUNTRY CODE TOGGLE LOGIC ⬇️ ---
+      
+      // --- Student Phone Elements ---
       const studentNonEgyptianCheckbox = document.getElementById('student_non_egyptian');
+      const studentCountryCodeGroup = document.getElementById('student_country_code_group');
       const studentCountryCodeInput = document.getElementById('student_phone_country_code');
+      const studentPhoneLabel = document.getElementById('student_phone_label');
       const studentPhoneInput = document.getElementById('student_phone');
 
+      // --- Parent Phone Elements ---
       const parentNonEgyptianCheckbox = document.getElementById('parent_non_egyptian');
+      const parentCountryCodeGroup = document.getElementById('parent_country_code_group');
       const parentCountryCodeInput = document.getElementById('parent_phone_country_code');
+      const parentPhoneLabel = document.getElementById('parent_phone_label');
       const parentPhoneInput = document.getElementById('parent_phone');
 
+      // --- Student Toggle Logic ---
       studentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
-          studentCountryCodeInput.style.display = 'block';
-          studentCountryCodeInput.value = ''; // Clear default value
+          studentCountryCodeGroup.style.display = 'block';
+          studentPhoneLabel.textContent = 'Phone Number';
           studentPhoneInput.placeholder = 'e.g., 1234567890';
+          studentCountryCodeInput.value = ''; // Clear any default
         } else {
-          studentCountryCodeInput.style.display = 'none';
+          studentCountryCodeGroup.style.display = 'none';
+          studentPhoneLabel.textContent = 'Student Phone Number';
           studentPhoneInput.placeholder = 'e.g., 01xxxxxxxxx';
         }
       });
 
+      // --- Parent Toggle Logic ---
       parentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
-          parentCountryCodeInput.style.display = 'block';
-          parentCountryCodeInput.value = ''; // Clear default value
+          parentCountryCodeGroup.style.display = 'block';
+          parentPhoneLabel.textContent = 'Phone Number';
           parentPhoneInput.placeholder = 'e.g., 1234567890';
+          parentCountryCodeInput.value = ''; // Clear any default
         } else {
-          parentCountryCodeInput.style.display = 'none';
+          parentCountryCodeGroup.style.display = 'none';
+          parentPhoneLabel.textContent = 'Parent Phone Number';
           parentPhoneInput.placeholder = 'e.g., 01xxxxxxxxx';
         }
       });
+
+      // --- ⬆️ END MODIFIED COUNTRY CODE TOGGLE LOGIC ⬆️ ---
+
 
       // --- Client-Side Form Validation ---
       const form = document.getElementById("registerForm");
@@ -634,8 +663,6 @@
         if (document.getElementById("student_name").value.trim().split(/\s+/).length < 3) {
           addError("Student name must contain at least 3 names.");
         }
-
-        // --- ⬇️ MODIFIED VALIDATION LOGIC START ⬇️ ---
 
         // Validate student phone based on checkbox
         const isStudentNonEgyptian = studentNonEgyptianCheckbox.checked;
@@ -666,8 +693,6 @@
             addError("Invalid Egyptian parent phone number (e.g., 01xxxxxxxxx).");
           }
         }
-
-        // --- ⬆️ MODIFIED VALIDATION LOGIC END ⬆️ ---
 
         const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         if (!emailRegex.test(document.getElementById("student_email").value.trim())) {
