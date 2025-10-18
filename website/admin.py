@@ -6889,4 +6889,5 @@ def temp_activate(user_id):
     user.student_whatsapp = user.phone_number
     user.parent_whatsapp = user.parent_phone_number
     db.session.commit()
+    flash(f"Student {user.name} has been activated successfully!", "success")
     return redirect(url_for('admin.student' , user_id=user_id))
