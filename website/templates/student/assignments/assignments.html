@@ -1,0 +1,252 @@
+{% extends "student/dashboard.html" %}
+{% block title %}Assignments{% endblock %}
+{% block content %}
+
+<style>
+  /* --- Base Styles and Color Palette --- */
+  :root {
+    --bg: #f8f9fc;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --primary: #4f46e5;
+    --primary-weak: rgba(79, 70, 229, 0.1);
+    --primary-brd: rgba(79, 70, 229, 0.3);
+    --success: #059669;
+    --success-weak: rgba(16, 185, 129, 0.1);
+    --success-brd: rgba(16, 185, 129, 0.3);
+    --warn: #c2410c;
+    --warn-weak: rgba(249, 115, 22, 0.1);
+    --warn-brd: rgba(249, 115, 22, 0.3);
+    --danger: #b91c1c;
+    --danger-weak: rgba(220, 38, 38, 0.1);
+    --danger-brd: rgba(220, 38, 38, 0.3);
+    --radius: 16px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .wrap {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem; /* Reduced padding for mobile */
+  }
+
+  .heading {
+    font-size: 1.75rem; /* Slightly smaller on mobile */
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  /* --- Progress Card --- */
+  .progress-card {
+    background: var(--card);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    color: #374151;
+    font-size: 0.95rem; /* Adjusted font size */
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 0.625rem; /* Slimmer bar */
+    background: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-top: 1rem;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #6366f1 0%, #a78bfa 100%);
+    transition: width 0.5s ease-in-out;
+  }
+
+  /* --- Assignments Grid --- */
+  .assignments-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  /* --- Assignment Card --- */
+  .card {
+    display: block;
+    width: 100%;
+    background: var(--card);
+    border: 1px solid #e5e7eb;
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: inherit;
+  }
+
+  .card:focus-visible {
+    outline: 3px solid var(--primary-brd);
+    outline-offset: 2px;
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+  }
+
+  .badge {
+    flex-shrink: 0;
+    font-weight: 600;
+    font-size: 0.8rem;
+    border-radius: 9999px;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid transparent;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .badge-open { background: var(--primary-weak); color: var(--primary); border-color: var(--primary-brd); }
+  .badge-completed { background: var(--success-weak); color: var(--success); border-color: var(--success-brd); }
+  .badge-late { background: var(--warn-weak); color: var(--warn); border-color: var(--warn-brd); }
+  .badge-expired { background: var(--danger-weak); color: var(--danger); border-color: var(--danger-brd); }
+
+  .meta-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .meta-item b {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  
+  .meta-item .icon {
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 2;
+  }
+
+  /* --- Desktop Breakpoints --- */
+  @media (min-width: 640px) {
+    .wrap { padding: 2rem 1.5rem; }
+    .heading { font-size: 2rem; margin-bottom: 1.5rem; }
+    .assignments-grid { grid-template-columns: repeat(2, 1fr); }
+    .meta-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (min-width: 1024px) {
+    .assignments-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+
+<div class="wrap" role="main">
+  <h1 class="heading">Your Assignments</h1>
+
+  {% set pct = ( (completed_count / total_count * 100) if total_count else 0 ) | round(0, 'floor') %}
+  <div class="progress-card" aria-labelledby="progress-label">
+    <div class="progress-row">
+      <div id="progress-label">
+        You have completed
+        <b style="color: var(--primary);">{{ completed_count }}</b>
+        out of
+        <b style="color: var(--primary);">{{ total_count }}</b>
+        assignments.
+      </div>
+      <div style="font-size: 0.9rem; color: #6b7280;">
+        Progress: <b style="color: #111827;">{{ pct }}%</b>
+      </div>
+    </div>
+    <div class="progress-bar" role="progressbar" aria-valuenow="{{ pct }}" aria-valuemin="0" aria-valuemax="100" aria-labelledby="progress-label">
+      <div class="progress-fill" style="width: {{ pct }}%"></div>
+    </div>
+  </div>
+
+  <div class="assignments-grid">
+    {% for a in assignments %}
+      {% set is_completed_on_time = a.done and not a.submitted_late %}
+      {% set is_completed_late = a.done and a.submitted_late %}
+      {% set is_expired = not a.done and a.past_deadline %}
+      
+      {% set status_label, status_class = 'Open', 'badge-open' %}
+      {% if is_completed_on_time %}
+          {% set status_label, status_class = 'Completed', 'badge-completed' %}
+      {% elif is_completed_late %}
+          {% set status_label, status_class = 'Completed Late', 'badge-late' %}
+      {% elif is_expired %}
+          {% set status_label, status_class = 'Expired', 'badge-expired' %}
+      {% endif %}
+
+      <a href="{{ url_for('student.view_assignment', assignment_id=a.id) }}" class="card" aria-label="View assignment: {{ a.title }}">
+        <div class="card-top">
+          <h2 class="card-title" title="{{ a.title }}">{{ a.title }}</h2>
+          <span class="badge {{ status_class }}" title="{{ status_label }}">{{ status_label }}</span>
+        </div>
+        
+        <div class="meta-grid">
+          <div class="meta-item">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0h18M12 12.75h.008v.008H12v-.008Z" /></svg>
+            <span>Deadline: <b>{{ a.deadline_date.strftime('%b %d, %I:%M %p') if a.deadline_date else 'None' }}</b></span>
+          </div>
+          <div class="meta-item">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+            <span>Mark: <b>{{ a.submission.mark if a.submission and a.submission.mark else 'Not Marked' }}</b></span>
+          </div>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if assignments|length == 0 %}
+    <div style="text-align:center; color:#6b7280; margin-top:3rem; padding: 1.5rem 0;">
+      <p>🎉 No assignments found. Great job staying on top of your work!</p>
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

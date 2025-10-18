@@ -1,0 +1,544 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}View Zoom Meeting{% endblock %}
+
+{% block content %}
+<style>
+    .meeting-container {
+        max-width: 900px;
+        margin: 40px auto;
+        padding: 24px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .meeting-header {
+        border-bottom: 2px solid #e5e7eb;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+
+    .meeting-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+    }
+
+    .meeting-id {
+        font-size: 1.1rem;
+        color: #6b7280;
+    }
+
+    .meeting-section {
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 12px;
+    }
+
+    .meeting-info {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #4b5563;
+    }
+
+    .info-value {
+        color: #1f2937;
+    }
+
+    .scope-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .scope-tag {
+        padding: 6px 12px;
+        background: #e0e7ff;
+        color: #3730a3;
+        border-radius: 6px;
+        font-size: 0.9rem;
+    }
+
+    .participants-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .participant-item {
+        padding: 12px 16px;
+        margin-bottom: 8px;
+        background: #f3f4f6;
+        border-radius: 6px;
+    }
+
+    .participant-item.unlinked {
+        background: #fef3c7;
+        border: 2px solid #f59e0b;
+    }
+
+    .participant-name {
+        font-weight: 500;
+        color: #1f2937;
+        font-size: 1rem;
+    }
+
+    .participant-details {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 8px;
+        margin-top: 8px;
+        font-size: 0.9rem;
+    }
+
+    .participant-label {
+        color: #6b7280;
+    }
+
+    .participant-value {
+        color: #374151;
+    }
+
+    .unlinked-notice {
+        color: #dc2626;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .link-user-section {
+        margin-top: 12px;
+        padding: 12px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+    }
+
+    .link-user-section label {
+        display: block;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .link-user-section select {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+    }
+
+    .link-button {
+        padding: 8px 16px;
+        background: #10b981;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .link-button:hover {
+        background: #059669;
+    }
+
+    .link-button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    .unlink-button {
+        padding: 6px 14px;
+        background: #f59e0b;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+        font-size: 0.85rem;
+        margin-left: 8px;
+    }
+
+    .unlink-button:hover {
+        background: #d97706;
+    }
+
+    .unlink-button:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+
+    .no-participants {
+        color: #6b7280;
+        font-style: italic;
+    }
+
+    .back-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #6366f1;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+
+    .back-button:hover {
+        background: #4f46e5;
+    }
+
+    .delete-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #ef4444;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 600;
+        margin-left: 12px;
+        border: none;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .delete-button:hover {
+        background: #dc2626;
+    }
+
+    .action-buttons {
+        margin-top: 32px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e7eb;
+    }
+</style>
+
+<div class="meeting-container">
+    <div class="meeting-header">
+        <div class="meeting-title">Zoom Meeting Details</div>
+        <div class="meeting-id">Meeting ID: {{ meeting.meeting_id }}</div>
+    </div>
+
+    <div class="meeting-section">
+        <div class="section-title">Meeting Information</div>
+        <div class="meeting-info">
+            <div class="info-label">Subject:</div>
+            <div class="info-value">{{ meeting.subject.name if meeting.subject else 'N/A' }}</div>
+
+            <div class="info-label">Creator:</div>
+            <div class="info-value">{{ meeting.creator.name if meeting.creator else 'Unknown' }}</div>
+
+            <div class="info-label">Created At:</div>
+            <div class="info-value">{{ meeting.created_at.strftime('%Y-%m-%d %H:%M:%S') if meeting.created_at else 'N/A'
+                }}</div>
+        </div>
+    </div>
+
+    <div class="meeting-section">
+        <div class="section-title">Scope</div>
+
+        <div class="meeting-info">
+            <div class="info-label">Groups:</div>
+            <div class="info-value">
+                {% if meeting.groups %}
+                <div class="scope-tags">
+                    {% for group in meeting.groups %}
+                    <span class="scope-tag">{{ group.name }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span>All Groups</span>
+                {% endif %}
+            </div>
+
+            <div class="info-label">Stages:</div>
+            <div class="info-value">
+                {% if meeting.stages %}
+                <div class="scope-tags">
+                    {% for stage in meeting.stages %}
+                    <span class="scope-tag">{{ stage.name }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span>All Stages</span>
+                {% endif %}
+            </div>
+
+            <div class="info-label">Schools:</div>
+            <div class="info-value">
+                {% if meeting.schools %}
+                <div class="scope-tags">
+                    {% for school in meeting.schools %}
+                    <span class="scope-tag">{{ school.name }}</span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <span>All Schools</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="meeting-section">
+        <div class="section-title">Participants ({{ memberships|length }})</div>
+        {% if memberships %}
+        <ul class="participants-list">
+            {% for membership in memberships %}
+            <li class="participant-item {% if not membership.user_id %}unlinked{% endif %}"
+                id="participant-{{ membership.id }}">
+                {% if membership.user_id %}
+                <div class="participant-name">
+                    {{ membership.user.name }}
+                    <button class="unlink-button" data-zoom-id="{{ membership.zoom_id }}">Unlink</button>
+                </div>
+                <div class="participant-details">
+                    <span class="participant-label">Email:</span>
+                    <span class="participant-value">{{ membership.user.email }}</span>
+
+                    <span class="participant-label">Zoom Display Name:</span>
+                    <span class="participant-value">{{ membership.zoom_display_name or 'N/A' }}</span>
+
+                    <span class="participant-label">Zoom Email:</span>
+                    <span class="participant-value">{{ membership.zoom_email or 'N/A' }}</span>
+
+                    <span class="participant-label">Zoom ID:</span>
+                    <span class="participant-value">{{ membership.zoom_id or 'N/A' }}</span>
+                </div>
+                {% else %}
+                <div class="unlinked-notice">
+                    ⚠️ Unlinked Participant
+                </div>
+                <div class="participant-details">
+                    <span class="participant-label">Zoom Display Name:</span>
+                    <span class="participant-value">{{ membership.zoom_display_name or 'N/A' }}</span>
+
+                    <span class="participant-label">Zoom Email:</span>
+                    <span class="participant-value">{{ membership.zoom_email or 'N/A' }}</span>
+
+                    <span class="participant-label">Zoom ID:</span>
+                    <span class="participant-value">{{ membership.zoom_id or 'N/A' }}</span>
+                </div>
+
+                <div class="link-user-section">
+                    <label for="user-select-{{ membership.zoom_id }}">Link to User:</label>
+                    <select id="user-select-{{ membership.zoom_id }}" class="user-select">
+                        <option value="">-- Select a user --</option>
+                        {% for user in all_users %}
+                        <option value="{{ user.id }}">{{ user.name }} ({{ user.email }})</option>
+                        {% endfor %}
+                    </select>
+                    <button class="link-button" data-zoom-id="{{ membership.zoom_id }}">
+                        Link User
+                    </button>
+                </div>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="no-participants">No participants have joined this meeting yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="action-buttons">
+        <a href="{{ url_for('admin.zoom') }}" class="back-button">Back to Zoom Meetings</a>
+        <button class="delete-button" data-meeting-id="{{ meeting.id }}">Delete Meeting</button>
+    </div>
+</div>
+
+<script data-cfasync="false">
+    // Use event delegation on document to avoid duplicate listeners
+    (function () {
+        let initialized = false;
+
+        function init() {
+            if (initialized) return;
+            initialized = true;
+
+            console.log('Initializing zoom meeting page...');
+
+            // Use event delegation on document for all buttons
+            document.addEventListener('click', function (e) {
+                // Handle delete button
+                if (e.target.classList.contains('delete-button')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const meetingId = e.target.getAttribute('data-meeting-id');
+                    console.log('Delete button clicked, meetingId:', meetingId);
+                    deleteMeeting(meetingId);
+                    return;
+                }
+
+                // Handle link button
+                if (e.target.classList.contains('link-button')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoomId = e.target.getAttribute('data-zoom-id');
+                    console.log('Link button clicked, zoomId:', zoomId);
+                    linkParticipant(zoomId, e.target);
+                    return;
+                }
+
+                // Handle unlink button
+                if (e.target.classList.contains('unlink-button')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const zoomId = e.target.getAttribute('data-zoom-id');
+                    console.log('Unlink button clicked, zoomId:', zoomId);
+                    unlinkParticipant(zoomId, e.target);
+                    return;
+                }
+            }, true); // Use capture phase
+        }
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+
+    function deleteMeeting(meetingId) {
+        if (confirm('Are you sure you want to delete this Zoom meeting?')) {
+            fetch('/admin/zoom/' + meetingId + '/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Meeting deleted successfully!');
+                        window.location.href = "{{ url_for('admin.zoom') }}";
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('An error occurred: ' + error);
+                });
+        }
+    }
+
+    function linkParticipant(zoomId, buttonElement) {
+        console.log('linkParticipant called with zoomId:', zoomId);
+
+        const selectElement = document.getElementById('user-select-' + zoomId);
+        console.log('Select element found:', selectElement);
+
+        if (!selectElement) {
+            alert('Error: Could not find user selection dropdown.');
+            console.error('Select element not found for ID: user-select-' + zoomId);
+            return;
+        }
+
+        const userId = selectElement.value;
+        console.log('Selected user ID:', userId);
+
+        if (!userId || userId === '') {
+            alert('Please select a user to link.');
+            return;
+        }
+
+        buttonElement.disabled = true;
+        buttonElement.textContent = 'Linking...';
+
+        console.log('Sending request to link participant...');
+
+        fetch('/admin/zoom/link_participant', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                zoom_id: zoomId,
+                user_id: parseInt(userId)
+            })
+        })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    alert('Success! Participant linked to ' + data.user_name);
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = 'Link User';
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('An error occurred: ' + error);
+                buttonElement.disabled = false;
+                buttonElement.textContent = 'Link User';
+            });
+    }
+
+    function unlinkParticipant(zoomId, buttonElement) {
+        if (!confirm('Are you sure you want to unlink this participant?')) {
+            return;
+        }
+
+        console.log('unlinkParticipant called with zoomId:', zoomId);
+
+        buttonElement.disabled = true;
+        buttonElement.textContent = 'Unlinking...';
+
+        fetch('/admin/zoom/unlink_participant', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                zoom_id: zoomId
+            })
+        })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                if (data.success) {
+                    alert('Participant unlinked successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = 'Unlink';
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('An error occurred: ' + error);
+                buttonElement.disabled = false;
+                buttonElement.textContent = 'Unlink';
+            });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,238 @@
+// server.js
+
+const express = require('express');
+const pino = require('pino');
+const fs = require('fs');
+const axios = require('axios');
+const qrcode = require('qrcode-terminal');
+
+const app = express();
+const PORT = 6969;
+
+app.use(express.json());
+
+// In-memory stores
+let sock;
+let chats = [];
+let contacts = [];
+let sseClients = [];
+
+// --- Helper: find contact info for JID ---
+function lookupContact(jid) {
+  const c = contacts.find((x) => x.id === jid);
+  if (!c) return { displayName: null, verifiedName: null, isBusiness: false };
+  return {
+    displayName: c.notify || c.name || null,
+    verifiedName: c.verifiedName || null,
+    isBusiness: !!c.biz,
+  };
+}
+
+// --- Helper: forward incoming messages to backend ---
+async function processIncomingMessage({ jid, messageContent }) {
+  const [wa_idRaw] = jid.split('@');
+  const wa_id = wa_idRaw.split(':')[0];
+  const phone_number = wa_id;
+
+  const meta = lookupContact(jid);
+  const payload = {
+    jid,
+    wa_id,
+    message: messageContent,
+    display_name: meta.displayName || meta.verifiedName || null,
+    phone_number,
+  };
+
+  console.log('➡️ Sending payload:', payload);
+
+  try {
+    const response = await axios.post(
+      'https://sallymahfouzigcse.com/backend/whatsapp',
+      payload,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    console.log('✅ Backend ACK:', response.data);
+  } catch (error) {
+    console.error('❌ Backend error:', error.message);
+  }
+}
+
+// --- Send SSE updates ---
+const sendSseUpdate = (data) => {
+  sseClients.forEach((client) => {
+    client.res.write(`data: ${JSON.stringify(data)}\n\n`);
+  });
+};
+
+// --- MAIN WRAPPER ---
+(async () => {
+  const {
+    makeWASocket,
+    useMultiFileAuthState,
+    DisconnectReason,
+    fetchLatestBaileysVersion,
+    jidNormalizedUser,
+  } = await import('@whiskeysockets/baileys');
+
+  async function connectToWhatsApp() {
+    const { state, saveCreds } = await useMultiFileAuthState('baileys_auth_info');
+    const { version } = await fetchLatestBaileysVersion();
+
+    sock = makeWASocket({
+      version,
+      auth: state,
+      logger: pino({ level: 'silent' }),
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+
+    sock.ev.on('connection.update', (update) => {
+      const { connection, lastDisconnect, qr } = update;
+      if (qr) qrcode.generate(qr, { small: true });
+
+      if (connection === 'close') {
+        const shouldReconnect =
+          lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        console.log('⚠️ Connection closed:', lastDisconnect?.error);
+        if (shouldReconnect) connectToWhatsApp();
+      } else if (connection === 'open') {
+        console.log('✅ Connected to WhatsApp!');
+      }
+    });
+
+    // --- Chats ---
+    sock.ev.on('chats.set', (item) => {
+      chats = item.chats;
+      sendSseUpdate({ event: 'initial_chats', data: chats });
+    });
+
+    sock.ev.on('chats.update', (updates) => {
+      updates.forEach((update) => {
+        const i = chats.findIndex((c) => c.id === update.id);
+        if (i > -1) Object.assign(chats[i], update);
+        else chats.push(update);
+      });
+      sendSseUpdate({ event: 'chats_update', data: updates });
+    });
+
+    // --- Contacts ---
+    sock.ev.on('contacts.set', (item) => {
+      contacts = item.contacts || [];
+      sendSseUpdate({ event: 'contacts_set', data: contacts });
+    });
+
+    sock.ev.on('contacts.update', (updates) => {
+      updates.forEach((update) => {
+        const i = contacts.findIndex((c) => c.id === update.id);
+        if (i > -1) Object.assign(contacts[i], update);
+        else contacts.push(update);
+      });
+      sendSseUpdate({ event: 'contacts_update', data: updates });
+    });
+
+    // --- Messages ---
+    sock.ev.on('messages.upsert', async ({ messages }) => {
+      const msg = messages?.[0];
+      if (!msg || msg.key.fromMe || !msg.message) return;
+
+      // ✅ Always use senderPn if available (real number)
+      const rawJid = msg.key.senderPn || msg.key.remoteJid;
+
+      // Skip groups & broadcasts
+      if (rawJid.endsWith('@g.us') || rawJid === 'status@broadcast') return;
+
+      const cleanJid = jidNormalizedUser(rawJid);
+      const [userPart] = cleanJid.split('@');
+      const wa_id = userPart.split(':')[0];
+
+      console.log('\n🟢 --- INCOMING MESSAGE DEBUG ---');
+      console.log('Raw JID:', msg.key.remoteJid);
+      console.log('SenderPn:', msg.key.senderPn);
+      console.log('Using JID:', rawJid);
+      console.log('Normalized JID:', cleanJid);
+      console.log('WA_ID:', wa_id);
+
+      const meta = lookupContact(cleanJid);
+      console.log('Matched Contact:', meta);
+
+      const messageContent =
+        msg.message.conversation ||
+        msg.message.extendedTextMessage?.text ||
+        msg.message?.imageMessage?.caption ||
+        msg.message?.videoMessage?.caption ||
+        msg.message?.documentWithCaptionMessage?.message?.text ||
+        '';
+
+      console.log('Message Content:', messageContent);
+
+      if (messageContent) {
+        await processIncomingMessage({ jid: cleanJid, messageContent });
+      }
+
+      sendSseUpdate({ event: 'new_message', data: msg });
+    });
+  }
+
+  // --- API Key Middleware ---
+  const API_KEY = 'Whatsappsecretkeeeey2@1';
+  const authenticateRequest = (req, res, next) => {
+    const providedApiKey = req.headers['x-api-key'];
+    if (!providedApiKey)
+      return res.status(401).json({ error: 'Auth header missing' });
+    if (providedApiKey !== API_KEY)
+      return res.status(403).json({ error: 'Invalid API Key' });
+    next();
+  };
+
+  // --- API ROUTES ---
+  app.post('/sendText', authenticateRequest, async (req, res) => {
+    const { to, content } = req.body;
+    if (!sock) return res.status(503).json({ error: 'WhatsApp not connected.' });
+    if (!to || !content)
+      return res.status(400).json({ error: 'Both "to" and "content" required.' });
+
+    try {
+      console.log(`📤 Sending message to ${to}...`);
+      const recipient = `${String(to).split(':')[0]}@s.whatsapp.net`;
+      await sock.sendMessage(recipient, { text: content });
+      res.status(200).json({ success: true, message: 'Message sent successfully.' });
+    } catch (error) {
+      console.error('❌ Failed to send message:', error.message);
+      res.status(500).json({ success: false, error: 'Failed to send message.' });
+    }
+  });
+
+  app.get('/contacts', (req, res) => {
+    if (!sock) return res.status(503).json({ error: 'WhatsApp not connected.' });
+    const existingChatJIDs = chats.map((chat) => chat.id);
+    res.status(200).json({
+      existingChats: existingChatJIDs,
+      savedContacts: contacts.map((c) => ({
+        id: c.id,
+        displayName: c.notify || c.name || null,
+        verifiedName: c.verifiedName || null,
+        isBusiness: !!c.biz,
+      })),
+    });
+  });
+
+  app.get('/updates', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const clientId = Date.now();
+    sseClients.push({ id: clientId, res });
+
+    req.on('close', () => {
+      sseClients = sseClients.filter((client) => client.id !== clientId);
+    });
+  });
+
+  // --- START SERVER ---
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    connectToWhatsApp();
+  });
+})();

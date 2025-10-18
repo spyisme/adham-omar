@@ -1,0 +1,726 @@
+{% extends "student/dashboard.html" %}
+{% block title %}Assignment Details{% endblock %}
+{% block content %}
+
+<style>
+  /* --- New Theme & Base Styles --- */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg-color: #f7f8fc;
+    --card-bg: #ffffff;
+    --text-primary: #111827;
+    --text-secondary: #4b5563;
+    --primary: #4f46e5;
+    --primary-light: #e0e7ff;
+    --primary-border: #c7d2fe;
+    --success: #059669;
+    --success-light: #d1fae5;
+    --success-border: #a7f3d0;
+    --warning: #d97706;
+    --warning-light: #fef3c7;
+    --warning-border: #fde68a;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --danger-border: #fecaca;
+    --border-color: #e5e7eb;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  .opacity-50 {
+    opacity: 0.5;
+  }
+
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
+
+  .detail-container {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+  }
+
+  .page-subtitle {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+  }
+
+  .detail-card {
+    background: var(--card-bg);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  .card-section {
+    padding: 1.5rem;
+  }
+
+  .card-section:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .card-header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .card-header-content {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+  }
+
+  .assignment-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .status-badge {
+    flex-shrink: 0;
+    font-weight: 500;
+    font-size: 0.75rem;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    margin-top: 0.25rem;
+  }
+
+  .badge-open {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary-border);
+  }
+
+  .badge-completed {
+    background-color: var(--success-light);
+    color: var(--success);
+    border-color: var(--success-border);
+  }
+
+  .badge-late {
+    background-color: var(--warning-light);
+    color: var(--warning);
+    border-color: var(--warning-border);
+  }
+
+  .badge-expired {
+    background-color: var(--danger-light);
+    color: var(--danger);
+    border-color: var(--danger-border);
+  }
+
+  .meta-info {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  .meta-info span {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .description-text {
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .attachments-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .attachments-list a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    word-break: break-all;
+  }
+
+  .attachments-list a:hover {
+    text-decoration: underline;
+  }
+
+  .submission-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+  }
+
+  .submission-info span {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .actions-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-primary {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .btn-primary:hover {
+    background-color: #4338ca;
+    border-color: #4338ca;
+  }
+
+  .btn-secondary {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+
+  .btn-secondary:hover {
+    border-color: #d1d5db;
+    background-color: #f9fafb;
+  }
+
+  .btn-danger {
+    background-color: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
+  .btn-danger:hover {
+    background-color: #b91c1c;
+    border-color: #b91c1c;
+  }
+
+  /* Upload */
+  #upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .file-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  #file-name {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+  }
+
+  #progress-container {
+    width: 100%;
+    height: 0.5rem;
+    background: var(--bg-color);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  #progress-bar {
+    height: 100%;
+    border-radius: 9999px;
+    background: var(--primary);
+    transition: width 0.15s linear;
+  }
+
+  #status-message {
+    font-size: 0.875rem;
+    font-weight: 500;
+    min-height: 1.25rem;
+  }
+
+  .helper-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+
+  .browser-warning {
+    background-color: #fef3c7;
+    border: 1px solid #fbbf24;
+    border-radius: 0.75rem;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    display: none;
+    color: #92400e;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .browser-warning strong {
+    font-weight: 600;
+    color: #78350f;
+  }
+</style>
+
+<main class="detail-container">
+  <header class="page-header">
+    <h1 class="page-title">📝 Assignment Details</h1>
+    <p class="page-subtitle">Everything you need to submit successfully</p>
+  </header>
+
+  <div id="browser-warning" class="browser-warning">
+    ⚠️ <strong>Browser Compatibility Notice:</strong> Uploads may fail on your current browser. For the best experience
+    and reliable uploads, please use the latest version of <strong>Google Chrome</strong>.
+  </div>
+
+  <div class="detail-card">
+    <section class="card-section">
+      <div class="card-header-content">
+        <h2 class="assignment-title" title="{{ assignment.title }}">{{ assignment.title }}</h2>
+
+        {% set is_completed = assignment.done %}
+        {% set is_completed_late = assignment.done and assignment.submitted_late %}
+        {% set is_expired = (not assignment.done) and assignment.past_deadline %}
+        {% set status_label = 'Open' %}
+        {% set status_class = 'badge-open' %}
+        {% if is_completed and not is_completed_late %}
+        {% set status_label = 'Completed' %}
+        {% set status_class = 'badge-completed' %}
+        {% elif is_completed_late %}
+        {% set status_label = 'Completed Late' %}
+        {% set status_class = 'badge-late' %}
+        {% elif is_expired %}
+        {% set status_label = 'Expired' %}
+        {% set status_class = 'badge-expired' %}
+        {% endif %}
+        <span class="status-badge {{ status_class }}">{{ status_label }}</span>
+      </div>
+
+      <div class="meta-info">
+        {% if assignment.deadline_date %}
+        <div>🗓️ Deadline: <span>{{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span></div>
+        {% endif %}
+        {% if assignment.submission and assignment.submission.mark is not none %}
+        <div style="margin-top: 0.5rem;">⭐ Mark: <span style="color: var(--primary);">{{ assignment.submission.mark
+            }}</span></div>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if assignment.description %}
+    <section class="card-section">
+      <h3 class="section-title">Description</h3>
+      <p class="description-text">{{ assignment.description }}</p>
+    </section>
+    {% endif %}
+
+    <section class="card-section">
+      <h3 class="section-title">Attachments</h3>
+      {% if attachments %}
+      <ul class="attachments-list">
+        {% for attachment in attachments %}
+        {% if "http" in attachment %}
+        <li>🔗 <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a></li>
+        {% else %}
+        <li>📎 <a href="{{ url_for('student.assignment_media', filename=attachment) }}" target="_blank"
+            rel="noopener">{{ attachment }}</a></li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="description-text">No attachments provided.</p>
+      {% endif %}
+    </section>
+
+    <section class="card-section">
+      {% if submission %}
+      <h3 class="section-title">Your Submission</h3>
+      <div class="submission-info">
+        Submitted on: <span>{{ submission.upload_time.strftime('%B %d, %Y at %I:%M %p') }}</span>
+      </div>
+      <div class="actions-group">
+        <a href="{{ url_for('student.student_submission_media', assignment_id=assignment.id) }}" target="_blank"
+          rel="noopener" class="btn btn-secondary">
+          📄 View Submission
+        </a>
+        <form method="POST" action="{{ url_for('student.delete_submission', assignment_id=assignment.id) }}"
+          style="margin:0;">
+          <button type="submit" class="btn btn-danger"
+            onclick="return confirmAction(event,'Are you sure you want to delete your submission?')">
+            🗑️ Delete Submission
+          </button>
+        </form>
+      </div>
+
+      {% if submission.mark is not none and submission.mark != "Not marked yet" %}
+      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <div>
+          Mark: <span style="color: var(--primary);">{{ submission.mark }}</span>
+        </div>
+        <h3 class="section-title">Correction</h3>
+        <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
+          class="btn btn-secondary">
+          📄 View Correction
+        </a>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <h3 class="section-title">Submit Your Assignment</h3>
+
+      <form id="upload-form" action="{{ url_for('student.upload_chunk', assignment_id=assignment.id) }}" method="POST"
+        enctype="multipart/form-data" novalidate>
+        <input type="hidden" id="csrf-token" name="csrf_token"
+          value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+        <div class="file-input-wrapper">
+          <input type="file" id="file" name="file" class="hidden" required
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png">
+          <label for="file" class="btn btn-secondary">📎 Choose File</label>
+          <span id="file-name">No file chosen</span>
+        </div>
+
+        <div id="progress-container" class="hidden">
+          <div id="progress-bar" style="width: 0%"></div>
+        </div>
+
+        <div id="status-message"></div>
+        <button type="submit" class="btn btn-primary">✅ Submit Assignment</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+</main>
+
+<script>
+  // Browser detection - show warning if not Chrome
+  (function () {
+    const ua = navigator.userAgent;
+    const vendor = navigator.vendor || '';
+
+    // Check for Chrome on desktop/Android (Chrome + Google Inc vendor)
+    const isChromeDesktop = /Chrome/.test(ua) && /Google Inc/.test(vendor);
+
+    // Check for Chrome on iOS (CriOS in user agent)
+    const isChromeIOS = /CriOS/.test(ua);
+
+    // Check for Chromium-based Edge
+    const isEdgeChromium = /Edg/.test(ua) && /Chrome/.test(ua);
+
+    const isChrome = isChromeDesktop || isChromeIOS || isEdgeChromium;
+
+    if (!isChrome) {
+      const warning = document.getElementById('browser-warning');
+      if (warning) {
+        warning.style.display = 'block';
+      }
+    }
+  })();
+
+  function confirmAction(e, message) {
+    if (!confirm(message)) { e.preventDefault(); return false; }
+    return true;
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const uploadForm = document.getElementById('upload-form');
+    if (!uploadForm) return;
+
+    const fileInput = document.getElementById('file');
+    const fileNameSpan = document.getElementById('file-name');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const statusMessage = document.getElementById('status-message');
+    const submitButton = uploadForm.querySelector('button[type="submit"]');
+    const csrfTokenInput = document.getElementById('csrf-token');
+
+    const MAX_RETRIES = 3;
+    const CHUNK_TIMEOUT_MS = 30000; // 30s per chunk
+
+    const ALLOWED_EXTS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'jpg', 'jpeg', 'png'];
+    const BLOCKED_EXTS = ['heic', 'heif'];
+
+    function setStatus(msg, colorVar) {
+      statusMessage.textContent = msg;
+      statusMessage.style.color = colorVar || 'var(--text-secondary)';
+    }
+    function resetUploadUI() {
+      submitButton.disabled = false;
+      submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
+      progressContainer.classList.add('hidden');
+      progressBar.style.width = '0%';
+      fileInput.value = '';
+      fileNameSpan.textContent = 'No file chosen';
+    }
+    function getExt(name) {
+      const dot = name.lastIndexOf('.');
+      return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
+    }
+    function humanSize(bytes) {
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let i = 0, n = bytes;
+      while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+      return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
+    }
+    function chooseChunkSize(totalBytes) {
+      if (totalBytes <= 2 * 1024 * 1024) return 512 * 1024; // <=2MB → 512KB
+      return 1024 * 1024;                                   // default 1MB
+    }
+    function getCSRFToken() {
+      if (csrfTokenInput && csrfTokenInput.value) return csrfTokenInput.value;
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta && meta.content) return meta.content;
+      const m = document.cookie.match(/(?:^|;\s*)csrf[_-]?token=([^;]+)/i);
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+
+    fileInput.addEventListener('change', function () {
+      fileNameSpan.textContent = this.files.length > 0 ? this.files[0].name : 'No file chosen';
+      if (statusMessage.style.color === 'red') statusMessage.textContent = '';
+    });
+
+    uploadForm.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        setStatus('Please choose a file to upload.', 'var(--danger)');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const ext = getExt(file.name);
+      const mime = (file.type || '').toLowerCase();
+
+      // Block HEIC/HEIF early with a helpful nudge
+      if (BLOCKED_EXTS.includes(ext) || mime.includes('heic') || mime.includes('heif')) {
+        setStatus('⚠️ This device saved the image as HEIC/HEIF. Please convert to JPEG/PNG or change camera settings to “Most Compatible” and try again.', 'var(--danger)');
+        resetUploadUI();
+        return;
+      }
+      if (!ALLOWED_EXTS.includes(ext)) {
+        setStatus(`⚠️ Invalid file type (.${ext || 'unknown'}). Allowed: ${ALLOWED_EXTS.join(', ')}`, 'var(--danger)');
+        resetUploadUI();
+        return;
+      }
+
+      const totalSize = file.size;
+      const CHUNK_SIZE = chooseChunkSize(totalSize);
+      const uploadUrl = this.action;
+      const csrfToken = getCSRFToken();
+
+      submitButton.disabled = true;
+      submitButton.classList.add('opacity-50', 'cursor-not-allowed');
+      progressContainer.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      setStatus(`Starting upload of ${file.name} (${humanSize(totalSize)})…`);
+
+      let offset = 0;
+
+      // XHR helper with true upload progress
+      function xhrUploadChunk({ url, formData, onUploadProgress, headers = {}, withCredentials = true, timeout = CHUNK_TIMEOUT_MS }) {
+        return new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', url, true);
+          xhr.withCredentials = withCredentials;
+          xhr.timeout = timeout;
+
+          for (const [k, v] of Object.entries(headers)) {
+            try { xhr.setRequestHeader(k, v); } catch (_) { }
+          }
+
+          xhr.upload.onprogress = function (e) {
+            if (onUploadProgress) onUploadProgress(e);
+          };
+
+          xhr.onload = function () {
+            const ct = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
+
+            // Session issues → server may return HTML or 401/403
+            if (xhr.status === 401 || xhr.status === 403) {
+              resolve({ action: 'redirect_login' });
+              return;
+            }
+            if (!ct.includes('application/json')) {
+              resolve({ action: 'redirect_login' });
+              return;
+            }
+
+            let data = null;
+            try {
+              data = JSON.parse(xhr.responseText || '{}');
+            } catch (err) {
+              reject(new Error('Invalid JSON from server.'));
+              return;
+            }
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(data);
+            } else {
+              reject(new Error((data && (data.error || data.message)) || 'Chunk upload failed.'));
+            }
+          };
+
+          xhr.onerror = function () { reject(new Error('Network error.')); };
+          xhr.ontimeout = function () { reject(new Error('Request timed out.')); };
+
+          xhr.send(formData);
+        });
+      }
+
+      async function postChunkWithRetry(formData, onUploadProgress) {
+        const headers = {};
+        if (csrfToken) {
+          headers['X-CSRFToken'] = csrfToken;
+          headers['X-CSRF-Token'] = csrfToken;
+        }
+
+        for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+          try {
+            return await xhrUploadChunk({
+              url: uploadUrl,
+              formData,
+              onUploadProgress,
+              headers,
+              withCredentials: true,
+              timeout: CHUNK_TIMEOUT_MS
+            });
+          } catch (err) {
+            if (attempt < MAX_RETRIES) {
+              const backoff = 600 * Math.pow(2, attempt);
+              setStatus(`Network hiccup, retrying… (${attempt + 1}/${MAX_RETRIES})`, 'var(--warning)');
+              await new Promise(r => setTimeout(r, backoff));
+              continue;
+            }
+            throw err;
+          }
+        }
+      }
+
+      try {
+        while (offset < totalSize) {
+          const end = Math.min(offset + CHUNK_SIZE, totalSize);
+          const chunkBlob = new Blob([file.slice(offset, end)], { type: 'application/octet-stream' });
+
+          const formData = new FormData();
+          formData.append('file_chunk', chunkBlob, file.name);
+          formData.append('filename', file.name);
+          formData.append('offset', String(offset));
+          formData.append('total_size', String(totalSize));
+
+          const onUploadProgress = (e) => {
+            // Smooth, byte-true global progress while the request is in flight
+            const loadedInThisChunk = e && e.lengthComputable ? e.loaded : 0;
+            let globalLoaded = offset + loadedInThisChunk;
+            if (globalLoaded > totalSize) globalLoaded = totalSize;
+            let percent = Math.floor((globalLoaded / totalSize) * 100);
+            // Keep a little headroom; snap to 100% only when server confirms
+            if (percent >= 100) percent = 99;
+            progressBar.style.width = percent + '%';
+            setStatus(`Uploading… ${percent}% (${humanSize(globalLoaded)} / ${humanSize(totalSize)})`);
+          };
+
+          const result = await postChunkWithRetry(formData, onUploadProgress);
+
+          if (!result) throw new Error('Unexpected empty response from server.');
+
+          if (result.action === 'redirect_login') {
+            alert('Your session has expired. Please log in again.');
+            window.location.href = '/login';
+            return;
+          }
+          if (result.action === 'already_submitted') {
+            setStatus(`⚠️ ${result.error}`, 'var(--warning)');
+            submitButton.disabled = true;
+            setTimeout(() => window.location.reload(), 2000);
+            return;
+          }
+          if (result.action === 'restart_upload') {
+            setStatus(`⚠️ ${result.error || 'Please try uploading again.'}`, 'var(--danger)');
+            resetUploadUI();
+            return;
+          }
+          if (result.action === 'retry_chunk') {
+            setStatus(`⚠️ ${result.message || 'Retrying chunk…'}`, 'var(--warning)');
+            // do not advance offset; try this same chunk again
+            continue;
+          }
+          if (result.action === 'invalid_file_type') {
+            const allowedTypes = result.allowed_extensions ? result.allowed_extensions.join(', ') : ALLOWED_EXTS.join(', ');
+            setStatus(`⚠️ Invalid file type. Allowed: ${allowedTypes}`, 'var(--danger)');
+            resetUploadUI();
+            return;
+          }
+
+          if (result.action === 'upload_complete') {
+            // Final confirmation from server
+            progressBar.style.width = '100%';
+            setStatus('✅ Upload complete! Finalizing…', 'var(--success)');
+            setTimeout(() => window.location.reload(), 1200);
+            return;
+          }
+
+          // Default/continue path
+          offset = end;
+          const pct = Math.min(99, Math.floor((offset / totalSize) * 100));
+          progressBar.style.width = pct + '%';
+          setStatus(`Uploading… ${pct}% (${humanSize(offset)} / ${humanSize(totalSize)})`);
+        }
+
+      } catch (error) {
+        setStatus(`⚠️ Upload failed: ${error.message}`, 'var(--danger)');
+        resetUploadUI();
+        return;
+      }
+    });
+  });
+</script>
+
+{% endblock %}

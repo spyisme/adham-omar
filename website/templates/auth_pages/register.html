@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subjects with Amr - Register</title>
+  <meta name="description" content="Subjects with  Amr Registration">
+  <meta name="keywords" content="Subjects,  Amr, Register, Subjects with  Amr">
+  <meta name="author" content=" Amr">
+  <style>
+    :root {
+      --bg-light: #f8f9fa;
+      --bg-panel: #ffffff;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-on-accent: #ffffff;
+      --accent-primary: #28a745;
+      /* A fresh green */
+      --accent-primary-dark: #218838;
+      --border-color: #dee2e6;
+      --error-bg: #f8d7da;
+      --error-text: #721c24;
+      --error-border: #f5c6cb;
+      --radius-sm: 0.25rem;
+      --radius-md: 0.5rem;
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* --- Base & Typography --- */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* --- Main Page Layout --- */
+    .page-container {
+      display: flex;
+      min-height: 100vh;
+      animation: fade-in 0.8s ease-out;
+    }
+
+    .welcome-panel {
+      flex-basis: 40%;
+      background: linear-gradient(45deg, var(--accent-primary), var(--accent-primary-dark));
+      color: var(--text-on-accent);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .welcome-panel .brand-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .welcome-panel .brand-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .welcome-panel p {
+      font-size: 1.1rem;
+      max-width: 350px;
+      opacity: 0.9;
+    }
+
+    .form-panel {
+      flex-basis: 60%;
+      background-color: var(--bg-panel);
+      padding: clamp(1.5rem, 5vw, 3rem);
+      overflow-y: auto;
+    }
+
+    .form-header h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+    }
+
+    .form-header p {
+      color: var(--text-secondary);
+      margin: 0 0 2.5rem;
+    }
+
+    /* --- Form Elements --- */
+    .form-section {
+      margin-bottom: 2.5rem;
+    }
+
+    .form-section h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background-color: #fff;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+    }
+
+    .form-group select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236c757d' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em 1em;
+      cursor: pointer;
+    }
+
+    /* Custom File Input */
+    .file-input-wrapper {
+      display: flex;
+      align-items: stretch;
+    }
+
+    .file-input-trigger {
+      background-color: #e9ecef;
+      color: var(--text-primary);
+      padding: 0.75rem 1rem;
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+      border: 1px solid var(--border-color);
+      border-right: none;
+      cursor: pointer;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .file-input-name {
+      flex-grow: 1;
+      padding: 0 1rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border: 1px solid var(--border-color);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-submit {
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background-color: var(--accent-primary);
+      color: var(--text-on-accent);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+      margin-top: 1rem;
+    }
+
+    .form-submit:hover {
+      background-color: var(--accent-primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    .login-link a {
+      color: var(--accent-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* --- Validation & Flash Messages --- */
+    #form-errors {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      background: var(--error-bg);
+      border: 1px solid var(--error-border);
+      color: var(--error-text);
+      display: none;
+    }
+
+    #form-errors ul {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+
+    #form-errors li {
+      margin-bottom: 0.25rem;
+    }
+
+    .flash-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: auto;
+      max-width: 350px;
+    }
+
+    .flash-message {
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border-radius: var(--radius-md);
+      color: #fff;
+      box-shadow: var(--shadow-md);
+      animation: flash-slide-in 0.5s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes flash-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .flash-message.fade-out {
+      transition: opacity 0.5s ease;
+      opacity: 0;
+    }
+
+    .flash-success {
+      background: #28a745;
+    }
+
+    .flash-danger,
+    .flash-error {
+      background: #dc3545;
+    }
+
+    .flash-info,
+    .flash-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* --- Responsive Design --- */
+    @media (max-width: 992px) {
+      .page-container {
+        flex-direction: column;
+      }
+
+      .welcome-panel {
+        display: none;
+      }
+
+      /* Hide panel on smaller screens for simplicity */
+      .form-panel {
+        flex-basis: 100%;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  <div class="page-container">
+    <aside class="welcome-panel">
+      <div class="brand-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+        <span> Amr</span>
+      </div>
+      <p>Unlock your potential in subjects. Join a community of dedicated learners today.</p>
+    </aside>
+
+    <main class="form-panel">
+      <div class="form-header">
+        <h1>Create Your Account</h1>
+        <p>Welcome! Please fill in the details below to get started.</p>
+      </div>
+
+      <form id="registerForm" action="/register" method="POST" enctype="multipart/form-data" novalidate>
+
+        <section class="form-section">
+          <h2>Student Information</h2>
+          <div class="form-group">
+            <label for="student_name">Student Name</label>
+            <input type="text" id="student_name" name="student_name" required placeholder="Enter first 3 names" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="student_phone">Student Phone Number</label>
+              <input type="tel" id="student_phone" name="student_phone" required placeholder="e.g., 01xxxxxxxxx" />
+            </div>
+            <div class="form-group">
+              <label for="student_email">Student Email Address</label>
+              <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="subject">Subject</label>
+            <select name="subject" id="subject" required>
+              <option value="" disabled selected>Select Subject</option>
+              {% for subject in subjects %}<option value="{{ subject.id }}">{{ subject.name }}</option>{% endfor %}
+            </select>
+          </div>
+
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="school">School</label>
+              <select name="school" id="school" required disabled>
+                <option value="" disabled selected>Select your school</option>
+              </select>
+            </div>
+
+            <script>
+              // 1. Get the data from Flask and convert it to a JavaScript object
+              // The 'tojson' filter is crucial for safely embedding the data
+              const subjectSchoolMap = {{ subject_school_map| tojson }};
+
+              // 2. Get references to the dropdown elements
+              const subjectSelect = document.getElementById('subject');
+              const schoolSelect = document.getElementById('school');
+
+              // 3. Add an event listener to the subject dropdown
+              subjectSelect.addEventListener('change', function () {
+                // Get the selected subject's ID
+                const selectedSubjectId = this.value;
+
+                // Find the list of schools for the selected subject
+                const schoolsForSubject = subjectSchoolMap[selectedSubjectId] || [];
+
+                // Clear previous school options (keeping the first "Select..." option)
+                while (schoolSelect.options.length > 1) {
+                  schoolSelect.remove(1);
+                }
+
+                // Enable the school dropdown and reset its value
+                schoolSelect.disabled = false;
+                schoolSelect.value = "";
+
+                // Add the new school options
+                schoolsForSubject.forEach(function (school) {
+                  const option = new Option(school.name, school.id); // Create a new <option>
+                  schoolSelect.add(option); // Add it to the select box
+                });
+              });
+            </script>
+            <div class="form-group">
+              <label for="stage">Grade</label>
+              <select name="stage" id="stage" required>
+                <option value="" disabled selected>Select your grade</option>
+                {% for stage in stages %}<option value="{{ stage.id }}">{{ stage.name }}</option>{% endfor %}
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="group">Class</label>
+              <select name="group" id="group" required>
+                <option value="" disabled selected>Select your class</option>
+                {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="profile_picture">Profile Picture</label>
+            <div class="file-input-wrapper">
+              <input type="file" id="profile_picture" name="profile_picture" accept=".jpg,.jpeg,.png" required
+                style="display:none;">
+              <label for="profile_picture" class="file-input-trigger">Choose File</label>
+              <span class="file-input-name">No file chosen...</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="form-section">
+          <h2>Parent & Account Information</h2>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="parent_type">Parent Type</label>
+              <select name="parent_type" id="parent_type" required>
+                <option value="" disabled selected>Select parent type</option>
+                <option value="father">Father</option>
+                <option value="mother">Mother</option>
+                <option value="guardian">Guardian</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="parent_phone">Parent Phone Number</label>
+              <input type="tel" id="parent_phone" name="parent_phone" required placeholder="e.g., 01xxxxxxxxx" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="password">Password (min. 8 characters)</label>
+            <input type="password" id="password" name="password" required placeholder="Create a secure password" />
+          </div>
+        </section>
+
+        <div id="form-errors"></div>
+
+        <button type="submit" class="form-submit">Create Account</button>
+        <div class="login-link">
+          Already have an account? <a href="/login">Login now</a>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // --- Flash Message Handling ---
+      const flashMessages = document.querySelectorAll('.flash-message');
+      flashMessages.forEach(msg => {
+        setTimeout(() => {
+          msg.classList.add('fade-out');
+          msg.addEventListener('transitionend', () => msg.remove());
+        }, 5000);
+      });
+
+      // --- Custom File Input ---
+      const fileInput = document.getElementById('profile_picture');
+      const fileNameSpan = document.querySelector('.file-input-name');
+      if (fileInput && fileNameSpan) {
+        fileInput.addEventListener('change', function () {
+          if (this.files && this.files.length > 0) {
+            fileNameSpan.textContent = this.files[0].name;
+          } else {
+            fileNameSpan.textContent = 'No file chosen...';
+          }
+        });
+      }
+
+      // --- Client-Side Form Validation ---
+      const form = document.getElementById("registerForm");
+      const errorContainer = document.getElementById("form-errors");
+      const maxFileSize = 5 * 1024 * 1024; // 5 MB
+
+      form.addEventListener("submit", function (e) {
+        let messages = [];
+        errorContainer.style.display = 'none';
+        errorContainer.innerHTML = '';
+
+        const addError = (message) => {
+          if (!messages.includes(message)) {
+            messages.push(message);
+          }
+        };
+
+        if (document.getElementById("student_name").value.trim().split(/\s+/).length < 3) {
+          addError("Student name must contain at least 3 names.");
+        }
+        const phoneRegex = /^01[0125][0-9]{8}$/;
+        if (!phoneRegex.test(document.getElementById("student_phone").value.trim())) {
+          addError("Invalid student phone number (e.g., 01xxxxxxxxx).");
+        }
+        if (!phoneRegex.test(document.getElementById("parent_phone").value.trim())) {
+          addError("Invalid parent phone number (e.g., 01xxxxxxxxx).");
+        }
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(document.getElementById("student_email").value.trim())) {
+          addError("Invalid student email address.");
+        }
+        if (document.getElementById("password").value.length < 6) {
+          addError("Password must be at least 6 characters long.");
+        }
+        ["subject", "school", "group", "stage", "parent_type"].forEach(id => {
+          if (document.getElementById(id).value === "") {
+            addError(`Please select a value for ${id.replace("_", " ")}.`);
+          }
+        });
+        const file = fileInput.files[0];
+        if (!file) {
+          addError("Please upload a profile picture.");
+        } else {
+          const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+          if (!allowedTypes.includes(file.type)) {
+            addError("Profile picture must be a JPG or PNG file.");
+          }
+          if (file.size > maxFileSize) {
+            addError("Profile picture size cannot exceed 5MB.");
+          }
+        }
+
+        if (messages.length > 0) {
+          e.preventDefault();
+          errorContainer.style.display = 'block';
+          const errorList = document.createElement('ul');
+          messages.forEach(msg => {
+            const listItem = document.createElement('li');
+            listItem.textContent = msg;
+            errorList.appendChild(listItem);
+          });
+          errorContainer.appendChild(errorList);
+          window.scrollTo(0, errorContainer.offsetTop - 20);
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>

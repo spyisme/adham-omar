@@ -1,0 +1,887 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Submissions for {{ assignment.title }}{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+{% endblock %}
+
+{% block content %}
+
+{% set total_students = submissions|length + not_submitted_students|length %}
+{% set submitted_count = submissions|length %}
+{% set missing_count = not_submitted_students|length %}
+{% set late_count = namespace(value=0) %}
+{% for sub in submissions %}
+{% if sub.upload_time > sub.assignment.deadline_date %}
+{% set late_count.value = late_count.value + 1 %}
+{% endif %}
+{% endfor %}
+
+
+
+
+
+
+<header class="page-header">
+    <div class="page-header-content">
+        <a href="{{ url_for('admin.assignments') }}" class="back-button">← Back to Assignments</a>
+        <h1 class="page-title">Assignment Details</h1>
+    </div>
+</header>
+
+<div class="container">
+    <div class="card info-card">
+        <div class="info-card-details">
+            <h2>{{ assignment.title }}</h2>
+            <div class="info-card-meta">
+                <span class="meta-item"><span class="meta-dot" style="background-color: var(--color-info);"></span> Due:
+                    {{ assignment.deadline_date.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                <span class="meta-item"><span class="meta-dot" style="background-color: var(--color-warning);"></span>
+                    {{ assignment.points }} Points</span>
+            </div>
+        </div>
+        <div>
+            Completion:
+            <strong style="font-size: 1.5rem;">
+                {% if total_students > 0 %}{{ "%.0f"|format((submitted_count / total_students) * 100) }}{% else %}0{%
+                endif %}%
+            </strong>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/student.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Total Students</p>
+                <p class="value">{{ total_students }}</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/submit.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Submitted</p>
+                <p class="value">{{ submitted_count }}</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/incomplete.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Missing</p>
+                <p class="value">{{ missing_count }}</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/overdue.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Late</p>
+                <p class="value">{{ late_count.value }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="overflow: visible;">
+        <div class="card-header">
+            <h3>Student Submissions</h3>
+            <p>Review and grade submitted assignments.</p>
+        </div>
+        <div class="card-content no-padding" style="overflow: visible;">
+            <div class="table-wrapper" style="overflow: visible;">
+                <table style="position: relative;">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Submission Time</th>
+                            <th>Grade</th>
+                            <th>Original File</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        {% if submission.student_id in submitted_student_ids %}
+                        <tr>
+                            <td data-label="Student" class="student-name">
+                                <a href="{{ url_for('admin.student', user_id=submission.student.id) }}">{{
+                                    submission.student.name }}</a>
+                                <div class="assignment-due">{{ submission.student.code }}</div>
+                            </td>
+                            <td data-label="Time"
+                                class="submission-time {% if submission.upload_time > submission.assignment.deadline_date %}late{% endif %}">
+                                {{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}
+                            </td>
+                            <td data-label="Grade">
+                                <form method="POST" class="grade-form"
+                                    style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                    <input type="text" name="mark"
+                                        value="{{ submission.mark if submission.mark is not none else '' }}"
+                                        placeholder="Grade" style="
+                                            width: 100px;
+                                            padding: 6px 10px;
+                                            border: 1px solid #ccc;
+                                            border-radius: 4px;
+                                            font-size: 1rem;
+                                            background: #fafbfc;
+                                            transition: border-color 0.2s;
+                                        " onfocus="this.style.borderColor='#007bff';"
+                                        onblur="this.style.borderColor='#ccc';">
+                                    <button type="submit" style="
+                                            padding: 6px 16px;
+                                            background-color: #007bff;
+                                            color: #fff;
+                                            border: none;
+                                            border-radius: 4px;
+                                            font-size: 1rem;
+                                            cursor: pointer;
+                                            transition: background 0.2s;
+                                        " onmouseover="this.style.backgroundColor='#0056b3';"
+                                        onmouseout="this.style.backgroundColor='#007bff';">Save</button>
+                                </form>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('admin.get_pdf', submission_id=submission.id) }}" target="_blank"
+                                    class="btn btn-primary btn-open btn-small">Open Original File</a>
+                            </td>
+                            <td data-label="Actions">
+                                <!-- Actions Popup Menu -->
+                                <div class="actions-dropdown">
+                                    <button type="button"
+                                        class="btn btn-primary btn-open btn-small actions-menu-button">Actions
+                                        &#x25BC;</button>
+                                    <div class="actions-menu">
+                                        <button type="button" class="actions-menu-item"
+                                            data-submission-id="{{ submission.id }}"
+                                            data-student-name="{{ submission.student.name }}"
+                                            data-current-mark="{{ submission.mark if submission.mark is not none else '' }}"
+                                            onclick="closeAllMenus(); openUploadModal(this.getAttribute('data-submission-id'), this.getAttribute('data-student-name'), this.getAttribute('data-current-mark'));">
+                                            📤 Upload Corrected PDF
+                                        </button>
+                                        <a href="{{ url_for('admin.edit_pdf', submission_id=submission.id) }}"
+                                            target="_blank" class="actions-menu-item">
+                                            📝 Correct Online
+                                        </a>
+                                        {% if submission.mark %}
+                                        <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}"
+                                            target="_blank" class="actions-menu-item">
+                                            📄 Open Corrected PDF
+                                        </a>
+                                        <form method="POST"
+                                            action="{{ url_for('admin.delete_submission', submission_id=submission.id) }}"
+                                            style="display:inline; margin: 0;"
+                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission?');">
+                                            <button type="submit" class="actions-menu-item actions-menu-item-danger">
+                                                🗑️ Delete Submission
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <!-- /Actions Popup Menu -->
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem;">No submissions yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helpers for dropdown menu
+        function closeAllMenus() {
+            document.querySelectorAll('.actions-menu').forEach(menu => {
+                menu.style.display = 'none';
+                // Reset positioning
+                menu.style.right = '0';
+                menu.style.left = 'auto';
+            });
+            document.querySelectorAll('.actions-menu-button').forEach(btn => btn.classList.remove('open'));
+        }
+
+        // Toggle menu on Actions button click, close others
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.actions-dropdown').forEach(function (dropdown) {
+                var btn = dropdown.querySelector('.actions-menu-button');
+                var menu = dropdown.querySelector('.actions-menu');
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    // Close all others first
+                    closeAllMenus();
+                    // Toggle this one
+                    if (menu.style.display === 'block') {
+                        menu.style.display = 'none';
+                        btn.classList.remove('open');
+                    } else {
+                        menu.style.display = 'block';
+                        btn.classList.add('open');
+
+                        // Smart positioning: Check if menu goes off-screen
+                        setTimeout(function () {
+                            var rect = menu.getBoundingClientRect();
+                            var viewportWidth = window.innerWidth;
+
+                            // If menu goes off right edge, position it on the left side
+                            if (rect.right > viewportWidth - 10) {
+                                menu.style.right = 'auto';
+                                menu.style.left = '0';
+                            }
+
+                            // If menu goes off left edge, position it on the right side
+                            if (rect.left < 10) {
+                                menu.style.left = 'auto';
+                                menu.style.right = '0';
+                            }
+                        }, 0);
+                    }
+                });
+            });
+            // Click outside closes all
+            document.body.addEventListener('click', function () {
+                closeAllMenus();
+            });
+            // Stop clicking the menu from bubbling up (don't close when clicking inside)
+            document.querySelectorAll('.actions-menu').forEach(function (menu) {
+                menu.addEventListener('click', function (e) { e.stopPropagation(); });
+            });
+        });
+    </script>
+    <style>
+        /* Actions Dropdown Styles */
+        .actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .actions-menu {
+            display: none;
+            position: absolute;
+            z-index: 9999;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            min-width: 220px;
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .actions-menu-item {
+            display: block;
+            width: 100%;
+            border: none;
+            background: none;
+            text-align: left;
+            padding: 12px 16px;
+            cursor: pointer;
+            color: #374151;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: background-color 0.15s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .actions-menu-item:last-child,
+        .actions-menu form:last-child .actions-menu-item {
+            border-bottom: none;
+        }
+
+        .actions-menu-item:hover,
+        .actions-menu-item:focus {
+            background-color: #f3f4f6;
+            outline: none;
+        }
+
+        .actions-menu-item-danger {
+            color: #dc2626;
+        }
+
+        .actions-menu-item-danger:hover {
+            background-color: #fee2e2;
+        }
+
+        .actions-menu-button.open {
+            background: #5050ee;
+            color: #fff;
+        }
+
+        /* Mobile responsive positioning */
+        @media (max-width: 768px) {
+            .actions-menu {
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                min-width: 200px;
+            }
+
+            /* Adjust if menu is at the edge */
+            .actions-dropdown:last-child .actions-menu {
+                right: 0;
+                left: auto;
+                transform: none;
+            }
+        }
+
+        /* Ensure table cells don't clip the dropdown */
+        tbody tr {
+            position: relative;
+        }
+
+        tbody td {
+            overflow: visible;
+        }
+    </style>
+
+
+    <div class="card">
+        <div class="card-header">
+            <h3>Missing Submissions</h3>
+            <p>Students who did not submit this assignment.</p>
+        </div>
+        <div class="card-content no-padding">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class/Group</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in not_submitted_students %}
+                        <tr>
+                            <td data-label="Student" class="student-name">
+                                <a href="{{ url_for('admin.student', user_id=student.id) }}">{{ student.name }}</a>
+                                <div class="assignment-due">{{ student.code }}</div>
+                            </td>
+                            <td data-label="Class">{{ student.group.name if student.group else 'N/A' }}</td>
+                            <td data-label="Status">
+
+                                <div>
+                                    <span class="badge badge-red">Missing</span>
+                                </div>
+
+
+                            </td>
+                            <td data-label="Action">
+                                <div>
+
+                                    <form method="POST"
+                                        action="{{ url_for('admin.send_late_message_for_submission', assignment_id=assignment.id, student_id=student.id) }}"
+                                        class="send-reminder-form" data-student-name="{{ student.name }}"
+                                        data-parent-phone="{{ student.parent_phone_number }}">
+                                        <input type="hidden" name="student_id" value="{{ student.id }}">
+                                        {% set sent = notification_status.get(student.id) %}
+                                        <button type="submit" class="btn btn-reminder btn-small" {% if sent %}disabled
+                                            style="background-color: #ccc; color: #888; cursor: not-allowed;" {% endif
+                                            %}>
+                                            {% if sent %}Sent{% else %}Send Reminder{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 2rem;">All students have submitted.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Toast function
+    function showToast(message, success = true) {
+        let toast = document.createElement("div");
+        toast.className = "custom-toast" + (success ? " toast-success" : " toast-fail");
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.classList.add("show");
+        }, 50);
+        setTimeout(() => {
+            toast.classList.remove("show");
+            setTimeout(() => document.body.removeChild(toast), 400);
+        }, 3000);
+    }
+
+    // CSS for the toast
+    if (!document.getElementById("custom-toast-style")) {
+        let style = document.createElement("style");
+        style.id = "custom-toast-style";
+        style.innerHTML = `
+        .custom-toast {
+            visibility: hidden;
+            min-width: 180px;
+            margin-left: -90px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 4px;
+            padding: 12px 22px;
+            position: fixed;
+            z-index: 9999;
+            left: 50%;
+            bottom: 40px;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.4s, visibility 0.4s;
+        }
+        .custom-toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+        .custom-toast.toast-success {
+            background-color: #22c55e;
+            color: #fff;
+        }
+        .custom-toast.toast-fail {
+            background-color: #dc2626;
+            color: #fff;
+        }
+        `;
+        document.head.appendChild(style);
+    }
+
+
+    // AJAX submit for reminder forms
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".send-reminder-form").forEach(function (form) {
+            form.addEventListener("submit", function (e) {
+                e.preventDefault();
+                const button = form.querySelector("button[type='submit']");
+                button.disabled = true;
+                button.textContent = "Sending...";
+                fetch(form.action, {
+                    method: "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
+                    body: new FormData(form)
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        let success = data.status === 'success';
+                        if (success) {
+                            button.textContent = "Sent";
+                            button.style.backgroundColor = "#ccc";
+                            button.style.color = "#888";
+                            button.style.cursor = "not-allowed";
+                        } else {
+                            button.disabled = false;
+                            button.textContent = "Failed to Send";
+                            button.style.backgroundColor = "#dc2626";
+                            button.style.color = "#fff";
+                            button.style.cursor = "pointer";
+                        }
+                        showToast(
+                            data.message ||
+                            (success
+                                ? "Reminder sent."
+                                : "Failed to send reminder."),
+                            success
+                        );
+                    })
+                    .catch(error => {
+                        button.disabled = false;
+                        button.textContent = "Failed to Send";
+                        button.style.backgroundColor = "#dc2626";
+                        button.style.color = "#fff";
+                        button.style.cursor = "pointer";
+                        showToast("Failed to send reminder.", false);
+                    });
+            });
+        });
+    });
+</script>
+<!-- Single Modal for uploading corrected PDF (outside loop) -->
+<div id="uploadModal" class="modal-upload-corrected">
+    <div class="modal-content-upload">
+        <span class="close-upload-modal" onclick="closeUploadModal()">&times;</span>
+        <h3 style="margin-bottom: 0.5rem;">Upload Corrected PDF</h3>
+        <p id="modal-student-name" style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;"></p>
+
+        <!-- Alert for errors -->
+        <div id="upload-alert"
+            style="display:none; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.97rem;">
+        </div>
+
+        <form id="upload-corrected-form">
+            <input type="hidden" id="modal-submission-id" value="">
+
+            <div style="margin-bottom: 1rem;">
+                <label for="modal-mark"
+                    style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Grade/Mark:</label>
+                <input type="text" id="modal-mark" name="mark" placeholder="Enter grade"
+                    style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Corrected PDF File:</label>
+
+                <div id="drop-zone" style="
+                    border: 2px dashed #ccc;
+                    border-radius: 8px;
+                    padding: 2rem 1rem;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    background: #fafbfc;
+                ">
+                    <input type="file" id="modal-file" accept="application/pdf" style="display: none;">
+                    <div id="drop-zone-content">
+                        <p style="margin: 0; color: #666; font-size: 0.95rem;">📁 Drag & drop PDF here</p>
+                        <p style="margin: 0.5rem 0 0 0; color: #999; font-size: 0.85rem;">or click to browse</p>
+                    </div>
+                    <div id="file-selected" style="display: none;">
+                        <p style="margin: 0; color: #007bff; font-weight: 500;">✓ <span id="selected-file-name"></span>
+                        </p>
+                        <p style="margin: 0.25rem 0 0 0; color: #999; font-size: 0.85rem;">Click to change file</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="upload-progress-container" style="display: none; margin-bottom: 1rem;">
+                <div style="
+                    height: 8px;
+                    background: #e5e7eb;
+                    border-radius: 9999px;
+                    overflow: hidden;
+                    margin-bottom: 0.5rem;
+                ">
+                    <div id="upload-progress-bar" style="
+                        height: 100%;
+                        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+                        border-radius: 9999px;
+                        transition: width 0.2s linear;
+                        width: 0%;
+                    "></div>
+                </div>
+                <p id="upload-status-text" style="margin: 0; font-size: 0.85rem; color: #666; text-align: center;"></p>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" id="submit-upload-btn" class="btn btn-primary btn-small" style="flex: 1;"
+                    disabled>
+                    Submit
+                </button>
+                <button type="button" class="btn btn-secondary btn-small" onclick="closeUploadModal()"
+                    style="background: #ccc; color: #222;">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    #submit-upload-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        background-color: red;
+    }
+
+    #submit-upload-btn {
+        flex: 1;
+    }
+
+    .modal-upload-corrected {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content-upload {
+        background-color: #fff;
+        margin: 3% auto;
+        padding: 1.5rem;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
+
+    @media (max-width: 640px) {
+        .modal-content-upload {
+            margin: 10% auto;
+            width: 95%;
+            padding: 1.25rem;
+        }
+    }
+
+    .close-upload-modal {
+        color: #aaa;
+        position: absolute;
+        top: 12px;
+        right: 18px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: color 0.2s;
+        line-height: 1;
+    }
+
+    .close-upload-modal:hover {
+        color: #333;
+    }
+
+    #drop-zone.drag-over {
+        border-color: #007bff;
+        background: #f0f8ff;
+    }
+</style>
+
+<script>
+    let currentSubmissionId = null;
+
+    function openUploadModal(submissionId, studentName, currentMark) {
+        currentSubmissionId = submissionId;
+        document.getElementById('modal-submission-id').value = submissionId;
+        document.getElementById('modal-student-name').textContent = 'Student: ' + studentName;
+        document.getElementById('modal-mark').value = currentMark || '';
+
+        // Reset file input
+        document.getElementById('modal-file').value = '';
+        document.getElementById('file-selected').style.display = 'none';
+        document.getElementById('drop-zone-content').style.display = 'block';
+        document.getElementById('upload-progress-container').style.display = 'none';
+        document.getElementById('upload-progress-bar').style.width = '0%';
+
+        // Hide alert
+        document.getElementById('upload-alert').style.display = 'none';
+        document.getElementById('upload-alert').textContent = '';
+
+        // Disable submit button initially
+        document.getElementById('submit-upload-btn').disabled = true;
+        document.getElementById('submit-upload-btn').textContent = 'Submit';
+
+        document.getElementById('uploadModal').style.display = 'block';
+
+        // Trigger validation in case mark is prefilled
+        validateUploadForm();
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').style.display = 'none';
+        currentSubmissionId = null;
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function (event) {
+        const modal = document.getElementById('uploadModal');
+        if (event.target === modal) {
+            closeUploadModal();
+        }
+    };
+
+    // Drag and drop functionality
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('modal-file');
+    const markInput = document.getElementById('modal-mark');
+    const submitBtn = document.getElementById('submit-upload-btn');
+    const uploadAlert = document.getElementById('upload-alert');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            updateFileDisplay(files[0]);
+            validateUploadForm();
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            updateFileDisplay(e.target.files[0]);
+        }
+        validateUploadForm();
+    });
+
+    markInput.addEventListener('input', validateUploadForm);
+
+    function updateFileDisplay(file) {
+        document.getElementById('selected-file-name').textContent = file.name;
+        document.getElementById('file-selected').style.display = 'block';
+        document.getElementById('drop-zone-content').style.display = 'none';
+    }
+
+    function validateUploadForm() {
+        const file = fileInput.files[0];
+        const mark = markInput.value.trim();
+        // Enable only if both file and mark are present and mark is not empty
+        if (file && mark.length > 0) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+
+    // Chunked upload form submission
+    document.getElementById('upload-corrected-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const submissionId = document.getElementById('modal-submission-id').value;
+        const mark = document.getElementById('modal-mark').value;
+        const file = fileInput.files[0];
+
+        // Hide previous alert
+        uploadAlert.style.display = 'none';
+        uploadAlert.textContent = '';
+
+        if (!mark) {
+            uploadAlert.textContent = 'Please enter a grade/mark.';
+            uploadAlert.style.display = 'block';
+            return;
+        }
+
+        if (!file) {
+            uploadAlert.textContent = 'Please select a PDF file to upload.';
+            uploadAlert.style.display = 'block';
+            return;
+        }
+
+        if (file.type !== 'application/pdf') {
+            uploadAlert.textContent = 'Please select a valid PDF file.';
+            uploadAlert.style.display = 'block';
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+
+        const progressContainer = document.getElementById('upload-progress-container');
+        const progressBar = document.getElementById('upload-progress-bar');
+        const statusText = document.getElementById('upload-status-text');
+
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        statusText.textContent = 'Starting upload...';
+        statusText.style.color = '#666';
+
+        const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+        const totalSize = file.size;
+        let offset = 0;
+
+        try {
+            while (offset < totalSize) {
+                const end = Math.min(offset + CHUNK_SIZE, totalSize);
+                const chunk = file.slice(offset, end);
+
+                const formData = new FormData();
+                formData.append('file_chunk', chunk);
+                formData.append('filename', file.name);
+                formData.append('offset', offset);
+                formData.append('total_size', totalSize);
+                formData.append('mark', mark);
+
+                const response = await fetch(`/admin/upload-corrected-pdf-chunk/${submissionId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const result = await response.json();
+
+                if (result.action === 'upload_complete') {
+                    progressBar.style.width = '100%';
+                    statusText.textContent = '✓ Upload complete!';
+                    statusText.style.color = '#059669';
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                    return;
+                }
+
+                offset = end;
+                const percent = Math.floor((offset / totalSize) * 100);
+                progressBar.style.width = percent + '%';
+                statusText.textContent = `Uploading... ${percent}%`;
+            }
+        } catch (error) {
+            statusText.textContent = '✗ Upload failed: ' + error.message;
+            statusText.style.color = '#dc2626';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit';
+            uploadAlert.textContent = 'Upload failed: ' + error.message;
+            uploadAlert.style.display = 'block';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const reminderForms = document.querySelectorAll('.send-reminder-form');
+        reminderForms.forEach(form => {
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                const submitButton = form.querySelector('button[type="submit"]');
+
+                const studentName = form.dataset.studentName;
+                const parentPhone = form.dataset.parentPhone;
+                const confirmationMessage = `Send WhatsApp reminder to this student and parent?\n\nStudent: ${studentName}\nParent: ${parentPhone}`;
+
+                if (confirm(confirmationMessage)) {
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Sending...';
+
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok.');
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Success:', data);
+                            submitButton.textContent = 'Sent!';
+                            submitButton.classList.add('sent');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Failed to send message. Please try again.');
+                            submitButton.disabled = false;
+                            submitButton.textContent = 'Send Reminder';
+                        });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

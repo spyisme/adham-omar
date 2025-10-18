@@ -1,0 +1,1256 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Manage Announcements{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    .announcements-cards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+        align-items: stretch;
+    }
+
+    .announcement-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: box-shadow 0.15s;
+    }
+
+    .announcement-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .announcement-card .card-title {
+        font-size: 1.18rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+    }
+
+    .announcement-card .card-content {
+        font-size: 1rem;
+        color: #374151;
+        margin-bottom: 1rem;
+        word-break: break-word;
+    }
+
+    .announcement-card .card-meta {
+        font-size: 0.97rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+    }
+
+    .announcement-card .card-meta span {
+        display: inline-block;
+        background: #f3f4f6;
+        border-radius: 0.4em;
+        padding: 0.15em 0.7em;
+        font-size: 0.93em;
+        color: #374151;
+    }
+
+    .announcement-card .action-buttons {
+        margin-top: auto;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .announcement-card .btn-action {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.2em 0.5em;
+        border-radius: 0.3em;
+        transition: background 0.15s;
+    }
+
+    .announcement-card .btn-action.edit {
+        color: #2563eb;
+    }
+
+    .announcement-card .btn-action.edit:hover {
+        background: #dbeafe;
+    }
+
+    .announcement-card .btn-action.delete {
+        color: #dc2626;
+    }
+
+    .announcement-card .btn-action.delete:hover {
+        background: #fee2e2;
+    }
+
+    .filter-dropdown.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .multi.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* Skeleton Loading Styles */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 0.4rem;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    .skeleton-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .skeleton-title {
+        height: 1.5rem;
+        width: 60%;
+    }
+
+    .skeleton-content {
+        height: 4rem;
+        width: 100%;
+    }
+
+    .skeleton-meta {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .skeleton-meta-item {
+        height: 1.5rem;
+        width: 120px;
+    }
+
+    .skeleton-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    @media (max-width: 900px) {
+        .announcements-cards-list {
+            gap: 1rem;
+        }
+
+        .announcement-card {
+            min-width: 220px;
+            max-width: 100%;
+        }
+    }
+
+    /* Toast notifications */
+    .toast-container {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 9999;
+        pointer-events: none;
+    }
+
+    .toast {
+        min-width: 260px;
+        max-width: 92vw;
+        background: #111827;
+        color: #f9fafb;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        padding: 0.75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        opacity: 0;
+        transform: translateY(8px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        pointer-events: auto;
+    }
+
+    .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .toast.success {
+        background: #065f46;
+    }
+
+    .toast.error {
+        background: #7f1d1d;
+    }
+
+    .toast.info {
+        background: #1e3a8a;
+    }
+
+    .toast .toast-message {
+        flex: 1;
+    }
+
+    .toast .toast-close {
+        background: transparent;
+        border: none;
+        color: inherit;
+        font-size: 1.1rem;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+    }
+
+    @media (max-width: 600px) {
+        .announcements-cards-list {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .announcement-card {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">All Announcements</h1>
+        <button id="openAddAnnouncement" class="btn btn-primary">Add Announcement</button>
+    </div>
+</header>
+
+<main class="container">
+    <style>
+        .search-row-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        #searchInput {
+            width: 70vw;
+            max-width: 800px;
+            min-width: 300px;
+            margin: 0 auto;
+            display: block;
+            font-size: 1rem;
+        }
+
+        .filters-row-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .filters-row-wrapper .filter-dropdown {
+            min-width: 180px;
+        }
+
+        @media (max-width: 900px) {
+            #searchInput {
+                width: 95vw;
+                max-width: 100%;
+            }
+
+            .filters-row-wrapper .filter-dropdown {
+                min-width: 120px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .filters-row-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .filters-row-wrapper .filter-dropdown {
+                width: 100%;
+                min-width: unset;
+            }
+        }
+    </style>
+    <div class="card">
+        <div class="card-content">
+            <div class="search-row-wrapper">
+                <input type="text" id="searchInput" class="form-input" placeholder="Search by title..." disabled>
+            </div>
+            <div class="filters-row-wrapper">
+
+                <div class="filter-dropdown disabled" id="subjectDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
+                        Subjects ▼</button>
+                    <div class="filter-dropdown-list" id="subjectDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                    </div>
+                </div>
+
+                <div class="filter-dropdown disabled" id="schoolDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="schoolDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                    </div>
+                </div>
+                <div class="filter-dropdown disabled" id="stageDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="stageDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Stages</label>
+                    </div>
+                </div>
+                <div class="filter-dropdown disabled" id="groupDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Classes
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="groupDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Announcement Overview</h2>
+            <p>Manage and track all announcements across different schools and classes.</p>
+        </div>
+        <div class="card-content no-padding">
+            <div id="announcementsContainer" class="announcements-cards-list">
+                <!-- Skeleton loaders will be shown here initially -->
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-content"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-content"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-title"></div>
+                    <div class="skeleton skeleton-content"></div>
+                    <div class="skeleton-meta">
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                        <div class="skeleton skeleton-meta-item"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+<div id="announcementModal" class="modal-overlay">
+    <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data" id="announcementForm">
+            <div class="modal-header">
+                <h2>Add Announcement</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" required placeholder="e.g., Important Update" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Body</label>
+                    <textarea name="content" rows="4" placeholder="Write the announcement..." class="form-textarea"
+                        required></textarea>
+                </div>
+                <div>
+                    <label class="form-label">Subject</label>
+                    <div class="multi" id="ms-subjects">
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                            ▼</button>
+                        <div class="multi-list" id="ms-subjects-list">
+                            <!-- Will be populated via API -->
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">School</label>
+                    <div class="multi disabled" id="ms-schools">
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Stage</label>
+                    <div class="multi" id="ms-stages">
+                        <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                        <div class="multi-list" id="ms-stages-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Class</label>
+                    <div class="multi" id="ms-groups">
+                        <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Classes ▼</button>
+                        <div class="multi-list" id="ms-groups-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Publish</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Announcement Modal -->
+<div id="editAnnouncementModal" class="modal-overlay">
+    <div class="modal-content">
+        <form method="POST" id="editAnnouncementForm">
+            <div class="modal-header">
+                <h2>Edit Announcement</h2>
+                <button type="button" class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- Skeleton loader will be shown initially -->
+                <div class="skeleton-form">
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="editModalFooter" style="display: none;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Global state
+    let allAnnouncements = [];
+    let currentEditingAnnouncementId = null;
+    let subjects = [];
+    let stages = [];
+    let groups = [];
+    let subjectSchoolMap = {};
+    let isLoading = true;
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('announcementModal');
+    const editModal = document.getElementById('editAnnouncementModal');
+    const openModalBtn = document.getElementById('openAddAnnouncement');
+    const closeModalBtn = document.querySelector('#announcementModal .modal-close');
+    const editModalCloseBtn = document.getElementById('editModalClose');
+
+    if (openModalBtn) openModalBtn.onclick = () => { modal.classList.add('show'); };
+    if (closeModalBtn) closeModalBtn.onclick = () => { modal.classList.remove('show'); };
+    if (editModalCloseBtn) editModalCloseBtn.onclick = () => { editModal.classList.remove('show'); };
+
+    modal.onclick = e => {
+        if (e.target === modal) modal.classList.remove('show');
+    };
+    editModal.onclick = e => {
+        if (e.target === editModal) editModal.classList.remove('show');
+    };
+
+    // --- API Calls ---
+    // Toast utility
+    function showToast(message, type = 'info', opts = {}) {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const msg = document.createElement('div');
+        msg.className = 'toast-message';
+        msg.textContent = message;
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'toast-close';
+        closeBtn.setAttribute('aria-label', 'Close');
+        closeBtn.textContent = '✕';
+        closeBtn.onclick = () => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 200);
+        };
+        toast.appendChild(msg);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+        // Force reflow to enable transition
+        void toast.offsetHeight;
+        toast.classList.add('show');
+        const duration = typeof opts.duration === 'number' ? opts.duration : 3500;
+        const timer = setTimeout(() => closeBtn.onclick(), duration);
+        toast.addEventListener('mouseenter', () => clearTimeout(timer));
+    }
+
+    async function fetchAnnouncements() {
+        try {
+            const response = await fetch('/admin/api/announcements-data');
+            if (!response.ok) throw new Error('Failed to fetch announcements');
+            const data = await response.json();
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching announcements:', error);
+            return [];
+        }
+    }
+
+    async function fetchFilters() {
+        try {
+            const response = await fetch('/admin/api/filters');
+            if (!response.ok) throw new Error('Failed to fetch filters');
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching filters:', error);
+            return {
+                subjects: [],
+                groups: [],
+                stages: [],
+                subject_school_map: {}
+            };
+        }
+    }
+
+    async function deleteAnnouncement(announcementId) {
+        try {
+            const response = await fetch(`/admin/announcements/delete/${announcementId}`, {
+                method: 'POST',
+            });
+            if (!response.ok) throw new Error('Failed to delete announcement');
+            return true;
+        } catch (error) {
+            console.error('Error deleting announcement:', error);
+            return false;
+        }
+    }
+
+    // --- Render Functions ---
+    function renderAnnouncements(announcements) {
+        const container = document.getElementById('announcementsContainer');
+
+        if (announcements.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                    <p>No announcements found. Try creating one!</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = announcements.map(ann => {
+            const subjectName = ann.subject || 'N/A';
+            const schoolsDisplay = ann.schools || 'All Schools';
+            const stagesDisplay = ann.stages || 'All Stages';
+            const groupsDisplay = ann.groups || 'All Classes';
+            const subjectId = ann.subject ? ann.subject.toLowerCase() : '';
+
+            return `
+                <div class="announcement-card announcement-row"
+                    data-subject="${subjectId}">
+                    <div class="card-title">${ann.title}</div>
+                    <div class="card-content">${ann.content}</div>
+                    <div class="card-meta">
+                        <span><strong>Subject:</strong> ${subjectName}</span>
+                        <span><strong>School(s):</strong> ${schoolsDisplay}</span>
+                        <span><strong>Stage(s):</strong> ${stagesDisplay}</span>
+                        <span><strong>Class(es):</strong> ${groupsDisplay}</span>
+                        <span><strong>📅</strong> ${ann.creation_date}</span>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-action edit" data-edit-id="${ann.id}" title="Edit">✏️</button>
+                        <button class="btn-action delete" onclick="handleDelete(event, ${ann.id}, '${ann.title.replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // --- Confirm and Delete Logic ---
+    async function handleDelete(event, announcementId, title) {
+        event.preventDefault();
+        const confirmed = await Swal.fire({
+            title: "Confirm Action",
+            html: `Delete announcement: ${title}?`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "var(--button-bg, #3085d6)",
+            cancelButtonColor: "var(--flash-danger-bg, #d33)",
+            confirmButtonText: "Yes, proceed",
+            cancelButtonText: "No, cancel",
+            background: "var(--card-bg, #fff)",
+            color: "var(--text-color, #333)",
+        }).then((result) => result.isConfirmed);
+
+        if (!confirmed) return;
+
+        const success = await deleteAnnouncement(announcementId);
+        if (success) {
+            allAnnouncements = allAnnouncements.filter(a => a.id !== announcementId);
+            filterAnnouncements();
+            showToast('Announcement deleted successfully', 'success');
+        } else {
+            showToast('Failed to delete announcement. Please try again.', 'error');
+        }
+    }
+
+    // --- Dropdown/Multiselect Logic ---
+    function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+        const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const isCurrentlyOpen = dropdown.classList.contains('open');
+            document.querySelectorAll('.filter-dropdown, .multi').forEach(d => d.classList.remove('open'));
+            if (!isCurrentlyOpen) {
+                dropdown.classList.add('open');
+            }
+        };
+
+        if (allCheckbox) {
+            allCheckbox.onchange = function () {
+                if (allCheckbox.checked) {
+                    checkboxes.forEach(cb => cb.checked = false);
+                }
+                updateBtnLabel();
+                if (updateCallback) updateCallback();
+            };
+        }
+
+        checkboxes.forEach(cb => {
+            cb.onchange = function () {
+                if (cb.checked && allCheckbox) {
+                    allCheckbox.checked = false;
+                }
+                if (allCheckbox && !checkboxes.some(c => c.checked)) {
+                    allCheckbox.checked = true;
+                }
+                updateBtnLabel();
+                if (updateCallback) updateCallback();
+            };
+        });
+
+        function updateBtnLabel() {
+            let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0].substring(0, 15) + (selected[0].length > 15 ? '...' : '') + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
+        }
+        updateBtnLabel();
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.filter-dropdown.open, .multi.open').forEach(d => {
+            if (!d.contains(e.target)) {
+                d.classList.remove('open');
+            }
+        });
+    });
+
+    // --- Filtering Logic ---
+    function getCheckedValues(listId) {
+        const list = document.getElementById(listId);
+        if (!list) return [];
+        const allCheckbox = list.querySelector('input[type="checkbox"][value=""]');
+        if (allCheckbox && allCheckbox.checked) return [];
+        return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).filter(Boolean);
+    }
+
+    function filterAnnouncements() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sSubjects = getCheckedValues('subjectDropdownList').map(v => v.toLowerCase());
+
+        const filtered = allAnnouncements.filter(ann => {
+            const title = (ann.title || '').toLowerCase();
+            const subjectName = (ann.subject || '').toLowerCase();
+
+            const subjectMatch = !sSubjects.length || sSubjects.includes(subjectName);
+            const searchMatch = !search || title.includes(search);
+
+            return searchMatch && subjectMatch;
+        });
+
+        renderAnnouncements(filtered);
+    }
+
+    // Function to enable/disable school filter dropdown based on subject selection
+    function toggleSchoolFilterDropdown() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const hasSubjectSelected = allSubjectsCheckbox ? !allSubjectsCheckbox.checked : false;
+        const schoolDropdown = document.getElementById('schoolDropdown');
+        if (hasSubjectSelected) schoolDropdown.classList.remove('disabled');
+        else schoolDropdown.classList.add('disabled');
+    }
+
+    // Function to enable/disable modal school dropdown based on subject selection
+    function toggleModalSchoolDropdown() {
+        const subjectRadios = document.querySelectorAll('#ms-subjects-list input[type="radio"]');
+        const hasSubjectSelected = Array.from(subjectRadios).some(radio => radio.checked);
+        const schoolMulti = document.getElementById('ms-schools');
+        if (hasSubjectSelected) schoolMulti.classList.remove('disabled');
+        else schoolMulti.classList.add('disabled');
+    }
+
+    // Populate school dropdowns from Subject→Schools map
+    function populateSchoolDropdowns() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const selectedSubjects = Array.from(subjectList.querySelectorAll('input[type="checkbox"]:checked'))
+            .filter(cb => cb !== allSubjectsCheckbox).map(cb => cb.value);
+
+        let availableSchools = new Set();
+        if (selectedSubjects.length === 0 || (allSubjectsCheckbox && allSubjectsCheckbox.checked)) {
+            Object.values(subjectSchoolMap).forEach(schools => {
+                schools.forEach(school => availableSchools.add(JSON.stringify(school)));
+            });
+        } else {
+            selectedSubjects.forEach(subjectName => {
+                // Find subject ID by name
+                const subject = subjects.find(s => s.name === subjectName);
+                if (subject && subjectSchoolMap[subject.id]) {
+                    subjectSchoolMap[subject.id].forEach(school => {
+                        availableSchools.add(JSON.stringify(school));
+                    });
+                }
+            });
+        }
+
+        const schools = Array.from(availableSchools).map(x => JSON.parse(x));
+
+        // Populate filter dropdown
+        const schoolDropdownList = document.getElementById('schoolDropdownList');
+        schoolDropdownList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${school.name}"> ${school.name}`;
+            schoolDropdownList.appendChild(label);
+        });
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterAnnouncements);
+
+        // Populate modal dropdown
+        const msSchoolsList = document.getElementById('ms-schools-list');
+        msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
+            msSchoolsList.appendChild(label);
+        });
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+    }
+
+    // Populate filter dropdowns
+    function populateFilterDropdowns() {
+        // Populate subjects
+        const subjectList = document.getElementById('subjectDropdownList');
+        subjectList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        subjects.forEach(subject => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${subject.name}"> ${subject.name}`;
+            subjectList.appendChild(label);
+        });
+
+        // Populate stages
+        const stageList = document.getElementById('stageDropdownList');
+        stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        // Populate groups
+        const groupList = document.getElementById('groupDropdownList');
+        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    // Populate modal dropdowns
+    function populateModalDropdowns() {
+        // Populate subjects (radio buttons)
+        const subjectList = document.getElementById('ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject =>
+            `<label><input type="radio" name="subject_id" value="${subject.id}" required>${subject.name}</label>`
+        ).join('');
+
+        // Populate stages
+        const stageList = document.getElementById('ms-stages-list');
+        const stageAllLabel = stageList.querySelector('.multi-all');
+        stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="stages_mm[]" value="${stage.id}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        // Populate groups
+        const groupList = document.getElementById('ms-groups-list');
+        const groupAllLabel = groupList.querySelector('.multi-all');
+        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="groups_mm[]" value="${group.id}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    // Enable filters after loading
+    function enableFilters() {
+        document.getElementById('searchInput').disabled = false;
+        document.getElementById('subjectDropdown').classList.remove('disabled');
+        document.getElementById('stageDropdown').classList.remove('disabled');
+        document.getElementById('groupDropdown').classList.remove('disabled');
+        isLoading = false;
+    }
+
+    // --- EDIT ANNOUNCEMENT FUNCTIONS ---
+    async function openEditModal(announcementId) {
+        currentEditingAnnouncementId = announcementId;
+        const editModal = document.getElementById('editAnnouncementModal');
+        const editModalBody = document.getElementById('editModalBody');
+        const editModalFooter = document.getElementById('editModalFooter');
+
+        // Show modal with skeleton loader
+        editModalBody.innerHTML = `
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        `;
+        editModalFooter.style.display = 'none';
+        editModal.classList.add('show');
+
+        try {
+            const response = await fetch(`/admin/api/announcement/${announcementId}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Failed to fetch announcement data', 'error');
+                editModal.classList.remove('show');
+                return;
+            }
+
+            populateEditForm(data.announcement);
+            editModalFooter.style.display = 'flex';
+        } catch (error) {
+            console.error('Error fetching announcement:', error);
+            showToast('Failed to fetch announcement data', 'error');
+            editModal.classList.remove('show');
+        }
+    }
+
+    function populateEditForm(announcement) {
+        const editModalBody = document.getElementById('editModalBody');
+
+        editModalBody.innerHTML = `
+            <div>
+                <label class="form-label">Title</label>
+                <input type="text" name="title" required value="${escapeHtml(announcement.title || '')}" class="form-input">
+            </div>
+            <div>
+                <label class="form-label">Body</label>
+                <textarea name="content" rows="4" class="form-textarea" required>${escapeHtml(announcement.content || '')}</textarea>
+            </div>
+            <div>
+                <label class="form-label">Subject</label>
+                <div class="multi" id="edit-ms-subjects">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-subjects-btn">
+                        ${announcement.subject && announcement.subject.name ? escapeHtml(announcement.subject.name) : 'Choose Subject'} ▼
+                    </button>
+                    <div class="multi-list" id="edit-ms-subjects-list"></div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">School</label>
+                <div class="multi" id="edit-ms-schools">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-schools-btn">All Schools ▼</button>
+                    <div class="multi-list" id="edit-ms-schools-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!announcement.schools_mm || announcement.schools_mm.length === 0 ? 'checked' : ''}>All Schools</label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Stage</label>
+                <div class="multi" id="edit-ms-stages">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-stages-btn">All Stages ▼</button>
+                    <div class="multi-list" id="edit-ms-stages-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!announcement.stages_mm || announcement.stages_mm.length === 0 ? 'checked' : ''}>All Stages</label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Class</label>
+                <div class="multi" id="edit-ms-groups">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-groups-btn">All Classes ▼</button>
+                    <div class="multi-list" id="edit-ms-groups-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!announcement.groups_mm || announcement.groups_mm.length === 0 ? 'checked' : ''}>All Classes</label>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Populate subjects
+        const subjectList = document.getElementById('edit-ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject => `
+            <label><input type="radio" name="subject_id" value="${subject.id}" required ${announcement.subject && announcement.subject.id === subject.id ? 'checked' : ''}>${escapeHtml(subject.name)}</label>
+        `).join('');
+
+        // Populate stages
+        const stageList = document.getElementById('edit-ms-stages-list');
+        const stageCheckboxes = stages.map(stage => {
+            const isChecked = announcement.stages_mm && announcement.stages_mm.some(s => s.id === stage.id);
+            return `<label><input type="checkbox" name="stages_mm[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
+        }).join('');
+        stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
+
+        // Populate groups
+        const groupList = document.getElementById('edit-ms-groups-list');
+        const groupCheckboxes = groups.map(group => {
+            const isChecked = announcement.groups_mm && announcement.groups_mm.some(g => g.id === group.id);
+            return `<label><input type="checkbox" name="groups_mm[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
+        }).join('');
+        groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
+
+        // Populate schools
+        const availableSchools = announcement.subject && announcement.subject.id && subjectSchoolMap[announcement.subject.id]
+            ? subjectSchoolMap[announcement.subject.id]
+            : Object.values(subjectSchoolMap).flat();
+
+        const schoolList = document.getElementById('edit-ms-schools-list');
+        const schoolCheckboxes = availableSchools.map(school => {
+            const isChecked = announcement.schools_mm && announcement.schools_mm.some(s => s.id === school.id);
+            return `<label><input type="checkbox" name="schools_mm[]" value="${school.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(school.name)}</label>`;
+        }).join('');
+        schoolList.innerHTML = schoolList.querySelector('.multi-all').outerHTML + schoolCheckboxes;
+
+        // Setup dropdowns
+        setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
+        setupDropdown('edit-ms-groups', 'edit-ms-groups-btn', 'edit-ms-groups-list', 'All Classes');
+        setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Schools');
+
+        // Setup subject dropdown
+        const subjectDropdown = document.getElementById('edit-ms-subjects');
+        const subjectBtn = document.getElementById('edit-ms-subjects-btn');
+        const subjectListEl = document.getElementById('edit-ms-subjects-list');
+
+        subjectBtn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => { if (d !== subjectDropdown) d.classList.remove('open'); });
+            subjectDropdown.classList.toggle('open');
+        };
+
+        subjectListEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.onchange = function () {
+                const selectedLabel = this.parentElement.textContent.trim();
+                subjectBtn.textContent = selectedLabel + ' ▼';
+                subjectDropdown.classList.remove('open');
+
+                const selectedSubjectId = this.value;
+                const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                const msSchoolsList = document.getElementById('edit-ms-schools-list');
+                msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+                availableSchools.forEach(school => {
+                    const label = document.createElement('label');
+                    label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
+                    msSchoolsList.appendChild(label);
+                });
+                setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Schools');
+
+                const schoolMulti = document.getElementById('edit-ms-schools');
+                if (availableSchools.length > 0) {
+                    schoolMulti.classList.remove('disabled');
+                } else {
+                    schoolMulti.classList.add('disabled');
+                }
+            };
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // --- Initialize All ---
+    async function initializePage() {
+        try {
+            // Fetch all data in parallel
+            const [announcementsData, filtersData] = await Promise.all([
+                fetchAnnouncements(),
+                fetchFilters()
+            ]);
+
+            allAnnouncements = announcementsData;
+            subjects = filtersData.subjects || [];
+            stages = filtersData.stages || [];
+            groups = filtersData.groups || [];
+            subjectSchoolMap = filtersData.subject_school_map || {};
+
+            // Populate dropdowns
+            populateFilterDropdowns();
+            populateModalDropdowns();
+
+            // Initialize filter dropdowns
+            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterAnnouncements);
+            setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterAnnouncements);
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+                populateSchoolDropdowns();
+                filterAnnouncements();
+                toggleSchoolFilterDropdown();
+            });
+
+            // Initialize modal dropdowns
+            setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+            setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+
+            // Single-select subject dropdown in modal
+            const subjectDropdown = document.getElementById('ms-subjects');
+            const subjectBtn = document.getElementById('ms-subjects-btn');
+            const subjectList = document.getElementById('ms-subjects-list');
+
+            subjectBtn.onclick = function (e) {
+                e.stopPropagation();
+                document.querySelectorAll('.multi').forEach(d => {
+                    if (d !== subjectDropdown) d.classList.remove('open');
+                });
+                subjectDropdown.classList.toggle('open');
+            };
+
+            subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.onchange = function () {
+                    const selectedLabel = this.parentElement.textContent.trim();
+                    subjectBtn.textContent = selectedLabel + " ▼";
+                    subjectDropdown.classList.remove('open');
+
+                    const selectedSubjectId = this.value;
+                    const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                    const msSchoolsList = document.getElementById('ms-schools-list');
+                    msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+                    availableSchools.forEach(school => {
+                        const label = document.createElement('label');
+                        label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
+                        msSchoolsList.appendChild(label);
+                    });
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    toggleModalSchoolDropdown();
+                };
+            });
+
+            // Populate from map on load
+            populateSchoolDropdowns();
+            toggleSchoolFilterDropdown();
+            toggleModalSchoolDropdown();
+
+            // Render announcements
+            renderAnnouncements(allAnnouncements);
+
+            // Enable filters
+            enableFilters();
+
+            // Search input listener
+            document.getElementById('searchInput').addEventListener('input', filterAnnouncements);
+
+            // Edit button listener
+            document.addEventListener('click', function (e) {
+                const editBtn = e.target.closest('.btn-action.edit');
+                if (editBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const id = editBtn.getAttribute('data-edit-id');
+                    openEditModal(parseInt(id));
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            document.getElementById('announcementsContainer').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                    <p>Error loading announcements. Please refresh the page.</p>
+                </div>
+            `;
+            enableFilters();
+        }
+    }
+
+    // Handle edit form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        const editForm = document.getElementById('editAnnouncementForm');
+        if (!editForm) return;
+
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!currentEditingAnnouncementId) return;
+
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+            }
+
+            try {
+                const formData = new FormData(editForm);
+                const resp = await fetch(`/admin/announcements/edit/${currentEditingAnnouncementId}`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.success && data.announcement) {
+                    // Update the announcement in the list
+                    const idx = allAnnouncements.findIndex(a => a.id === currentEditingAnnouncementId);
+                    if (idx >= 0) {
+                        allAnnouncements[idx] = data.announcement;
+                    }
+                    filterAnnouncements();
+                    editModal.classList.remove('show');
+                    editForm.reset();
+                    currentEditingAnnouncementId = null;
+                    showToast(data.message || 'Announcement updated successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to update announcement', 'error');
+                }
+            } catch (err) {
+                console.error('Update announcement failed', err);
+                showToast('Failed to update announcement', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText || 'Save Changes';
+                }
+            }
+        });
+    });
+
+    // Handle form submission
+    document.getElementById('announcementForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('.modal-footer button[type="submit"], button[type="submit"]');
+        const originalBtnText = submitBtn ? submitBtn.textContent : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Posting...';
+        }
+
+        try {
+            const response = await fetch('/admin/announcements', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to create announcement');
+
+            // Refresh announcements
+            allAnnouncements = await fetchAnnouncements();
+            filterAnnouncements();
+
+            // Close modal and reset form
+            modal.classList.remove('show');
+            this.reset();
+
+            // Reset dropdowns
+            document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
+            document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+            document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+            document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
+
+            showToast('Announcement created successfully', 'success');
+
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            showToast('Failed to create announcement. Please try again.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText || 'Publish';
+            }
+        }
+    });
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initializePage);
+</script>
+{% endblock %}

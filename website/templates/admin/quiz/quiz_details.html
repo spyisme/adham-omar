@@ -1,0 +1,433 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Quiz Grades - {{ quiz.name }}{% endblock %}
+
+{% block content %}
+<style>
+   /* General styles */
+   .container {
+      max-width: 1000px;
+      margin: 20px auto;
+      padding: 20px;
+      background: var(--card-bg);
+      border-radius: 10px;
+      color: var(--card-text);
+   }
+
+   h1,
+   h2 {
+      color: var(--heading-color);
+   }
+
+   h2 {
+      font-size: 1.5rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+   }
+
+   .btn {
+      padding: 8px 20px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 5px;
+      border: none;
+   }
+
+   .btn-primary {
+      background-color: #007bff;
+      color: white;
+   }
+
+   .btn-update {
+      background-color: #28a745;
+      color: white;
+   }
+
+   .btn-danger {
+      background-color: #dc3545;
+      color: white;
+   }
+
+   hr {
+      border-color: var(--border-color);
+      margin: 2rem 0;
+   }
+
+   /* Grade item layout */
+   .grade-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      background: var(--table-row-hover);
+      border-radius: 5px;
+      margin-bottom: 15px;
+      gap: 20px;
+   }
+
+   .student-name a {
+      color: var(--link-color);
+      text-decoration: none;
+      font-weight: 500;
+      min-width: 250px;
+      max-width: 300px;
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+   }
+
+   .form-controls,
+   .input-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-grow: 1;
+      justify-content: flex-end;
+   }
+
+   .form-control {
+      padding: 8px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      background-color: var(--input-bg);
+      color: var(--input-text);
+   }
+
+   .full-mark {
+      color: var(--muted);
+      font-size: 14px;
+      min-width: 60px;
+   }
+
+   .empty-state {
+      color: var(--muted);
+      padding: 20px;
+      text-align: center;
+      border: 1px dashed var(--border-color);
+      border-radius: 5px;
+      margin-top: 15px;
+   }
+
+   /* Animations */
+   @keyframes slideDownFadeIn {
+      from {
+         opacity: 0;
+         transform: translateY(-20px);
+         max-height: 0;
+         padding: 0 15px;
+         margin-bottom: 0;
+      }
+
+      to {
+         opacity: 1;
+         transform: translateY(0);
+         max-height: 100px;
+         padding: 15px;
+         margin-bottom: 15px;
+      }
+   }
+
+   .animate-add {
+      animation: slideDownFadeIn 0.5s ease-out forwards;
+      overflow: hidden;
+   }
+
+   @keyframes slideUpFadeOut {
+      from {
+         opacity: 1;
+         transform: translateY(0);
+         max-height: 100px;
+         padding: 15px;
+         margin-bottom: 15px;
+      }
+
+      to {
+         opacity: 0;
+         transform: translateY(-20px);
+         max-height: 0;
+         padding: 0 15px;
+         margin-bottom: 0;
+      }
+   }
+
+   .animate-remove {
+      animation: slideUpFadeOut 0.5s ease-in forwards;
+      overflow: hidden;
+   }
+
+   @keyframes pulseUpdate {
+      0% {
+         box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.5);
+      }
+
+      70% {
+         box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+      }
+
+      100% {
+         box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+      }
+   }
+
+   .animate-update {
+      animation: pulseUpdate 0.7s;
+   }
+</style>
+
+<div class="container" id="grades-manager" data-quiz-id="{{ quiz.id }}" data-full-mark="{{ quiz.full_mark }}">
+   <h1 class="mb-3">{{ quiz.name }} Grades</h1>
+   <button class="btn btn-primary" onclick="window.location.href='{{ url_for('admin.quiz_place', quiz_id=quiz.id) }}'">
+      Update Places for Quiz
+   </button>
+
+   <hr>
+
+   <div class="add-grades-section">
+      <h2>Add Grades</h2>
+      <div id="add-grades-list">
+         {% for student in students_without_grades %}
+         <form method="POST" class="add-grade-form" data-student-id="{{ student.id }}">
+            <input type="hidden" name="student_id" value="{{ student.id }}">
+            <div class="grade-item">
+               <span class="student-name" data-student-code="{{ student.code }}" data-student-name="{{ student.name }}">
+                  <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                     ID: {{ student.code }} | {{ student.name }}
+                  </a>
+               </span>
+               <div class="form-controls">
+                  <div class="input-group">
+                     <input type="text" name="comment" placeholder="Comment (Optional)" class="form-control"
+                        style="width: 250px;">
+                     <input type="number" step="any" name="mark" placeholder="Mark" required class="form-control"
+                        style="width: 100px;">
+                     <span class="full-mark">/ {{ quiz.full_mark }}</span>
+                     <button type="submit" class="btn btn-primary">Add</button>
+                  </div>
+               </div>
+            </div>
+         </form>
+         {% endfor %}
+      </div>
+      <div id="all-graded-message" class="empty-state"
+         style="display: {% if not students_without_grades %}block{% else %}none{% endif %};">
+         🎉 All students have been graded!
+      </div>
+   </div>
+
+   <div class="existing-grades-section">
+      <h2>Existing Grades</h2>
+      <div id="existing-grades-list">
+         {% for student, grade in students_with_grades %}
+         <div class="grade-item" data-grade-id="{{ grade.id }}">
+            <span class="student-name">
+               <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                  {% if grade.place %}<span style="color: var(--muted);">{{ grade.place }}. </span>{% endif %}
+                  ID: {{ student.code }} | {{ student.name }}
+               </a>
+            </span>
+            <div class="form-controls">
+               <form method="POST" action="{{ url_for('admin.edit_grade', grade_id=grade.id) }}"
+                  class="edit-grade-form">
+                  <div class="input-group">
+                     <input type="text" name="new_comment" value="{{ grade.comment or '' }}" class="form-control"
+                        placeholder="Comment" style="width: 150px;">
+                     <input type="number" step="any" value="{{ grade.mark }}" name="new_mark" required
+                        class="form-control" style="width: 80px;">
+                     <span class="full-mark">/ {{ quiz.full_mark }}</span>
+                     <button type="submit" class="btn btn-update">Update</button>
+                  </div>
+               </form>
+               <form method="POST" action="{{ url_for('admin.delete_grade', grade_id=grade.id) }}"
+                  class="delete-grade-form">
+                  <button type="submit" class="btn btn-danger">Delete</button>
+               </form>
+            </div>
+         </div>
+         {% endfor %}
+      </div>
+      <div id="no-grades-message" class="empty-state"
+         style="display: {% if not students_with_grades %}block{% else %}none{% endif %};">
+         No grades have been added yet.
+      </div>
+   </div>
+</div>
+
+<script>
+   document.addEventListener("DOMContentLoaded", () => {
+      const manager = document.getElementById("grades-manager");
+      const addGradesList = document.getElementById("add-grades-list");
+      const existingGradesList = document.getElementById("existing-grades-list");
+      const fullMark = manager.dataset.fullMark;
+
+      // --- Helper Functions ---
+      const showToast = (message, type = "success") => {
+         const toast = document.createElement("div");
+         toast.textContent = message;
+         Object.assign(toast.style, {
+            position: "fixed", bottom: "30px", left: "50%",
+            transform: "translateX(-50%)",
+            background: type === "success" ? "#28a745" : "#dc3545",
+            color: "#fff", padding: "12px 30px", borderRadius: "6px",
+            fontWeight: "bold", zIndex: "9999", boxShadow: "0 2px 8px rgba(0,0,0,0.2)"
+         });
+         document.body.appendChild(toast);
+         setTimeout(() => toast.remove(), 2500);
+      };
+
+      const animateAndRemove = (element) => {
+         element.classList.add("animate-remove");
+         element.addEventListener('animationend', () => {
+            element.remove();
+            updateEmptyStateMessages();
+         });
+      };
+
+      const updateEmptyStateMessages = () => {
+         document.getElementById("all-graded-message").style.display = addGradesList.children.length === 0 ? "block" : "none";
+         document.getElementById("no-grades-message").style.display = existingGradesList.children.length === 0 ? "block" : "none";
+      };
+
+      // --- HTML Template Functions ---
+
+      const createAddFormHTML = (student) => {
+         return `
+            <form method="POST" class="add-grade-form" data-student-id="${student.id}">
+               <input type="hidden" name="student_id" value="${student.id}">
+               <div class="grade-item">
+                  <span class="student-name" data-student-code="${student.code}" data-student-name="${student.name}">
+                     <a href="/admin/student/${student.id}">ID: ${student.code} | ${student.name}</a>
+                  </span>
+                  <div class="form-controls">
+                     <div class="input-group">
+                           <input type="text" name="comment" placeholder="Comment (Optional)" class="form-control" style="width: 250px;">
+                           <input type="number" step="any" name="mark" placeholder="Mark" required class="form-control" style="width: 100px;">
+                           <span class="full-mark">/ ${fullMark}</span>
+                           <button type="submit" class="btn btn-primary">Add</button>
+                     </div>
+                  </div>
+               </div>
+            </form>
+         `;
+      };
+
+      const createExistingGradeHTML = (grade, student) => {
+         const studentUrl = `/admin/student/${student.id}`;
+         const editUrl = `/admin/edit_grade/${grade.id}`;
+         const deleteUrl = `/admin/delete_grade/${grade.id}`;
+         const comment = grade.comment || '';
+
+         return `
+            <div class="grade-item" data-grade-id="${grade.id}">
+               <span class="student-name">
+                  <a href="${studentUrl}">ID: ${student.code} | ${student.name}</a>
+               </span>
+               <div class="form-controls">
+                  <form method="POST" action="${editUrl}" class="edit-grade-form">
+                     <div class="input-group">
+                           <input type="text" name="new_comment" value="${comment}" class="form-control" placeholder="Comment" style="width: 150px;">
+                           <input type="number" step="any" value="${grade.mark}" name="new_mark" required class="form-control" style="width: 80px;">
+                           <span class="full-mark">/ ${fullMark}</span>
+                           <button type="submit" class="btn btn-update">Update</button>
+                     </div>
+                  </form>
+                  <form method="POST" action="${deleteUrl}" class="delete-grade-form">
+                     <button type="submit" class="btn btn-danger">Delete</button>
+                  </form>
+               </div>
+            </div>
+         `;
+      };
+
+      // --- Event Delegation for Form Submissions ---
+      manager.addEventListener("submit", async (e) => {
+         e.preventDefault();
+         const form = e.target;
+         const action = form.getAttribute("action") || window.location.href;
+         const options = {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest", "Content-Type": "application/json" },
+            body: JSON.stringify(Object.fromEntries(new FormData(form))),
+         };
+
+         // --- ADD GRADE ---
+         if (form.classList.contains("add-grade-form")) {
+            const studentNameSpan = form.querySelector('.student-name');
+            const student = {
+               id: form.dataset.studentId,
+               name: studentNameSpan.dataset.studentName,
+               code: studentNameSpan.dataset.studentCode,
+            };
+
+            try {
+               const response = await fetch(action, options);
+               const data = await response.json();
+
+               if (data.success && data.grade) {
+                  showToast("Grade added successfully!");
+                  animateAndRemove(form);
+
+                  const newGradeHTML = createExistingGradeHTML(data.grade, student);
+                  existingGradesList.insertAdjacentHTML('afterbegin', newGradeHTML);
+
+                  const newGradeElement = existingGradesList.firstElementChild;
+                  newGradeElement.classList.add("animate-add");
+                  updateEmptyStateMessages();
+               } else {
+                  showToast(data.error || "Failed to add grade.", "error");
+               }
+            } catch (error) {
+               showToast("An error occurred.", "error");
+            }
+         }
+
+         // --- EDIT GRADE ---
+         if (form.classList.contains("edit-grade-form")) {
+            const gradeItem = form.closest(".grade-item");
+            try {
+               const response = await fetch(action, options);
+               const data = await response.json();
+               if (data.success) {
+                  showToast("Grade updated successfully!");
+                  gradeItem.classList.add("animate-update");
+                  gradeItem.addEventListener('animationend', () => gradeItem.classList.remove("animate-update"));
+               } else {
+                  showToast(data.error || "Failed to update grade.", "error");
+               }
+            } catch (error) {
+               showToast("An error occurred.", "error");
+            }
+         }
+
+         // --- DELETE GRADE ---
+         if (form.classList.contains("delete-grade-form")) {
+            if (!confirm("Are you sure you want to delete this grade?")) return;
+            try {
+               const response = await fetch(action, options);
+               const data = await response.json();
+               if (data.success) {
+                  showToast("Grade deleted successfully!");
+                  animateAndRemove(form.closest(".grade-item"));
+
+                  const [idPart, namePart] = data.student_name.split(' | ');
+                  const studentCode = idPart.replace('ID : ', '');
+                  const student = { id: data.student_id, name: namePart, code: studentCode };
+
+                  const newFormHTML = createAddFormHTML(student);
+                  addGradesList.insertAdjacentHTML('beforeend', newFormHTML);
+                  const newForm = addGradesList.lastElementChild;
+                  newForm.classList.add("animate-add");
+                  updateEmptyStateMessages();
+               } else {
+                  showToast(data.error || "Failed to delete grade.", "error");
+               }
+            } catch (error) {
+               showToast("An error occurred.", "error");
+            }
+         }
+      });
+   });
+</script>
+{% endblock %}

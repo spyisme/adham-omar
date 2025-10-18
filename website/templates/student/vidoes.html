@@ -1,0 +1,217 @@
+{% extends "student/dashboard.html" %}
+{% block title %}Video Library{% endblock %}
+{% block content %}
+
+<style>
+  :root{
+    --bg:#f8f9fc;
+    --panel:#ffffff;
+    --card-bg:#ffffff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --accent:#2d7ff9;
+    --accent-hover:#1a5fc2;
+    --indigo:#2d7ff9;
+    --indigo-strong:#1a5fc2;
+    --radius:20px;
+    --shadow:0 4px 24px rgba(44, 62, 80, 0.08);
+    --shadow-sm:0 1px 4px rgba(0,0,0,.04);
+    --card-height: 360px;
+    --thumb-aspect: 16/9;
+  }
+
+  .container{
+    max-width:72rem;
+    margin:0 auto;
+    padding:32px 16px 48px;
+  }
+  .page-title{
+    text-align:center;
+    font-size:2rem;
+    font-weight:700;
+    color:var(--text);
+    margin:0 0 24px;
+  }
+
+  .panel{
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .panel-header{
+    padding:24px 32px;
+    border-bottom:1px solid var(--border);
+  }
+  .panel-title{
+    font-size:1.35rem;
+    font-weight:600;
+    color:var(--text);
+    margin-bottom:16px;
+    display:flex; align-items:center; gap:.5rem;
+  }
+
+  /* Chips inside panel */
+  .chip-bar{
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  }
+  .chip{
+    border:2px solid var(--border);
+    border-radius:999px;
+    background:#f3f4f6;
+    color:#4b5563;
+    padding:8px 18px;
+    font-size:.95rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
+  }
+  .chip.active{
+    border:2px solid var(--accent);
+    background:#eef2ff;
+    color:var(--accent-hover);
+  }
+  .chip:not(.active):hover{
+    border-color:var(--accent); 
+    background:#f9fafb;
+    color:var(--accent-hover);
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+    gap:24px;
+    padding:24px 32px;
+  }
+
+  .card{
+    display:flex; flex-direction:column;
+    background:var(--card-bg);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow-sm);
+    transition:.25s;
+    height:var(--card-height);
+    text-decoration:none; color:inherit;
+  }
+  .card:hover{ transform:translateY(-4px); box-shadow:var(--shadow); }
+
+  .thumb{
+    width:100%; aspect-ratio:var(--thumb-aspect);
+    background:#f3f4f6; overflow:hidden;
+  }
+  .thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .badge{
+    position:absolute; top:12px; left:12px;
+    background:rgba(255,255,255,0.9); border:1px solid var(--border);
+    padding:4px 10px; border-radius:999px;
+    font-size:.8rem; font-weight:600;
+  }
+
+  .card-body{
+    flex:1 1 auto;
+    display:flex; flex-direction:column;
+    padding:16px 18px;
+  }
+  .title{
+    font-size:1rem; font-weight:700; color:var(--text);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    margin-bottom:6px;
+  }
+  /* Date now below title */
+  .date{
+    font-size:.9rem; color:var(--muted);
+    margin-bottom:8px;
+  }
+  .desc{
+    font-size:.9rem; color:#4b5563;
+    display:-webkit-box; -webkit-line-clamp:3; line-clamp:3; -webkit-box-orient:vertical;
+    overflow:hidden;
+    margin-bottom:10px;
+  }
+  .cta{
+    margin-top:auto;
+    align-self:flex-start;
+    background:var(--accent);
+    color:#fff; padding:10px 16px;
+    border-radius:12px; font-weight:600; font-size:.9rem;
+    border:1px solid var(--accent);
+    transition:.2s;
+  }
+  .cta:hover{ background:#fff; color:var(--accent-hover); border-color:var(--accent-hover); }
+</style>
+
+<div class="container">
+  <h1 class="page-title" style="color:black;">🎥 Video Library</h1>
+
+  <div class="panel">
+    <div class="panel-header">
+      <!-- <h2 class="panel-title">📚 Course Videos</h2> -->
+      <div class="chip-bar" id="filterChips">
+        <button class="chip active" data-category="all">All Videos</button>
+        {% set categories = videos | map(attribute='category') | select | unique | list %}
+        {% for category in categories %}
+          <button class="chip" data-category="{{ category }}">{{ category|capitalize }}</button>
+        {% endfor %}
+      </div>
+    </div>
+{% if videos %}
+    <div class="grid" id="videoGrid">
+      {% for v in videos %}
+        <a href="{{ url_for('student.play_videos', video_id=v.id) }}" 
+           class="card" data-category="{{ v.category|default('uncategorized') }}">
+          <div class="thumb">
+            <img src="{{ url_for('student.video_thumbnail', video_id=v.id) }}"
+                 alt="{{ v.title }}">
+            {% if v.category %}
+              <div class="badge">{{ v.category|capitalize }}</div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <h3 class="title" title="{{ v.title }}">{{ v.title }}</h3>
+            {% if v.creation_date %}
+              <div class="date">📅 {{ v.creation_date.strftime('%Y-%m-%d') }}</div>
+            {% endif %}
+            {% if v.description %}
+              <p class="desc">{{ v.description }}</p>
+            {% endif %}
+            <span class="cta">▶️ Watch</span>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="no-videos">
+  <br>
+  <p style="text-align: center; font-size: 1.2rem; font-weight: 600; color: #6b7280;">No videos found</p>
+</div>
+{% endif %}
+<script>
+(function(){
+  const chips = document.querySelectorAll('#filterChips .chip');
+  const cards = document.querySelectorAll('#videoGrid [data-category]');
+  function apply(cat){
+    let visible=0;
+    cards.forEach(card=>{
+      const c=card.getAttribute('data-category')||'uncategorized';
+      const show=(cat==='all'||c===cat);
+      card.style.display=show?'flex':'none';
+      if(show) visible++;
+    });
+  }
+  chips.forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      chips.forEach(c=>c.classList.remove('active'));
+      btn.classList.add('active');
+      apply(btn.dataset.category);
+    });
+  });
+})();
+</script>
+
+{% endblock %}

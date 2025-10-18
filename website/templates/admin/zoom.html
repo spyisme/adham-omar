@@ -1,0 +1,632 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Zoom Meetings{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    /* Modal styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.show {
+        display: flex;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #1e293b;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #64748b;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .modal-close:hover {
+        background: #f1f5f9;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        padding: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .form-input,
+    .form-textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+
+    .form-input:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+
+    .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+        font-size: 0.95rem;
+    }
+
+    .btn-primary {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2563eb;
+    }
+
+    .btn-secondary {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+    .btn-secondary:hover {
+        background: #cbd5e1;
+    }
+
+    /* Multi-select dropdown */
+    .multi {
+        position: relative;
+    }
+
+    .multi-btn {
+        width: 100%;
+        text-align: left;
+        background: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .multi-list {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        margin-top: 0.25rem;
+        max-height: 240px;
+        overflow-y: auto;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
+
+    .multi.open .multi-list {
+        display: block;
+    }
+
+    .multi-list label {
+        display: block;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .multi-list label:hover {
+        background: #f1f5f9;
+    }
+
+    .multi-all {
+        border-bottom: 1px solid #e2e8f0;
+        font-weight: 600;
+    }
+
+    .multi.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    /* Toast notification */
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        z-index: 2000;
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .toast.success {
+        border-left: 4px solid #10b981;
+    }
+
+    .toast.error {
+        border-left: 4px solid #ef4444;
+    }
+
+    .toast-icon {
+        font-size: 1.25rem;
+    }
+
+    .toast.success .toast-icon {
+        color: #10b981;
+    }
+
+    .toast.error .toast-icon {
+        color: #ef4444;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    .toast.hiding {
+        animation: slideOut 0.3s ease-out forwards;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Zoom Meetings</h2>
+        <button class="btn btn-primary" onclick="openCreateModal()">
+            <i class="fas fa-plus"></i> Create New Meeting
+        </button>
+    </div>
+
+    <div id="meetingsTableContainer">
+        {% if zoom_meetings %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Meeting ID</th>
+                        <th>Subject</th>
+                        <th>Creator</th>
+                        <th>Groups</th>
+                        <th>Stages</th>
+                        <th>Schools</th>
+                        <th>Participants</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="meetingsTableBody">
+                    {% for meeting in zoom_meetings %}
+                    <tr>
+                        <td>{{ meeting.meeting_id }}</td>
+                        <td>{{ meeting.subject.name if meeting.subject else 'N/A' }}</td>
+                        <td>{{ meeting.creator.name if meeting.creator else 'N/A' }}</td>
+                        <td>
+                            {% if meeting.groups %}
+                            {{ meeting.groups|map(attribute='name')|join(', ') }}
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if meeting.stages %}
+                            {{ meeting.stages|map(attribute='name')|join(', ') }}
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if meeting.schools %}
+                            {{ meeting.schools|map(attribute='name')|join(', ') }}
+                            {% else %}
+                            <span class="text-muted">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ meeting.participants|length }}</span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.view_zoom_meeting', meeting_id=meeting.id) }}"
+                                class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                            <button class="btn btn-sm btn-danger delete-meeting-btn" data-meeting-id="{{ meeting.id }}"
+                                data-meeting-name="{{ meeting.meeting_id }}" style="margin-left: 5px;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> No zoom meetings found. Click "Create New Meeting" to add one.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Create Meeting Modal -->
+<div id="createMeetingModal" class="modal-overlay">
+    <div class="modal-content">
+        <form id="createMeetingForm">
+            <div class="modal-header">
+                <h2>Create New Zoom Meeting</h2>
+                <button type="button" class="modal-close" onclick="closeCreateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Zoom Meeting Link or ID</label>
+                    <input type="text" name="meeting_id" required
+                        placeholder="e.g., https://zoom.us/j/1234567890 or 1234567890" class="form-input">
+                    <small style="color: #64748b; font-size: 0.875rem; display: block; margin-top: 0.25rem;">
+                        Paste the full Zoom invite link or just the meeting ID
+                    </small>
+                </div>
+                <div>
+                    <label class="form-label">Subject</label>
+                    <div class="multi" id="ms-subjects">
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                            ▼</button>
+                        <div class="multi-list" id="ms-subjects-list">
+                            {% for subject in subjects %}
+                            <label>
+                                <input type="radio" name="subject_id" value="{{ subject.id }}"> {{ subject.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Schools</label>
+                    <div class="multi" id="ms-schools">
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            {% for school in schools %}
+                            <label>
+                                <input type="checkbox" name="schools[]" value="{{ school.id }}"> {{ school.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Stages</label>
+                    <div class="multi" id="ms-stages">
+                        <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                        <div class="multi-list" id="ms-stages-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                            {% for stage in stages %}
+                            <label>
+                                <input type="checkbox" name="stages[]" value="{{ stage.id }}"> {{ stage.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Classes</label>
+                    <div class="multi" id="ms-classes">
+                        <button type="button" class="btn form-input multi-btn" id="ms-classes-btn">All Classes
+                            ▼</button>
+                        <div class="multi-list" id="ms-classes-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                            {% for group in groups %}
+                            <label>
+                                <input type="checkbox" name="groups[]" value="{{ group.id }}"> {{ group.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Meeting</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openCreateModal() {
+        document.getElementById('createMeetingModal').classList.add('show');
+    }
+
+    function closeCreateModal() {
+        document.getElementById('createMeetingModal').classList.remove('show');
+        document.getElementById('createMeetingForm').reset();
+        // Reset button labels
+        document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
+        document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+        document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+        document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
+    }
+
+    // Setup dropdown functionality
+    function setupDropdown(multiId, btnId, listId, labelAll) {
+        const multi = document.getElementById(multiId);
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+
+        if (!multi || !btn || !list) return;
+
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => {
+                if (d !== multi) d.classList.remove('open');
+            });
+            multi.classList.toggle('open');
+        };
+
+        const allCheckbox = list.querySelector('.multi-all input[type="checkbox"]');
+        const getCheckboxes = () => Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+        const updateHandler = function () {
+            if (this === allCheckbox) {
+                if (this.checked) {
+                    getCheckboxes().forEach(cb => cb.checked = false);
+                }
+            } else {
+                if (this.checked && allCheckbox) {
+                    allCheckbox.checked = false;
+                }
+                const anyChecked = getCheckboxes().some(cb => cb.checked);
+                if (!anyChecked && allCheckbox) {
+                    allCheckbox.checked = true;
+                }
+            }
+            updateBtnLabel();
+        };
+
+        list.addEventListener('change', e => {
+            if (e.target.type === 'checkbox') {
+                updateHandler.call(e.target);
+            }
+        });
+
+        function updateBtnLabel() {
+            let selected = getCheckboxes().filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0].substring(0, 15) + (selected[0].length > 15 ? '...' : '') + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
+        }
+        updateBtnLabel();
+    }
+
+    // Setup subject dropdown (radio buttons)
+    const subjectDropdown = document.getElementById('ms-subjects');
+    const subjectBtn = document.getElementById('ms-subjects-btn');
+    const subjectList = document.getElementById('ms-subjects-list');
+
+    if (subjectDropdown && subjectBtn && subjectList) {
+        subjectBtn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => {
+                if (d !== subjectDropdown) d.classList.remove('open');
+            });
+            subjectDropdown.classList.toggle('open');
+        };
+
+        subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.onchange = function () {
+                const selectedLabel = this.parentElement.textContent.trim();
+                subjectBtn.textContent = selectedLabel + ' ▼';
+                subjectDropdown.classList.remove('open');
+            };
+        });
+    }
+
+    // Setup other dropdowns
+    document.addEventListener('DOMContentLoaded', function () {
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+        setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
+
+        // Handle delete button clicks using event delegation
+        document.addEventListener('click', function (e) {
+            const deleteBtn = e.target.closest('.delete-meeting-btn');
+            if (deleteBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const meetingId = deleteBtn.getAttribute('data-meeting-id');
+                const meetingName = deleteBtn.getAttribute('data-meeting-name');
+                handleDeleteMeeting(meetingId, meetingName);
+            }
+        });
+    });
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.multi.open').forEach(d => {
+            if (!d.contains(e.target)) {
+                d.classList.remove('open');
+            }
+        });
+    });
+
+    // Close modal on outside click
+    document.getElementById('createMeetingModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeCreateModal();
+        }
+    });
+
+    // Show toast notification
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} toast-icon"></i>
+        <span>${message}</span>
+    `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('hiding');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Handle form submission
+    document.getElementById('createMeetingForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+
+        fetch('{{ url_for("admin.create_zoom_meeting") }}', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Zoom meeting created successfully!', 'success');
+                    closeCreateModal();
+                    // Reload the page to get the updated list
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showToast('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                showToast('Error creating meeting', 'error');
+            });
+    });
+
+    async function handleDeleteMeeting(meetingId, meetingName) {
+        // Use SweetAlert2 if available, otherwise use regular confirm
+        const confirmed = typeof Swal !== 'undefined'
+            ? await Swal.fire({
+                title: "Confirm Action",
+                html: `Delete Zoom meeting: <strong>${meetingName}</strong>?<br><br>This will remove all participant data associated with this meeting.`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#ef4444",
+                cancelButtonColor: "#64748b",
+                confirmButtonText: "Yes, delete it",
+                cancelButtonText: "Cancel"
+            }).then((result) => result.isConfirmed)
+            : confirm(`Are you sure you want to delete meeting ${meetingName}?`);
+
+        if (!confirmed) return;
+
+        try {
+            const response = await fetch(`/admin/zoom/${meetingId}/delete`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                showToast('Meeting deleted successfully!', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting meeting:', error);
+            showToast('Error deleting meeting', 'error');
+        }
+    }
+</script>
+{% endblock %}

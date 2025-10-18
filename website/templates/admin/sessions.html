@@ -1,0 +1,197 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Sessions{% endblock %}
+{% block content %}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    function filterTable() {
+        let searchValue = $("#searchInput").val().toLowerCase();
+        let selectedClass = $("#groupFilter").val().toLowerCase();
+        let selectedYear = $("#stageFilter").val().toLowerCase();
+
+        $("#sessionTable tbody tr").each(function () {
+            let row = $(this);
+            let textMatch = row.text().toLowerCase().indexOf(searchValue) > -1;
+            let classCell = row.find("td:eq(3)").text().toLowerCase();
+            let yearCell = row.find("td:eq(4)").text().toLowerCase();
+
+            let classMatch = selectedClass === "" || classCell === selectedClass;
+            let yearMatch = selectedYear === "" || yearCell === selectedYear;
+
+            row.toggle(textMatch && classMatch && yearMatch);
+        });
+    }
+
+    $("#searchInput").on("keyup", filterTable);
+    $("#groupFilter").on("change", filterTable);
+    $("#stageFilter").on("change", filterTable);
+
+    // Thumbnail preview
+    $('#thumbnail').on('change', function(){
+        const [file] = this.files;
+        if (file) {
+            $('#thumbnailPreview').attr('src', URL.createObjectURL(file)).show();
+        } else {
+            $('#thumbnailPreview').hide();
+        }
+    });
+});
+function confirmAction(event, message) {
+    if (!confirm(message)) {
+        event.preventDefault();
+        return false;
+    }
+    return true;
+}
+</script>
+
+<style>
+/* Only for thumbnail preview in form */
+.thumbnail-preview {
+    display: none;
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-top: 10px;
+    border: 1px solid #e0e0e0;
+    background: #fafbfc;
+}
+/* For session thumbnails in table */
+.session-thumbnail {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    background: #fafbfc;
+    display: block;
+    margin: 0 auto;
+}
+/* For filter section layout */
+.filter-section {
+    margin: 20px 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+@media (max-width: 768px) {
+    .filter-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .session-thumbnail {
+        width: 40px;
+        height: 40px;
+    }
+    .thumbnail-preview {
+        width: 40px;
+        height: 40px;
+    }
+}
+</style>
+
+<div class="main">
+    <div class="card" style="max-width: 1000px; margin: 20px auto;">
+        <h1 class="text-center">Sessions</h1>
+
+        <form method="POST" enctype="multipart/form-data" class="mb-4">
+            <h2 class="text-center mb-3" style="color: var(--button-bg);">Add a session</h2>
+            <div class="form-group mb-2">
+                <label for="title" class="form-label">Title:</label>
+                <input type="text" id="title" name="title" class="form-control" required />
+            </div>
+            <div class="form-group mb-2">
+                <label for="description" class="form-label">Description:</label>
+                <textarea id="description" name="description" class="form-control"></textarea>
+            </div>
+            <div class="form-group mb-2">
+                <label for="thumbnail" class="form-label">Thumbnail:</label>
+                <input type="file" id="thumbnail" name="thumbnail" class="form-control" accept="image/*" required />
+                <img id="thumbnailPreview" class="thumbnail-preview" alt="Thumbnail Preview" />
+            </div>
+            <div class="form-group mb-2">
+                <label for="groupid" class="form-label">Target Class:</label>
+                <select id="groupid" name="groupid" class="form-control">
+                    <option value="">All Classes</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group mb-3">
+                <label for="stageid" class="form-label">Target Stage:</label>
+                <select id="stageid" name="stageid" class="form-control">
+                    <option value="">All Stages</option>
+                    {% for stage in stages %}
+                    <option value="{{ stage.id }}">{{ stage.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Session</button>
+        </form>
+
+        <h2 class="text-center mb-3" style="color: var(--button-bg);">Existing Sessions</h2>
+
+        <div class="filter-section">
+            <input type="text" id="searchInput" class="form-control" placeholder="Search sessions..." >
+            <select id="groupFilter" class="form-control" style="min-width: 150px;">
+                <option value="">Filter by Class</option>
+                {% for group in groups %}
+                <option value="{{ group.name }}">{{ group.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="stageFilter" class="form-control" style="min-width: 150px;">
+                <option value="">Filter by Year</option>
+                {% for stage in stages %}
+                <option value="{{ stage.name }}">{{ stage.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="table-container">
+            <table id="sessionTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Description</th>
+                        <th>Class</th>
+                        <th>Year</th>
+                        <th>Thumbnail</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for session in sessions %}
+                    <tr>
+                        <td>{{ session.id }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.manage_session_videos', session_id=session.id) }}">{{ session.title }}</a>
+                        </td>
+                        <td>{{ session.description }}</td>
+                        <td>{{ session.group.name if session.group else "All Classes" }}</td>
+                        <td>{{ session.stage.name if session.stage else "All Years" }}</td>
+                        <td>
+                            <img class="session-thumbnail" src="/static/sessions/session_{{ session.id }}.jpg" alt="Session Thumbnail" onerror="this.onerror=null;this.src='/static/img/no-image.png';">
+                        </td>
+                        <td>
+                            {{ session.creation_date.strftime('%Y-%m-%d %H:%M') if session.creation_date else '' }}
+                        </td>
+                        <td>
+                            <button onclick="window.location.href=`{{ url_for('admin.edit_session', session_id=session.id) }}`" class="btn btn-primary mr-2">Edit</button>
+                            <form method="POST" action="{{ url_for('admin.delete_session', session_id=session.id) }}" style="display: inline;">
+                                <button type="submit" class="btn btn-danger" onclick="return confirmAction(event,'Are you sure you want to delete this session?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

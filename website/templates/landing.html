@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Landing Page</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <meta name="description" content="Landing page template">
+    <meta name="keywords" content="platform, template, demo">
+    <meta name="author" content="Platform">
+
+    <style>
+        :root {
+            --bg-light: #f8f9fa;
+            --bg-panel: #ffffff;
+            --text-primary: #2c3e50;
+            /* A dark, professional blue-gray */
+            --text-secondary: #5f6c7b;
+            --accent-primary: #00796b;
+            /* A sophisticated teal */
+            --accent-primary-dark: #004d40;
+            --accent-secondary: #f9a825;
+            /* A warm gold for highlights */
+            --border-color: #dee2e6;
+            --radius-md: 0.5rem;
+            --radius-lg: 1rem;
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --transition-speed: 600ms;
+        }
+
+        /* --- Base & Typography --- */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+            max-width: 1140px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* --- Header --- */
+        .main-header {
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .brand span {
+            color: var(--accent-primary);
+        }
+
+        /* --- Buttons & Auth --- */
+        .auth-btns {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            text-decoration: none;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .btn.login {
+            color: var(--accent-primary);
+            background: transparent;
+            border-color: var(--accent-primary);
+        }
+
+        .btn.login:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn.register {
+            background-color: var(--accent-primary);
+            color: white;
+        }
+
+        .btn.register:hover {
+            background-color: var(--accent-primary-dark);
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn.cta {
+            /* Class for larger call-to-action buttons */
+            padding: 0.8rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        /* --- Hero Section --- */
+        .hero-section {
+            padding: 6rem 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            gap: 4rem;
+        }
+
+        .hero-text h1 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-text .highlight {
+            color: var(--accent-primary);
+        }
+
+        .hero-text p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 2rem;
+        }
+
+        .hero-image-container {
+            position: relative;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-15px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .hero-image-container .placeholder {
+            width: 100%;
+            max-width: 400px;
+            height: 400px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 5px solid white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        /* --- General Section Styling --- */
+        .content-section {
+            padding: 6rem 0;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-header h2 {
+            font-size: clamp(2.2rem, 5vw, 2.8rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .section-header .subtitle {
+            font-size: 1.1rem;
+            color: var(--accent-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .section-header p {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            margin: 0 auto;
+            max-width: 700px;
+        }
+
+        /* --- Subjects Section --- */
+        .subjects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+        }
+
+        .subject-card {
+            background: var(--bg-panel);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .subject-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-primary);
+        }
+
+        .subject-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+            margin-bottom: 1.5rem;
+            color: var(--accent-primary);
+        }
+
+        .subject-card h3 {
+            font-size: 1.3rem;
+            margin: 0 0 0.5rem;
+        }
+
+        .subject-card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* --- Experience & Photos Section --- */
+        .experience-section {
+            background: var(--bg-panel);
+        }
+
+        .experience-content {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            align-items: center;
+            gap: 4rem;
+        }
+
+        .experience-text ul {
+            list-style: none;
+            padding: 0;
+            margin-top: 2rem;
+        }
+
+        .experience-text li {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .experience-text li svg {
+            color: var(--accent-secondary);
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            margin-right: 1rem;
+            margin-top: 4px;
+        }
+
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .photo-gallery .placeholder {
+            width: 100%;
+            height: auto;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .photo-gallery .placeholder:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .photo-gallery .img1 {
+            grid-column: 1 / 3;
+            height: 250px;
+        }
+
+        .photo-gallery .img2 {
+            height: 200px;
+            align-self: start;
+        }
+
+        .photo-gallery .img3 {
+            height: 200px;
+            align-self: end;
+            transform: translateY(20px);
+        }
+
+        /* --- Success Stories Section --- */
+        .success-section {
+            background: var(--accent-primary-dark);
+            color: white;
+        }
+
+        .success-section h2,
+        .success-section p {
+            color: white;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .achievement-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .achievement-card .award {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .achievement-card .student-name {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .achievement-card .subject {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        /* --- Affiliations Section --- */
+        .affiliations-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 2.5rem;
+            filter: grayscale(100%);
+            opacity: 0.7;
+            transition: all 0.4s ease;
+        }
+
+        .affiliations-container:hover {
+            filter: grayscale(0%);
+            opacity: 1;
+        }
+
+        .affiliation-name {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* --- Footer --- */
+        .main-footer {
+            background: var(--text-primary);
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+
+        .main-footer .footer-brand {
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .main-footer .copyright {
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        /* --- Flash Messages --- */
+        .flash-container {
+            position: fixed;
+            top: 90px;
+            right: 20px;
+            z-index: 1001;
+            width: auto;
+            max-width: 350px;
+        }
+
+        .flash-message {
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: var(--radius-md);
+            color: #fff;
+            box-shadow: var(--shadow-md);
+            animation: slide-in 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .flash-message.fade-out {
+            transition: opacity 0.5s ease;
+            opacity: 0;
+        }
+
+        .flash-success {
+            background: #00796b;
+        }
+
+        /* Teal */
+        .flash-danger,
+        .flash-error {
+            background: #d32f2f;
+        }
+
+        /* Red */
+
+        /* --- Animation --- */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity var(--transition-speed) ease-out, transform var(--transition-speed) ease-out;
+        }
+
+        .animate-on-scroll.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .subject-card,
+        .achievement-card,
+        .affiliation-name,
+        .photo-gallery .placeholder {
+            transition-delay: calc(var(--delay) * 100ms);
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 992px) {
+
+            .hero-content,
+            .experience-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-image-container {
+                /* The 'order: -1;' property that caused the issue has been removed. */
+                margin-top: 2rem;
+                /* Added margin to create space above the image */
+            }
+
+            .hero-image-container .placeholder {
+                margin: 0 auto;
+                display: block;
+            }
+
+            .experience-text {
+                text-align: left;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                font-size: 15px;
+            }
+
+            .hero-section {
+                padding: 4rem 0;
+            }
+
+            .content-section {
+                padding: 4rem 0;
+            }
+
+            .photo-gallery {
+                grid-template-columns: 1fr;
+            }
+
+            .photo-gallery .img3 {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-btns {
+                display: none;
+            }
+
+            /* On very small screens, hide auth buttons to prevent overflow */
+        }
+    </style>
+</head>
+
+<body>
+    <header class="main-header">
+        <div class="container header-content">
+            <a href="/" class="brand">Demo <span>Platform</span></a>
+            <div class="auth-btns">
+                <a href="/login" class="btn login">Login</a>
+                <a href="/register" class="btn register">Register</a>
+            </div>
+        </div>
+    </header>
+
+    <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <main>
+        <section class="hero-section">
+            <div class="container hero-content">
+                <div class="hero-text animate-on-scroll">
+                    <h1>Lorem Ipsum <span class="highlight">Dolor Sit</span> Amet Consectetur</h1>
+                    <p>
+                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.
+                    </p>
+                    <a href="/login" class="btn register cta">Get Started Now</a>
+                </div>
+                <div class="hero-image-container animate-on-scroll" style="--delay: 1;">
+                    <div class="placeholder">Image Placeholder</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="subjects" class="content-section">
+            <div class="container">
+                <div class="section-header animate-on-scroll">
+                    <span class="subtitle">Lorem Ipsum</span>
+                    <h2>Dolor Sit Amet Consectetur</h2>
+                </div>
+                <div class="subjects-grid">
+                    <div class="subject-card animate-on-scroll" style="--delay: 1;">
+                        <div class="subject-icon">📈</div>
+                        <h3>Lorem Ipsum</h3>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
+                    </div>
+                    <div class="subject-card animate-on-scroll" style="--delay: 2;">
+                        <div class="subject-icon">🏦</div>
+                        <h3>Dolor Sit</h3>
+                        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.</p>
+                    </div>
+                    <div class="subject-card animate-on-scroll" style="--delay: 3;">
+                        <div class="subject-icon">🌍</div>
+                        <h3>Consectetur</h3>
+                        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+                    </div>
+                    <div class="subject-card animate-on-scroll" style="--delay: 4;">
+                        <div class="subject-icon">👥</div>
+                        <h3>Adipiscing</h3>
+                        <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="experience" class="content-section experience-section">
+            <div class="container">
+                <div class="experience-content">
+                    <div class="experience-text animate-on-scroll">
+                        <span class="subtitle">Lorem Ipsum</span>
+                        <h2>Dolor Sit Amet Consectetur</h2>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida.</p>
+                        <ul>
+                            <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-.07.002z" />
+                                </svg>
+                                <div><strong>Lorem Ipsum Dolor</strong> sit amet consectetur adipiscing elit sed do eiusmod.</div>
+                            </li>
+                            <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                                </svg>
+                                <div><strong>Tempor Incididunt</strong> ut labore et dolore magna aliqua quis ipsum suspendisse.</div>
+                            </li>
+                            <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
+                                </svg>
+                                <div><strong>Ullamco Laboris</strong> nisi ut aliquip ex ea commodo consequat duis aute irure.</div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="photo-gallery animate-on-scroll" style="--delay: 1;">
+                        <div class="placeholder img1" style="--delay: 2;">Image Placeholder</div>
+                        <div class="placeholder img2" style="--delay: 3;">Image Placeholder</div>
+                        <div class="placeholder img3" style="--delay: 4;">Image Placeholder</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="success" class="content-section success-section">
+            <div class="container">
+                <div class="section-header animate-on-scroll">
+                    <h2>Lorem Ipsum Dolor Sit Amet</h2>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                </div>
+                <div class="achievements-grid">
+                    <div class="achievement-card animate-on-scroll" style="--delay: 1;">
+                        <div class="award">🏆 Lorem Ipsum Dolor</div>
+                        <div class="student-name">Consectetur Adipiscing</div>
+                        <div class="subject">Elit Sed Do Eiusmod</div>
+                    </div>
+                    <div class="achievement-card animate-on-scroll" style="--delay: 2;">
+                        <div class="award">🏆 Tempor Incididunt</div>
+                        <div class="student-name">Ut Labore Et Dolore</div>
+                        <div class="subject">Magna Aliqua</div>
+                    </div>
+                    <div class="achievement-card animate-on-scroll" style="--delay: 3;">
+                        <div class="award">⭐ Quis Ipsum Suspendisse</div>
+                        <div class="student-name">Ultrices Gravida</div>
+                        <div class="subject">Dictum Volutpat</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="affiliations" class="content-section">
+            <div class="container">
+                <div class="section-header animate-on-scroll">
+                    <span class="subtitle">Lorem Ipsum</span>
+                    <h2>Dolor Sit Amet Consectetur</h2>
+                </div>
+                <div class="affiliations-container">
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 1;">Lorem Ipsum Dolor</div>
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 2;">Consectetur Adipiscing</div>
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 3;">Tempor</div>
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 4;">Incididunt Labore</div>
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 5;">Magna Aliqua</div>
+                    <div class="affiliation-name animate-on-scroll" style="--delay: 6;">Eiusmod Tempor</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="main-footer">
+        <div class="container">
+            <div class="footer-brand">Demo Platform</div>
+            <div class="copyright">&copy; 2025 Demo. All rights reserved.</div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- On-Scroll Animation Observer ---
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, {
+                threshold: 0.1
+            });
+
+            const elementsToAnimate = document.querySelectorAll('.animate-on-scroll');
+            elementsToAnimate.forEach(el => observer.observe(el));
+
+            // --- Flash Message Handling ---
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(msg => {
+                setTimeout(() => {
+                    msg.classList.add('fade-out');
+                    msg.addEventListener('transitionend', () => msg.remove());
+                }, 5000);
+            });
+        });
+    </script>
+</body>
+
+</html>

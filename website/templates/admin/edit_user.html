@@ -1,0 +1,192 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Edit User{% endblock %}
+{% block content %}
+<style>
+    .edit-user-container {
+        max-width: 500px;
+        margin: 32px auto 0 auto;
+        background: var(--card-bg);
+        color: var(--card-text);
+        border-radius: 10px;
+        box-shadow: 0 4px 8px var(--card-shadow);
+        padding: 32px 32px 24px 32px;
+        width: 98%;
+        display: block;
+    }
+
+    @media (max-width: 600px) {
+        .edit-user-container {
+            padding: 16px 4vw 16px 4vw;
+            border-radius: 0;
+            box-shadow: none;
+            width: 90%;
+            min-width: 0;
+            margin: 32px auto 0 auto;
+            /* Center the card on mobile */
+            display: block;
+        }
+    }
+
+    .edit-user-title {
+        text-align: center;
+        margin-bottom: 24px;
+        color: var(--heading-color);
+        font-size: 2rem;
+    }
+
+    @media (max-width: 600px) {
+        .edit-user-title {
+            font-size: 1.25rem;
+            margin-bottom: 16px;
+        }
+    }
+
+    .edit-form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        width: 100%;
+    }
+
+    @media (max-width: 600px) {
+        .edit-form {
+            gap: 12px;
+        }
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    label {
+        font-size: 1rem;
+        color: #bdbdbd;
+        margin-bottom: 2px;
+    }
+
+    input,
+    select {
+        padding: 10px 12px;
+        border-radius: var(--input-radius);
+        border: 1px solid var(--input-border);
+        background-color: var(--input-bg);
+        color: var(--input-text);
+        font-size: 1rem;
+        outline: none;
+        width: 100%;
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+
+    input:focus,
+    select:focus {
+        border-color: var(--input-focus-border);
+    }
+
+    .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+        .form-actions {
+            gap: 8px;
+        }
+    }
+
+    .delete-form {
+        margin-top: 18px;
+    }
+</style>
+
+<div class="edit-user-container">
+    <a href="{{ url_for('admin.students') }}" class="back-link"
+        style="display: block; margin-bottom: 20px; text-align: center; color: var(--link-color); text-decoration: none;">←
+        Back to Admin Page</a>
+    <hr>
+    <br>
+    <h1 class="edit-user-title">Edit Student Account</h1>
+    <p class="edit-user-subtitle">To view student's data, <a href="{{ url_for('admin.student', user_id=user.id) }}"
+            style="color: rgb(0, 0, 0); text-decoration: underline;">click here</a></p>
+    <form method="POST" class="edit-form">
+        <div class="form-group">
+            <label for="name">Name:</label>
+            <input id="name" type="text" name="name" value="{{ user.name }}" required class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="code">User code:</label>
+            <input id="code" type="text" name="code" value="{{ user.code }}" required class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input id="email" type="email" name="email" value="{{ user.email }}" required class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="phone_number">Phone Number:</label>
+            <input id="phone_number" type="text" name="phone_number" value="{{ user.phone_number }}" required
+                class="form-control" />
+        </div>
+        <div class="form-group">
+            <label for="parent_phone_number">Parent Phone Number:</label>
+            <input id="parent_phone_number" type="text" name="parent_phone_number"
+                value="{{ user.parent_phone_number }}" required class="form-control" />
+        </div>
+
+        <div class="form-group">
+            <label for="group">Class:</label>
+            <select id="group" name="group" required class="form-control">
+                <option value="None" {% if not user.groupid %}selected{% endif %} disabled>Select a Class</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}" {% if user.group.name==group.name %}selected{% endif %}>{{ group.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="stage">Year:</label>
+            <select id="stage" name="stage" required class="form-control">
+                <option value="None" {% if not user.stageid %}selected{% endif %} disabled>Select a Year</option>
+                {% for stage in stages %}
+                <option value="{{ stage.id }}" {% if user.stage.name==stage.name %}selected{% endif %}>{{ stage.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="school">School:</label>
+            <select id="school" name="school" required class="form-control">
+                <option value="None" {% if not user.schoolid %}selected{% endif %} disabled>Select a School</option>
+                {% for school in schools %}
+                <option value="{{ school.id }}" {% if user.school.name==school.name %}selected{% endif %}>{{ school.name
+                    }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="subject">Subject:</label>
+            <select id="subject" name="subject" required class="form-control">
+                <option value="None" {% if not user.subjectid %}selected{% endif %} disabled>Select a Subject</option>
+                {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if user.subject and user.subject.name==subject.name %}selected{%
+                    endif %}>{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+    </form>
+    <form method="POST" class="delete-form">
+        <input type="hidden" name="delete_user" value="1">
+        <button type="submit" class="btn btn-danger"
+            onclick="confirmAction(event, 'Are you sure you want to delete this user?')">Delete User</button>
+    </form>
+</div>
+{% endblock %}

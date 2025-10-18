@@ -1,0 +1,267 @@
+{% extends "student/dashboard.html" %}
+{% block title %}Quiz Marks Tracker{% endblock %}
+{% block content %}
+
+<style>
+  :root{
+    --bg:#f8f9fc;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --text:#1f2937;
+    --border:#e5e7eb;
+    --shadow-sm:0 1px 4px rgba(0,0,0,.04);
+    --shadow-lg:0 14px 30px -10px rgba(0,0,0,.18);
+    --radius:20px;
+
+    --A1:#10b981; --A2:#059669;
+    --B1:#3b82f6; --B2:#1d4ed8;
+    --C1:#f59e0b; --C2:#d97706;
+    --D1:#ef4444; --D2:#dc2626;
+    --F1:#6b7280; --F2:#4b5563;
+  }
+
+  .wrap{ max-width:72rem; margin:0 auto; padding:2rem 1rem; }
+
+  .heading{ font-size:2rem; font-weight:700; color:var(--text); text-align:center; margin-bottom:.5rem; }
+  .subhead{ font-size:1.2rem; color:var(--muted); text-align:center; margin-bottom:2.5rem; }
+
+  .stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+  .stat{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem;
+         box-shadow:var(--shadow-sm); display:flex; justify-content:space-between; align-items:center; }
+  .stat h4{ margin:0; font-size:.9rem; color:var(--muted); font-weight:500; }
+  .stat p{ margin:.25rem 0 0; font-size:1.6rem; font-weight:700; color:var(--text); }
+  .stat-icon{ font-size:1.8rem; opacity:.85; }
+
+  .panel{ background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-sm); }
+  .panel-head{ padding:1.5rem; border-bottom:1px solid var(--border); font-size:1.35rem; font-weight:600; color:var(--text); }
+  .panel-body{ padding:1.5rem; }
+
+  .empty{ text-align:center; padding:3rem 1rem; color:var(--muted); }
+  .empty .icon{ font-size:3rem; margin-bottom:.5rem; }
+
+  .quiz-card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:1.25rem; margin-bottom:1rem;
+              box-shadow:var(--shadow-sm); transition:transform .25s ease, box-shadow .25s ease; }
+  .quiz-card:hover{ transform:translateY(-3px); box-shadow:var(--shadow-lg); }
+  .quiz-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap; }
+  .quiz-title{ font-size:1.05rem; font-weight:600; margin:0; color:var(--text); word-break:break-word; }
+  .badge{ font-size:.8rem; font-weight:600; padding:.2rem .6rem; border-radius:9999px; color:#fff; white-space:nowrap; }
+  .badge.A{ background:linear-gradient(135deg,var(--A1),var(--A2)); }
+  .badge.B{ background:linear-gradient(135deg,var(--B1),var(--B2)); }
+  .badge.C{ background:linear-gradient(135deg,var(--C1),var(--C2)); }
+  .badge.D{ background:linear-gradient(135deg,var(--D1),var(--D2)); }
+  .badge.F{ background:linear-gradient(135deg,var(--F1),var(--F2)); }
+  .quiz-meta{ font-size:.9rem; color:var(--muted); margin-top:.5rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center; }
+  .quiz-percent{ font-size:1.5rem; font-weight:700; color:var(--text); }
+  .bar{ margin-top:.75rem; background:#e5e7eb; border-radius:9999px; height:.6rem; overflow:hidden; }
+  .fill.A{ background:linear-gradient(135deg,var(--A1),var(--A2)); }
+  .fill.B{ background:linear-gradient(135deg,var(--B1),var(--B2)); }
+  .fill.C{ background:linear-gradient(135deg,var(--C1),var(--C2)); }
+  .fill.D{ background:linear-gradient(135deg,var(--D1),var(--D2)); }
+  .fill.F{ background:linear-gradient(135deg,var(--F1),var(--F2)); }
+  .fill{ height:100%; border-radius:9999px; }
+
+  .view-comment-btn{
+    appearance:none; border:1px solid var(--border); background:#fff; color:#111827;
+    padding:.35rem .6rem; border-radius:10px; font-size:.85rem; cursor:pointer;
+  }
+  .view-comment-btn:hover{ box-shadow:var(--shadow-sm); }
+
+  /* ===== Full-page comment modal (GLOBAL, outside card) ===== */
+  .comment-modal{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    padding:1rem; background:rgba(17,24,39,.55);
+    -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+    opacity:0; pointer-events:none; transition:opacity .22s ease;
+    z-index:9999;
+  }
+  .comment-modal.is-open{ opacity:1; pointer-events:auto; }
+
+  .comment-modal__card{
+    width:100%; max-width:560px; max-height:80vh; overflow:auto;
+    background:var(--card,#fff); color:var(--text,#111);
+    padding:1.25rem 1.25rem 1rem; border-radius:16px; box-shadow:var(--shadow-lg,0 14px 30px -10px rgba(0,0,0,.18));
+    position:relative; transform:translateY(10px) scale(.98); opacity:0;
+    transition:transform .22s ease, opacity .22s ease;
+  }
+  .comment-modal.is-open .comment-modal__card{ transform:translateY(0) scale(1); opacity:1; }
+
+  .comment-modal__close{
+    position:absolute; top:.6rem; right:.75rem;
+    font-size:1.4rem; color:#6b7280; background:none; border:none; cursor:pointer; font-weight:700;
+    transition:color .2s ease, transform .1s ease;
+  }
+  .comment-modal__close:hover{ color:#e11d48; transform:scale(1.06); }
+
+  .comment-modal__title{ margin:0 1.6rem .75rem 0; font-size:1.1rem; font-weight:700; }
+  .comment-modal__body{ margin:0; font-size:1rem; color:#b91c1c; word-break:break-word; }
+
+  @media (max-width:600px){
+    .comment-modal{ padding:.75rem; }
+    .comment-modal__card{ max-width:92vw; max-height:82vh; padding:1rem .9rem .8rem; }
+    .comment-modal__close{ top:.4rem; right:.55rem; font-size:1.3rem; }
+  }
+</style>
+
+<div class="wrap">
+  <h1 class="heading" style="color:black;">📊 Quiz Marks Tracker</h1>
+  <p class="subhead">Keep track of your quiz performance and monitor your progress</p>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat">
+      <div><h4>Total Quizzes</h4><p>{{ grades|length }}</p></div>
+      <div class="stat-icon">📝</div>
+    </div>
+    <div class="stat">
+      <div><h4>Average Score</h4><p>{{ (avg_score if avg_score is defined else '0') }}%</p></div>
+      <div class="stat-icon">📈</div>
+    </div>
+    <div class="stat">
+      <div><h4>Highest Score</h4><p style="color:#059669">{{ (highest_score if highest_score is defined else '0') }}%</p></div>
+      <div class="stat-icon">🏆</div>
+    </div>
+    <div class="stat">
+      <div><h4>Current Grade</h4><p style="color:#4f46e5">{% if current_grade_letter is defined %}{{ current_grade_letter }}{% else %}-{% endif %}</p></div>
+      <div class="stat-icon">🎯</div>
+    </div>
+  </div>
+
+  <!-- Quiz Results -->
+  <div class="panel">
+    <div class="panel-head">📋 Quiz Results</div>
+    <div class="panel-body">
+      {% if grades|length == 0 %}
+        <div class="empty">
+          <div class="icon">📝</div>
+          <p>No quiz results yet</p>
+          <p style="font-size:.85rem;">Your teacher will add quiz results here once available!</p>
+        </div>
+      {% else %}
+        {% for grade in grades|sort(attribute='quiz.date', reverse=True) %}
+          {% set mark = grade.mark|string|float %}
+          {% set full_mark = grade.quiz.full_mark|string|float %}
+          {% if full_mark > 0 %}
+            {% set percent = (mark / full_mark * 100) | round(0, 'floor') %}
+          {% else %}
+            {% set percent = 0 %}
+          {% endif %}
+          {% if percent >= 90 %}
+            {% set letter = 'A' %}
+          {% elif percent >= 80 %}
+            {% set letter = 'B' %}
+          {% elif percent >= 70 %}
+            {% set letter = 'C' %}
+          {% elif percent >= 60 %}
+            {% set letter = 'D' %}
+          {% else %}
+            {% set letter = 'F' %}
+          {% endif %}
+
+          <div class="quiz-card">
+            <div class="quiz-top">
+              <div style="flex:1 1 auto;min-width:200px;">
+                <h3 class="quiz-title">{{ grade.quiz.name }}</h3>
+                <span class="badge {{ letter }}">Grade {{ letter }}</span>
+                <div class="quiz-meta">
+                  <span>📊 {{ mark }}/{{ full_mark }} pts</span>
+                  <span>📈 {{ percent }}%</span>
+                  {% if grade.quiz.date %}<span>📅 {{ grade.quiz.date.strftime('%Y-%m-%d') }}</span>{% endif %}
+                  <span>🧑‍🏫 {{ corrector_names[grade.id] }}</span>
+                  {% if grade.place %}
+                    <span>🏆 Place on class :  {{ grade.place }}</span>
+                  {% endif %}
+                  {% if grade.comment %}
+                    <button
+                      class="view-comment-btn"
+                      type="button"
+                      onclick="openGlobalComment(this)"
+                      data-comment="{{ grade.comment|e }}"
+                      data-title="Teacher's Comment">
+                      View Comment
+                    </button>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="quiz-percent">{{ percent }}%</div>
+            </div>
+            <div class="bar"><div class="fill {{ letter }}" style="width:{{ percent }}%"></div></div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== Single GLOBAL modal appended once (prevents transform/stacking bugs) ===== -->
+<div id="comment-modal" class="comment-modal" aria-hidden="true" style="display:none;">
+  <div class="comment-modal__card" role="dialog" aria-modal="true" aria-labelledby="comment-modal-title">
+    <button class="comment-modal__close" type="button" aria-label="Close" onclick="closeGlobalComment()">×</button>
+    <h4 id="comment-modal-title" class="comment-modal__title">Teacher's Comment</h4>
+    <p id="comment-modal-body" class="comment-modal__body"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  const modal = document.getElementById('comment-modal');
+  const titleEl = document.getElementById('comment-modal-title');
+  const bodyEl  = document.getElementById('comment-modal-body');
+  const state   = { lastFocused: null, trap: null, esc: null };
+
+  window.openGlobalComment = function(btn){
+    if (!modal) return;
+
+    // set content
+    const t = btn.getAttribute('data-title') || "Teacher's Comment";
+    const c = btn.getAttribute('data-comment') || "";
+    titleEl.textContent = t;
+    bodyEl.textContent  = c;
+
+    // show
+    modal.style.display = 'flex';
+    requestAnimationFrame(()=> modal.classList.add('is-open'));
+    document.body.style.overflow = 'hidden';
+    modal.setAttribute('aria-hidden','false');
+
+    // focus handling
+    state.lastFocused = document.activeElement;
+    const focusables = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const first = focusables[0] || modal;
+    const last  = focusables[focusables.length-1] || modal;
+    first.focus();
+
+    state.trap = (e)=>{
+      if (e.key !== 'Tab') return;
+      if (focusables.length===0){ e.preventDefault(); return; }
+      if (e.shiftKey && document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement===last){ e.preventDefault(); first.focus(); }
+    };
+    modal.addEventListener('keydown', state.trap);
+
+    state.esc = (e)=>{ if (e.key==='Escape') closeGlobalComment(); };
+    document.addEventListener('keydown', state.esc);
+
+    // close on backdrop click (only overlay)
+    const backdropHandler = (e)=>{ if (e.target===modal) closeGlobalComment(); };
+    modal.addEventListener('click', backdropHandler, { once:true });
+  };
+
+  window.closeGlobalComment = function(){
+    if (!modal) return;
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden','true');
+    setTimeout(()=>{ modal.style.display='none'; }, 220);
+    document.body.style.overflow = '';
+
+    if (state.trap) modal.removeEventListener('keydown', state.trap);
+    if (state.esc) document.removeEventListener('keydown', state.esc);
+    state.trap = state.esc = null;
+
+    if (state.lastFocused && typeof state.lastFocused.focus==='function'){
+      state.lastFocused.focus();
+    }
+  };
+})();
+</script>
+
+{% endblock %}

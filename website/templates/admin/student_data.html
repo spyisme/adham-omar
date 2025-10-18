@@ -1,0 +1,447 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}View {{ student.name }}'s Grades{% endblock %}
+{% block content %}
+
+<style>
+
+.container {
+    max-width: 850px;
+    margin: 30px auto;
+    padding: 30px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    color: #2d3748;
+}
+
+.h1-class {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #1a202c;
+    font-weight: 700;
+    font-size: 1.75rem;
+}
+
+.hr-class {
+    border: none;
+    height: 1px;
+    background-color: #e2e8f0;
+    margin: 32px 0;
+}
+
+.back-link {
+    display: block;
+    margin-bottom: 24px;
+    text-align: center;
+    color: #4a90e2;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+.back-link:hover {
+    color: #2b6cb0;
+}
+
+.edit-user-subtitle {
+    text-align: center;
+    margin-top: -15px;
+    margin-bottom: 25px;
+    font-size: 0.9rem;
+    color: #718096;
+}
+.edit-user-subtitle a {
+    color: #4a90e2;
+    text-decoration: none;
+}
+.edit-user-subtitle a:hover {
+    text-decoration: underline;
+}
+
+/* Student Profile Picture */
+.student-pfp {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 25px auto;
+    border-radius: 50%;
+    background: #f0f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    font-weight: 600;
+    color: #4a5568;
+    overflow: hidden;
+    cursor: pointer;
+    border: 4px solid #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.student-pfp:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+.student-pfp img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Table Styles */
+.table-container {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+th {
+    background-color: #f7fafc;
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+td {
+    color: #2d3748;
+}
+tbody tr:hover {
+    background-color: #f7fafc;
+}
+.status-submitted { color: #38a169; font-weight: 500; }
+.status-not-submitted { color: #e53e3e; font-weight: 500; }
+.status-not-marked { color: #718096; }
+
+/* Image Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0s 0.3s;
+}
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.3s ease;
+}
+.modal-image {
+    display: block;
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+.modal-overlay.active .modal-image {
+    transform: scale(1);
+}
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    font-size: 3rem;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.modal-close:hover {
+    opacity: 1;
+    transform: rotate(90deg);
+}
+
+@media (max-width: 600px) {
+    .container { padding: 15px; }
+    .h1-class { font-size: 1.5rem; }
+    th, td { padding: 10px 8px; font-size: 0.9rem; }
+}
+</style>
+
+<div class="container">
+    <a href="{{ url_for('admin.students') }}" class="back-link">← Back to Students List</a>
+    <hr class="hr-class">
+    
+    <h1 class="h1-class">Student Information</h1>
+    <p class="edit-user-subtitle">To edit student's account, <a href="{{ url_for('admin.edit_user', user_id=student.id) }}">click here</a></p>
+    <style>
+        .reset-password-btn {
+            background-color: #3085d6;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(48,133,214,0.08);
+            margin-left: 4px;
+        }
+        .reset-password-btn:hover, .reset-password-btn:focus {
+            background-color: #2563a6;
+            box-shadow: 0 4px 16px rgba(48,133,214,0.15);
+            outline: none;
+        }
+    </style>
+    <p class="edit-user-subtitle">
+        To reset student's password,
+        <button
+            type="button"
+            class="reset-password-btn"
+            onclick="event.preventDefault(); Swal.fire({
+                title: 'Are you sure?',
+                text: 'You want to reset this student\'s password?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, reset it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '{{ url_for('admin.reset_password', user_id=student.id) }}';
+                }
+            });"
+        >click here</button>
+    </p>
+
+    
+    <div class="student-pfp" id="studentPfpContainer">
+        {% if student.profile_picture %}
+            <img src="{{url_for('website.profile_picture', user_id=student.id)}}" alt="Profile Picture">
+        {% else %}
+            <span>{{ student.name[0]|upper }}</span>
+        {% endif %}
+    </div>
+
+    <div class="table-container">
+        <table>
+
+            <tr><th colspan="2" style="text-align: center;">Zoom Meetings</th></tr>
+            <tr><th>Zoom ID</th><td>{{ student.zoom_id }}</td></tr>
+
+
+            <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.zoom_user', user_id=student.id) }}'">Delete Zoom ID</button>
+
+            <tr><th colspan="2" style="text-align: center;">Debug Information</th></tr>
+            {% if student.last_used_user_agent %}
+            <tr><th>User Agent</th><td>{{ student.last_used_user_agent }}</td></tr>
+            <tr><th>IP Address</th><td>{{ student.last_used_ip_address }}</td></tr>
+            {% else %}
+            <tr><th>User Agent</th><td>N/A</td></tr>
+            <tr><th>IP Address</th><td>N/A</td></tr>
+            {% endif %}
+            {% if student.last_website_access %}
+            <tr><th>Student Last Access</th><td>{{ student.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
+            {% else %}
+            <tr><th>Student Last Access</th><td>N/A</td></tr>
+            {% endif %}
+            <tr><th>Login Count</th><td>{{ student.login_count }}</td></tr>
+
+            <tr><th colspan="2" style="text-align: center;">Whatsapp Status</th></tr>
+
+            <tr><th>Student WhatsApp Status</th><td>
+                {% if student.student_whatsapp %}
+                <span class="status-submitted">Active</span>
+                {% else %}
+                <span class="status-not-submitted">Inactive</span>
+                {% endif %}
+            </td></tr>
+            <tr><th>Parent WhatsApp Status</th><td>
+                {% if student.parent_whatsapp %}
+                <span class="status-submitted">Active</span>
+                {% else %}
+                <span class="status-not-submitted">Inactive</span>
+                {% endif %}
+            </td></tr>
+
+
+            <tr><th colspan="2" style="text-align: center;">Student Information</th></tr>
+
+            <tr><th>Name</th><td>{{ student.name }}</td></tr>
+            <tr><th>Subject</th><td>{{ student.subject.name }}</td></tr>
+            <tr><th>Student ID</th><td>{{ student.code }}</td></tr>
+            <tr><th>Phone Number</th><td>{{ student.phone_number }}</td></tr>
+            <tr><th>Email</th><td>{{ student.email }}</td></tr>
+            {% if student.last_website_access %}
+            <tr><th>Student Last Access</th><td>{{ student.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
+            {% else %}
+            <tr><th>Student Last Access</th><td>N/A</td></tr>
+            {% endif %}
+            <tr><th>School</th><td>{{ student.school.name }}</td></tr>
+            <tr><th>Class</th><td>{{ student.group.name  }}</td></tr>
+            <tr><th>Year</th><td>{{ student.stage.name  }}</td></tr>
+            
+            <tr><th colspan="2" style="text-align: center;">Parent Information</th></tr>
+
+            <tr><th>Parent Type</th><td>{{ student.parent_type.capitalize() }}</td></tr>
+            <tr><th>Parent Number</th><td>{{ student.parent_phone_number }}</td></tr>
+            {% if parent.last_website_access %}
+            <tr><th>Parent Last Access</th><td>{{ parent.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
+            {% else %}
+            <tr><th>Parent Last Access</th><td>N/A</td></tr>
+            {% endif %}
+        </table>
+    </div>
+
+    <hr class="hr-class" />
+
+    <h1 class="h1-class">{{ student.name.split()[0] }}'s Assignments</h1>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Assignment Title</th><th>Deadline</th><th>Status</th><th>Mark</th></tr>
+            </thead>
+            <tbody>
+                {% for assignment in assignments %}
+                <tr style="cursor: pointer;" onclick="window.location.href='/admin/assignments/{{ assignment.id }}/submissions'">
+                    <td>{{ assignment.title }}</td>
+                    <td>{{ assignment.deadline_date.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    <td>
+                        {% if assignment.id in submission_ids %}
+                        <span class="status-submitted">Submitted</span>
+                        {% else %}
+                        <span class="status-not-submitted">Not Submitted</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if assignment.id in submission_marks %}
+                        {{ submission_marks[assignment.id] }}
+                        {% else %}
+                        <span class="status-not-marked">Not Marked</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <hr class="hr-class" />
+
+    <h1 class="h1-class">{{ student.name.split()[0] }}'s Videos Progress</h1>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Video Title</th><th>Status</th><th>View Count</th></tr>
+            </thead>
+            <tbody>
+                {% for video in videos %}
+                <tr>
+                    <td>{{ video.title }}</td>
+                    <td>
+                        {% if video.id in watched_videos %}
+                        <span class="status-submitted">Watched</span>
+                        {% else %}
+                        <span class="status-not-submitted">Not Watched</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% for view in video.views %}
+                            {% if view.student_id == student.id %}{{ view.view_count }}{% endif %}
+                        {% endfor %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <hr class="hr-class" />
+
+    <h1 class="h1-class">{{ student.name.split()[0] }}'s Exam Grades</h1>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr><th>Exam Name</th><th>Deadline</th><th>Status</th><th>Mark</th></tr>
+            </thead>
+            <tbody>
+                {% for exam in quiz_grades %}
+                <tr style="cursor: pointer;" onclick="window.location.href='/admin/online/exam/submissions/{{ exam.id }}'">
+                    <td>{{ exam.title }}</td>
+                    <td>{{ exam.deadline_date.strftime('%Y-%m-%d %I:%M %p') }}</td>
+                    <td>
+                        {% if exam.id in submission_ids %}
+                        <span class="status-submitted">Submitted</span>
+                        {% else %}
+                        <span class="status-not-submitted">Not Submitted</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if exam.id in submission_marks %}
+                        {{ submission_marks[exam.id] }}{% if exam.out_of %} / {{ exam.out_of }}{% endif %}
+                        {% else %}
+                        <span class="status-not-marked">Not Marked</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal-overlay">
+    <span class="modal-close" id="modalCloseBtn">&times;</span>
+    <img src="" alt="Enlarged Profile Picture" id="modalImage" class="modal-image">
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const pfpContainer = document.getElementById('studentPfpContainer');
+    const modal = document.getElementById('imageModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    if (pfpContainer && modal && modalImage && modalCloseBtn) {
+        const studentImg = pfpContainer.querySelector('img');
+
+        // Only make the PFP clickable if there's an actual image inside
+        if (studentImg) {
+            const openModal = () => {
+                modalImage.src = studentImg.src;
+                modal.classList.add('active');
+            };
+
+            const closeModal = () => {
+                modal.classList.remove('active');
+            };
+
+            pfpContainer.addEventListener('click', openModal);
+            modalCloseBtn.addEventListener('click', closeModal);
+
+            modal.addEventListener('click', (event) => {
+                // Close if the overlay itself (the background) is clicked
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && modal.classList.contains('active')) {
+                    closeModal();
+                }
+            });
+        } else {
+             pfpContainer.style.cursor = 'default';
+        }
+    }
+});
+</script>
+{% endblock %}

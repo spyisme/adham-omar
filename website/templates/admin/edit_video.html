@@ -1,0 +1,295 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Edit Video{% endblock %}
+{% block content %}
+
+<div class="edit-assignment-container">
+  <div class="edit-assignment-modal-content">
+    <h1 class="edit-assignment-title">Edit Video</h1>
+
+    <a href="{{ url_for('admin.session_details', session_id=video.session_id) }}" class="back-link"
+      style="display:inline-block; margin-bottom:18px; color:var(--accent); font-weight:500; text-decoration:none; font-size:1rem;">
+      &lt; Go back to videos
+    </a>
+
+    <form class="edit-assignment-form" method="POST" enctype="multipart/form-data" autocomplete="off">
+      <!-- Title -->
+      <label for="title" class="edit-label">Title:</label>
+      <input type="text" id="title" name="title" value="{{ video.title }}" required class="form-control" />
+
+      <!-- Description -->
+      <label for="description" class="edit-label">Description:</label>
+      <textarea id="description" name="description" class="form-control"
+        style="min-height:90px; resize:vertical;">{% if video.description %}{{ video.description }}{% endif %}</textarea>
+
+      <!-- Video URL -->
+      <label for="video_url" class="edit-label">Video URL:</label>
+      <input type="url" id="video_url" name="video_url" value="{{ video.video_url }}" required class="form-control" />
+
+
+
+      <button type="submit" class="btn btn-primary save-btn">Save Changes</button>
+    </form>
+  </div>
+</div>
+
+<style>
+  /* === Exact visual system from edit_assignment === */
+  .edit-assignment-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    background: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .edit-assignment-modal-content {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+    padding: 36px 28px 28px 28px;
+    max-width: 520px;
+    width: 100%;
+    color: #222;
+    margin: 30px auto 10px auto;
+    position: static;
+  }
+
+  .edit-assignment-title {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #1a237e;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .edit-label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #1a237e;
+    font-size: 1rem;
+    margin-top: 12px;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 7px;
+    border: 1.5px solid #d1d5db;
+    background: #f9fafb;
+    font-size: 1rem;
+    color: #222;
+    margin-bottom: 6px;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    box-sizing: border-box;
+  }
+
+  .form-control:focus {
+    border-color: #2d7ff9;
+    background: #fff;
+  }
+
+  .save-btn {
+    width: 100%;
+    font-weight: 600;
+    padding: 12px 0;
+    font-size: 1.1rem;
+    margin-top: 10px;
+    background: #2d7ff9;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    box-shadow: 0 2px 8px rgba(45, 127, 249, 0.08);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+
+  .save-btn:hover {
+    background: #1a5fd0;
+    box-shadow: 0 4px 16px rgba(45, 127, 249, 0.13);
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+    color: #003d99;
+  }
+
+  /* === Dropdown Multi-select (copied 1:1) === */
+  .multi {
+    position: relative;
+  }
+
+  .multi-btn {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 7px;
+    border: 1.5px solid #d1d5db;
+    background: #f9fafb;
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: border-color .2s, background .2s;
+  }
+
+  .multi.open .multi-btn,
+  .multi-btn:focus {
+    border-color: #2d7ff9;
+    background: #fff;
+    outline: none;
+  }
+
+  .multi-list {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1.5px solid #d1d5db;
+    border-radius: 7px;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, .12);
+    max-height: 260px;
+    overflow: auto;
+    padding: 8px 0;
+    display: none;
+    z-index: 1001;
+  }
+
+  .multi.open .multi-list {
+    display: block;
+  }
+
+  .multi-list label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  .multi-list label:hover {
+    background: #f1f5fb;
+  }
+
+  .multi-list input[type="checkbox"] {
+    accent-color: #2d7ff9;
+  }
+
+  .multi-all {
+    font-weight: 600;
+    color: #2d7ff9;
+  }
+
+  /* Mobile refinements (same as assignments) */
+  @media (max-width: 700px) {
+    .edit-assignment-modal-content {
+      padding: 16px 6px !important;
+      max-width: 440px !important;
+      width: 100% !important;
+      margin: 6px 0 !important;
+    }
+
+    .multi-list {
+      max-height: 220px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .edit-assignment-modal-content {
+      padding: 10px 8px !important;
+      max-width: 99% !important;
+      margin: 2px 0 !important;
+    }
+
+    .edit-assignment-form input,
+    .edit-assignment-form select,
+    .edit-assignment-form textarea {
+      font-size: 0.98rem !important;
+      padding: 8px 8px !important;
+    }
+
+    .edit-assignment-form button[type="submit"] {
+      font-size: 1rem !important;
+      padding: 10px 0 !important;
+    }
+  }
+</style>
+
+<script>
+  // === Dropdown Multi-select logic (same as assignments) ===
+  function setupDropdown(dropdownId, btnId, listId, labelAll) {
+    const dropdown = document.getElementById(dropdownId);
+    const btn = document.getElementById(btnId);
+    const list = document.getElementById(listId);
+    if (!dropdown || !btn || !list) return;
+
+    const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+    const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+    // Open/close dropdown
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      document.querySelectorAll('.multi').forEach(d => {
+        if (d !== dropdown) d.classList.remove('open');
+      });
+      dropdown.classList.toggle('open');
+      btn.classList.toggle('active');
+    };
+
+    // Close on outside click
+    document.addEventListener('click', function (e) {
+      if (!dropdown.contains(e.target)) {
+        dropdown.classList.remove('open');
+        btn.classList.remove('active');
+      }
+    });
+
+    // "All" checkbox logic
+    if (allCheckbox) {
+      allCheckbox.onchange = function () {
+        if (allCheckbox.checked) {
+          checkboxes.forEach(cb => cb.checked = false);
+        }
+        updateBtnLabel();
+      };
+    }
+
+    // Individual checkbox logic
+    checkboxes.forEach(cb => {
+      cb.onchange = function () {
+        if (cb.checked && allCheckbox) {
+          allCheckbox.checked = false;
+        }
+        if (!checkboxes.some(c => c.checked) && allCheckbox) {
+          allCheckbox.checked = true;
+        }
+        updateBtnLabel();
+      };
+    });
+
+    function updateBtnLabel() {
+      let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+      if ((allCheckbox && allCheckbox.checked) || selected.length === 0) {
+        btn.textContent = labelAll + " ▼";
+      } else if (selected.length === 1) {
+        btn.textContent = selected[0] + " ▼";
+      } else {
+        btn.textContent = selected.length + " selected ▼";
+      }
+    }
+    updateBtnLabel();
+  }
+
+  // Initialize the three dropdowns
+  setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+  setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+  setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+</script>
+
+{% endblock %}

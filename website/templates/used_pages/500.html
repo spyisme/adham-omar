@@ -1,0 +1,28 @@
+{% if current_user.is_authenticated %}
+    {% if current_user.role == "admin" or current_user.role == "super_admin" %}
+        {% extends "admin/dashboard.html" %}
+    {% else %}
+        {% extends "student_pages/dashboard.html" %}
+    {% endif %}
+{% else %}
+    {% extends "student_pages/dashboard.html" %}
+{% endif %}
+
+{% block content %}
+
+<div class="card" style="margin-top: 40px; max-width: 500px; margin-left: auto; margin-right: auto;">
+    <h1 class="text-center" style="font-size: 2.5rem; color: #c0392b;">500 - Internal Server Error</h1>
+    <p class="text-center" style="font-size: 1.2rem; color: #555;">
+        Oops! Something went wrong on our end.<br>
+        Please try again later or return to the 
+        <a href="{% if current_user.is_authenticated and current_user.is_admin %}/admin/dashboard{% else %}/{% endif %}" style="color: #2980b9; text-decoration: underline;">dashboard</a>.
+    
+    {%if current_user.role == "super_admin" %}
+    <h1 style="font-size: 1.2rem; color: #555;">
+        <a href="/errors" style="color: #2980b9; text-decoration: underline;">Error log</a>
+    </h1>
+    {% endif %}
+    
+    </p>
+</div>
+{% endblock %}

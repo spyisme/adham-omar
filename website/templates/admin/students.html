@@ -1,0 +1,540 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Students Management{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #1a237e;
+        --primary-hover-color: #141a64;
+        --danger-color: #dc2626;
+        --danger-hover-color: #b91c1c;
+        --surface-bg: #ffffff;
+        --container-bg: #f8f9fa;
+        --text-color: #222222;
+        --subtle-text-color: #6c757d;
+        --border-color: #dee2e6;
+        --border-radius: 6px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --card-gap: 1rem;
+        /* NEW: Gap between cards */
+    }
+
+    .students-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .students-container h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+    }
+
+    .filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.5rem;
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+    }
+
+    .filter-input,
+    .filter-select {
+        padding: 0.6rem 0.8rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        font-size: 1rem;
+        background-color: var(--surface-bg);
+        color: var(--text-color);
+        flex-grow: 1;
+        min-width: 150px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
+    }
+
+    .controls-bar {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .sort-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        background-color: var(--surface-bg);
+        color: var(--text-color);
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .sort-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .sort-btn.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .sort-indicator {
+        font-size: 0.8em;
+    }
+
+    /* --- NEW CARD STYLES --- */
+    .cards-container {
+        /* Replaces .table-wrapper */
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        /* Responsive grid for cards */
+        gap: var(--card-gap);
+        margin-top: 1rem;
+    }
+
+    .student-card {
+        /* Replaces <tr> */
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .student-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .card-header {
+        /* Style for the ID | Name part */
+        background-color: #f8f9fa;
+        margin: -1rem;
+        /* Adjust to fill card width */
+        padding: 1rem;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-item {
+        /* Styles for each data field (Phone, Year, Class, etc.) */
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px dashed #e9ecef;
+        /* Subtle separator */
+        font-size: 0.95rem;
+    }
+
+    .card-item:last-of-type {
+        border-bottom: none;
+    }
+
+    .card-item .label {
+        font-weight: 600;
+        color: var(--text-color);
+        flex-shrink: 0;
+        /* Prevent label from shrinking */
+        margin-right: 1rem;
+    }
+
+    .card-item .value {
+        color: var(--subtle-text-color);
+        text-align: right;
+        flex-grow: 1;
+        /* Allow value to take remaining space */
+        word-break: break-word;
+        /* Handle long values */
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        flex-grow: 1;
+        /* Make buttons take equal space */
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover-color);
+        color: white;
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: var(--danger-hover-color);
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        background: var(--surface-bg);
+        color: var(--subtle-text-color);
+        text-decoration: none;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .page-link:hover {
+        background-color: #e9ecef;
+        color: var(--primary-color);
+    }
+
+    .page-link.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        pointer-events: none;
+    }
+
+    .page-link.disabled {
+        color: #adb5bd;
+        background-color: #f8f9fa;
+        pointer-events: none;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--subtle-text-color);
+        font-size: 1.1rem;
+    }
+
+    /* Media queries for smaller adjustments */
+    @media (max-width: 768px) {
+        .students-container {
+            padding: 1rem 0.5rem;
+        }
+
+        .students-container h1 {
+            font-size: 1.5rem;
+        }
+
+        .filters-form {
+            flex-direction: column;
+        }
+
+        .filters-form .btn-primary {
+            width: 100%;
+            padding: 0.8rem;
+        }
+
+        .controls-bar {
+            justify-content: stretch;
+        }
+
+        .sort-btn {
+            flex-grow: 1;
+            justify-content: center;
+        }
+
+        .cards-container {
+            grid-template-columns: 1fr;
+            /* Stack cards vertically on small screens */
+        }
+    }
+</style>
+
+<div class="students-container">
+    <h1>Students Management</h1>
+
+    <form class="filters-form" id="filtersForm" role="search" method="get" action="{{ url_for('admin.students') }}">
+        <input type="text" id="searchInput" name="search" class="filter-input"
+            placeholder="Search by name, code, or phone..." value="{{ request.args.get('search', '') }}">
+        <select id="groupFilter" name="group" class="filter-select">
+            <option value="">Filter by Class</option>
+            {% for group in groups %}
+            <option value="{{ group.name }}" {% if request.args.get('group')==group.name %}selected{% endif %}>{{
+                group.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="stageFilter" name="stage" class="filter-select">
+            <option value="">Filter by Year</option>
+            {% for stage in stages %}
+            <option value="{{ stage.name }}" {% if request.args.get('stage')==stage.name %}selected{% endif %}>{{
+                stage.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="schoolFilter" name="school" class="filter-select">
+            <option value="">Filter by School</option>
+            {% for school in schools %}
+            <option value="{{ school.name }}" {% if request.args.get('school')==school.name %}selected{% endif %}>{{
+                school.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="subjectFilter" name="subject" class="filter-select">
+            <option value="">Filter by Subject</option>
+            {% for subject in subjects %}
+            <option value="{{ subject.name }}" {% if request.args.get('subject')==subject.name %}selected{% endif %}>{{
+                subject.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+    </form>
+
+    {% if users %}
+    <div class="controls-bar">
+        <button id="sortNameBtn" class="sort-btn" type="button" data-sort="name">
+            Sort Name <span class="sort-indicator"></span>
+        </button>
+        <button id="sortCodeBtn" class="sort-btn" type="button" data-sort="code">
+            Sort Code <span class="sort-indicator"></span>
+        </button>
+    </div>
+
+    <div class="cards-container" id="userCardsContainer"> {# NEW: Renamed div to hold cards #}
+        {% for user in users %}
+        <a href="{{ url_for('admin.student', user_id=user.id) }}" class="student-card"
+            data-class="{{ user.group.name }}" data-year="{{ user.stage.name }}" data-school="{{ user.school.name }}"
+            data-subject="{{ user.subject.name }}">
+
+            <div class="card-header">
+                <span>{{ user.code }} |</span> {{ user.name }}
+            </div>
+
+            <div class="card-item">
+                <span class="label">Phone</span>
+                <span class="value">{{ user.phone_number }}</span>
+            </div>
+            <div class="card-item">
+                <span class="label">Parent Phone</span>
+                <span class="value">{{ user.parent_phone_number }}</span>
+            </div>
+            <div class="card-item">
+                <span class="label">Whatsapp</span>
+                <span class="value">
+                    {% if user.student_whatsapp and user.parent_whatsapp %}
+                    Active (Both)
+                    {% elif user.student_whatsapp %}
+                    Active (Student)
+                    {% elif user.parent_whatsapp %}
+                    Active (Parent)
+                    {% else %}
+                    Inactive (None)
+                    {% endif %}
+
+
+                </span>
+            </div>
+            <div class="card-item">
+                <span class="label">Year</span>
+                <span class="value">{{ user.stage.name }}</span>
+            </div>
+            <div class="card-item">
+                <span class="label">School</span>
+                <span class="value">{{ user.school.name }}</span>
+            </div>
+            <div class="card-item">
+                <span class="label">Subject</span>
+                <span class="value">{{ user.subject.name }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-results">
+        No students found
+    </div>
+    {% endif %}
+
+    {% if pagination.pages > 1 %}
+    <nav class="pagination" aria-label="Students pagination">
+        {# Helper macro to keep all current filters/search in pagination links #}
+        {% macro url_with_args(page) -%}
+        {{ url_for('admin.students',
+        page=page,
+        search=request.args.get('search', ''),
+        group=request.args.get('group', ''),
+        stage=request.args.get('stage', ''),
+        school=request.args.get('school', ''),
+        subject=request.args.get('subject', '')
+        ) }}
+        {%- endmacro %}
+
+        <a class="page-link {{ 'disabled' if not pagination.has_prev }}"
+            href="{{ url_with_args(pagination.prev_num) if pagination.has_prev else '#' }}">&laquo; Prev</a>
+
+        {% set start_page = [pagination.page - 2, 1] | max %}
+        {% set end_page = [pagination.page + 2, pagination.pages] | min %}
+
+        {% if start_page > 1 %}
+        <a class="page-link" href="{{ url_with_args(1) }}">1</a>
+        {% if start_page > 2 %}
+        <span class="page-link disabled">...</span>
+        {% endif %}
+        {% endif %}
+
+        {% for p in range(start_page, end_page + 1) %}
+        <a class="page-link {{ 'active' if p == pagination.page }}" href="{{ url_with_args(p) }}">{{ p }}</a>
+        {% endfor %}
+
+        {% if end_page < pagination.pages %} {% if end_page < pagination.pages - 1 %} <span class="page-link disabled">
+            ...</span>
+            {% endif %}
+            <a class="page-link" href="{{ url_with_args(pagination.pages) }}">{{ pagination.pages }}</a>
+            {% endif %}
+
+            <a class="page-link {{ 'disabled' if not pagination.has_next }}"
+                href="{{ url_with_args(pagination.next_num) if pagination.has_next else '#' }}">Next &raquo;</a>
+    </nav>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // === DOM Elements ===
+        const userCardsContainer = document.getElementById('userCardsContainer'); // NEW: Changed from userTableBody
+        const sortNameBtn = document.getElementById('sortNameBtn');
+        const sortCodeBtn = document.getElementById('sortCodeBtn');
+
+        // === State ===
+        let currentSort = {
+            column: null,
+            direction: 'asc'
+        };
+
+        /*
+        NOTE FOR BETTER UX:
+        The current JavaScript sorting only sorts the students visible on the CURRENT page.
+        This can be confusing for users who expect to sort the entire dataset.
+
+        A better approach is to handle sorting on the server (in Flask), just like you do
+        with filtering. You would add 'sort_by' and 'sort_dir' parameters to the URL
+        when a sort button is clicked, and then your Flask view would use .order_by()
+        on the SQLAlchemy query before paginating. This ensures the entire student list
+        is sorted correctly.
+
+        For example, clicking the button would navigate to:
+        /admin/students?search=...&sort_by=name&sort_dir=asc
+        */
+
+        // === Client-Side Sorting Logic (for current page) ===
+        const sortCards = (sortBy) => { // NEW: Renamed function
+            if (currentSort.column === sortBy) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = sortBy;
+                currentSort.direction = 'asc';
+            }
+
+            const directionModifier = currentSort.direction === 'asc' ? 1 : -1;
+            // NEW: Select .student-card elements instead of table rows
+            const cardsToSort = Array.from(userCardsContainer.querySelectorAll('.student-card'));
+
+            cardsToSort.sort((a, b) => {
+                // NEW: Accessing data from the card-header div
+                const headerA = a.querySelector('.card-header').textContent.trim();
+                const headerB = b.querySelector('.card-header').textContent.trim();
+
+                if (sortBy === 'name') {
+                    const nameA = (headerA.split('|')[1] || '').trim().toLowerCase();
+                    const nameB = (headerB.split('|')[1] || '').trim().toLowerCase();
+                    return nameA.localeCompare(nameB) * directionModifier;
+                }
+
+                if (sortBy === 'code') {
+                    const codeA = (headerA.split('|')[0] || '').trim();
+                    const codeB = (headerB.split('|')[0] || '').trim();
+
+                    const regex = /^([A-Za-z]+)-?(\d+)$/;
+                    const matchA = codeA.match(regex);
+                    const matchB = codeB.match(regex);
+
+                    const schoolA = matchA ? matchA[1].toUpperCase() : codeA;
+                    const schoolB = matchB ? matchB[1].toUpperCase() : codeB;
+                    const numA = matchA ? parseInt(matchA[2], 10) : 0;
+                    const numB = matchB ? parseInt(matchB[2], 10) : 0;
+
+                    if (schoolA < schoolB) return -1 * directionModifier;
+                    if (schoolA > schoolB) return 1 * directionModifier;
+                    return (numA - numB) * directionModifier;
+                }
+                return 0;
+            });
+
+            // NEW: Append cards back to the container
+            cardsToSort.forEach(card => userCardsContainer.appendChild(card));
+            updateSortUI();
+        };
+
+        const updateSortUI = () => {
+            const indicator = currentSort.direction === 'asc' ? '▲' : '▼';
+
+            [sortNameBtn, sortCodeBtn].forEach(btn => {
+                btn.classList.remove('active');
+                btn.querySelector('.sort-indicator').textContent = '';
+            });
+
+            if (currentSort.column === 'name') {
+                sortNameBtn.classList.add('active');
+                sortNameBtn.querySelector('.sort-indicator').textContent = indicator;
+            } else if (currentSort.column === 'code') {
+                sortCodeBtn.classList.add('active');
+                sortCodeBtn.querySelector('.sort-indicator').textContent = indicator;
+            }
+        };
+
+        // NEW: Call sortCards instead of sortTable
+        if (sortNameBtn && sortCodeBtn) {
+            sortNameBtn.addEventListener('click', () => sortCards('name'));
+            sortCodeBtn.addEventListener('click', () => sortCards('code'));
+        }
+    });
+</script>
+
+{% endblock %}

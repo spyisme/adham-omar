@@ -1,0 +1,334 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Edit Folder{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+  /* Multi-select dropdown styles */
+  .multi-select {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: .5rem;
+    min-height: 48px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    cursor: text;
+    background: #f8fafc;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .multi-select input {
+    border: none;
+    outline: none;
+    flex: 1;
+    min-width: 120px;
+    font-size: 1rem;
+    background: transparent;
+  }
+
+  .tag {
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 999px;
+    padding: .25rem .65rem;
+    font-size: .9em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .tag button {
+    border: none;
+    background: none;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #4338ca;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .dropdown {
+    position: relative;
+    width: 100%;
+  }
+
+  .dropdown-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+  }
+
+  .dropdown-list div {
+    padding: .5rem .75rem;
+    cursor: pointer;
+  }
+
+  .dropdown-list div:hover {
+    background: #f3f4f6;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div class="page-header-content">
+    <a href="{{ url_for('admin.folders') }}" class="back-button">← Back to Folders</a>
+    <h1 class="page-title">Edit Folder</h1>
+  </div>
+</header>
+
+<main class="container">
+  <div class="card" style="max-width: 700px; margin: 0 auto;">
+    <form class="card-content" method="POST" enctype="multipart/form-data">
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <div>
+          <label for="title" class="form-label">Title</label>
+          <input type="text" id="title" name="title" value="{{ folder.title }}" required class="form-input" />
+        </div>
+
+        <div>
+          <label for="description" class="form-label">Description</label>
+          <textarea id="description" name="description" class="form-textarea"
+            style="min-height:90px; resize:vertical;">{{ folder.description or '' }}</textarea>
+        </div>
+
+        <div>
+          <label for="category" class="form-label">Category</label>
+          <select id="category" name="category" class="form-input">
+            <option value="Resources" {% if folder.category=="Resources" %}selected{% endif %}>Resources</option>
+            <option value="Quizzes" {% if folder.category=="Quizzes" %}selected{% endif %}>Quizzes</option>
+            <option value="Assignments" {% if folder.category=="Assignments" %}selected{% endif %}>Assignments</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="subject" class="form-label">Subject</label>
+          <select id="subject" name="subject" class="form-input" required>
+            {% for subject in subjects %}
+            <option value="{{ subject.id }}" {% if folder.subject and folder.subject.id==subject.id %}selected{% endif
+              %} required>{{ subject.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Schools</label>
+          <div class="dropdown">
+            <div id="multiSelectSchools" class="multi-select" onclick="toggleSchoolDropdown()">
+              <input type="text" id="multiInputSchools" placeholder="Type or select schools..."
+                oninput="filterSchools()">
+            </div>
+            <div id="dropdownListSchools" class="dropdown-list">
+              {% for school in schools %}
+              <div data-id="{{ school.id }}">{{ school.name }}</div>
+              {% endfor %}
+            </div>
+          </div>
+          <input type="hidden" name="school_ids" id="selectedSchools">
+          {% if folder.schools_mm %}
+          <script type="application/json" id="preselected-schools-data">
+            [{% for school in folder.schools_mm %}{"id": "{{ school.id }}", "name": "{{ school.name|e }}"}{{ "," if not loop.last }}{% endfor %}]
+          </script>
+          {% endif %}
+        </div>
+
+        <div>
+          <label class="form-label">Years</label>
+          <div class="multi" id="ms-stages">
+            <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+            <div class="multi-list" id="ms-stages-list">
+              <label class="multi-all">
+                <input type="checkbox" value="" {% if not folder.stages_mm and not folder.stageid %}checked{% endif
+                  %}>All Stages
+              </label>
+              {% for stage in stages %}
+              <label>
+                <input type="checkbox" name="stages_mm[]" value="{{ stage.id }}" {% if (folder.stages_mm and stage.id in
+                  folder.stages_mm|map(attribute='id' )|list) or (folder.stageid==stage.id) %}checked{% endif %}>
+                {{ stage.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Classes</label>
+          <div class="multi" id="ms-groups">
+            <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Classes ▼</button>
+            <div class="multi-list" id="ms-groups-list">
+              <label class="multi-all">
+                <input type="checkbox" value="" {% if not folder.groups_mm and not folder.groupid %}checked{% endif
+                  %}>All Classes
+              </label>
+              {% for group in groups %}
+              <label>
+                <input type="checkbox" name="groups_mm[]" value="{{ group.id }}" {% if (folder.groups_mm and group.id in
+                  folder.groups_mm|map(attribute='id' )|list) or (folder.groupid==group.id) %}checked{% endif %}>
+                {{ group.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: var(--space-4);">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  // Multi-select schools functionality
+  const schoolDropdown = document.getElementById('dropdownListSchools');
+  const schoolMultiSelect = document.getElementById('multiSelectSchools');
+  const schoolInput = document.getElementById('multiInputSchools');
+  const schoolHiddenInput = document.getElementById('selectedSchools');
+  let selectedSchools = [];
+
+  function toggleSchoolDropdown() {
+    schoolDropdown.style.display = schoolDropdown.style.display === 'block' ? 'none' : 'block';
+    if (schoolDropdown.style.display === 'block') {
+      schoolInput.focus();
+    }
+  }
+
+  function filterSchools() {
+    const filter = schoolInput.value.toLowerCase();
+    Array.from(schoolDropdown.children).forEach(option => {
+      const isSelected = selectedSchools.some(s => s.id === option.dataset.id);
+      if (isSelected) {
+        option.style.display = 'none';
+      } else {
+        option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+      }
+    });
+    schoolDropdown.style.display = 'block';
+  }
+
+  schoolDropdown.addEventListener('click', (e) => {
+    if (e.target.dataset.id) {
+      const id = e.target.dataset.id;
+      const name = e.target.textContent;
+      if (!selectedSchools.find(s => s.id === id)) {
+        selectedSchools.push({ id, name });
+        renderSchoolTags();
+      }
+      schoolInput.value = '';
+      filterSchools();
+      schoolDropdown.style.display = 'none';
+    }
+  });
+
+  function renderSchoolTags() {
+    while (schoolMultiSelect.firstChild && schoolMultiSelect.firstChild !== schoolInput) {
+      schoolMultiSelect.removeChild(schoolMultiSelect.firstChild);
+    }
+
+    selectedSchools.forEach(s => {
+      const tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.innerHTML = `${s.name} <button type="button" onclick="removeSchoolTag('${s.id}')">×</button>`;
+      schoolMultiSelect.insertBefore(tag, schoolInput);
+    });
+    schoolHiddenInput.value = selectedSchools.map(s => s.id).join(',');
+  }
+
+  function removeSchoolTag(id) {
+    selectedSchools = selectedSchools.filter(s => s.id !== id);
+    renderSchoolTags();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!schoolMultiSelect.parentElement.contains(e.target)) {
+      schoolDropdown.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const preselectedData = document.getElementById('preselected-schools-data');
+    if (preselectedData) {
+      try {
+        selectedSchools = JSON.parse(preselectedData.textContent);
+        renderSchoolTags();
+      } catch (e) {
+        console.error('Error parsing preselected schools data:', e);
+      }
+    }
+  });
+
+  function setupDropdown(dropdownId, btnId, listId, labelAll) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    const btn = document.getElementById(btnId);
+    const list = document.getElementById(listId);
+    const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+    const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      const isCurrentlyOpen = dropdown.classList.contains('open');
+      document.querySelectorAll('.multi').forEach(d => d.classList.remove('open'));
+      if (!isCurrentlyOpen) dropdown.classList.add('open');
+    };
+
+    if (allCheckbox) {
+      allCheckbox.onchange = function () {
+        if (allCheckbox.checked) {
+          checkboxes.forEach(cb => cb.checked = false);
+        }
+        updateBtnLabel();
+      };
+    }
+
+    checkboxes.forEach(cb => {
+      cb.onchange = function () {
+        if (cb.checked && allCheckbox) {
+          allCheckbox.checked = false;
+        }
+        if (allCheckbox && !checkboxes.some(c => c.checked)) {
+          allCheckbox.checked = true;
+        }
+        updateBtnLabel();
+      };
+    });
+
+    function updateBtnLabel() {
+      let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+      if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+        btn.textContent = labelAll + " ▼";
+      } else if (selected.length === 1) {
+        btn.textContent = selected[0].substring(0, 20) + (selected[0].length > 20 ? '...' : '') + " ▼";
+      } else {
+        btn.textContent = selected.length + " selected ▼";
+      }
+    }
+    updateBtnLabel();
+  }
+
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('.multi.open').forEach(d => {
+      if (!d.contains(e.target)) d.classList.remove('open');
+    });
+  });
+
+  // Setup for multi-selects
+  setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+  setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+</script>
+
+{% endblock %}

@@ -1,0 +1,6794 @@
+from flask import Blueprint, render_template , request, redirect, url_for, flash, send_from_directory , abort , jsonify
+from .models import (
+    Users, Groups, Stages, Assignments, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
+    Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, Schools , Parent , AssistantLogs, Subjects , Sessions , Attendance_session , Attendance_student)
+from datetime import datetime
+from . import db
+import pytz
+import random,string
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import current_user
+import os 
+from werkzeug.utils import secure_filename
+import json , re
+from datetime import datetime as datetime_obj
+from sqlalchemy import func
+from datetime import datetime, timezone, timedelta, date
+import uuid
+from sqlalchemy import and_ , or_ , not_
+from .student import get_all
+from dotenv import load_dotenv
+from .website import storage , send_whatsapp_message 
+from sqlalchemy import and_, cast
+from sqlalchemy.types import Float
+load_dotenv()
+
+
+admin = Blueprint('admin', __name__)
+GMT_PLUS_2 = pytz.timezone('Etc/GMT-3')
+
+
+#=================================================================
+#=================================================================
+#Helper Functions
+#=================================================================
+#=================================================================
+
+
+def scope_match_mm_legacy(mm_rel, legacy_col, user_value):
+    """
+    Returns a SQLAlchemy filter for one dimension (group / stage / school):
+    - If user_value is not None: either the assignment includes it (MM or legacy),
+      or the assignment is globally unspecified for this dimension (no MM & legacy is NULL).
+    - If user_value is None: only pass if the assignment is globally unspecified
+      (no MM & legacy is NULL) — i.e., not targeting any specific value.
+    """
+    mm_has_any   = mm_rel.any()     
+    mm_has_user  = mm_rel.any() if user_value is None else mm_rel.any(id=user_value)
+
+    if user_value is None:
+
+        return and_(not_(mm_has_any), legacy_col.is_(None))
+    else:
+
+        return or_(
+            mm_has_user,
+            legacy_col == user_value,
+            and_(not_(mm_has_any), legacy_col.is_(None))
+        )
+
+
+def get_user_scope_ids():
+    managed_groups = getattr(current_user, "managed_groups", [])
+    managed_stages = getattr(current_user, "managed_stages", [])
+    managed_schools = getattr(current_user, "managed_schools", [])
+    managed_subjects = getattr(current_user, "managed_subjects", [])
+    group_ids = [g.id for g in managed_groups]
+    stage_ids = [s.id for s in managed_stages]
+    school_ids = [s.id for s in managed_schools]
+    subject_ids = [s.id for s in managed_subjects]
+    return group_ids, stage_ids, school_ids, subject_ids
+
+
+def can_manage(selected_ids, managed_ids):
+    try :
+        selected_ids = [int(id) for id in selected_ids]
+    except ValueError:
+        return False
+    try :
+        managed_ids = [int(id) for id in managed_ids]
+    except ValueError:
+        return False
+
+    if not selected_ids:
+        return True  
+    if not managed_ids:
+        return False  
+    return set(selected_ids).issubset(set(managed_ids))
+
+
+SCOPE_REGISTRY = {
+    Announcements: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    Assignments: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    Quizzes: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    Sessions: { 
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    Materials_folder: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    NextQuiz: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'next_quiz_groups'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+    Attendance_session: {
+        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
+        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
+        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
+        'subjects': {'m2m': None, 'fk': 'subjectid'},
+    },
+}
+
+def get_visible_to_admin_query(model, admin_user, base_query=None):
+    """
+    Returns a SQLAlchemy query for all records of a model visible to an admin.
+    Corrected so that the item must match ALL defined scopes (school, group, stage, subject).
+    """
+    scope_config = SCOPE_REGISTRY.get(model)
+    if not scope_config:
+        return base_query or model.query
+
+    admin_scopes = {
+        'groups':   [g.id for g in getattr(admin_user, 'managed_groups', [])],
+        'stages':   [s.id for s in getattr(admin_user, 'managed_stages', [])],
+        'schools':  [s.id for s in getattr(admin_user, 'managed_schools', [])],
+        'subjects': [s.id for s in getattr(admin_user, 'managed_subjects', [])],
+    }
+
+    q = base_query or model.query
+    all_scope_filters = []  # collect per-dimension filters here
+
+    for scope_name, field_names in scope_config.items():
+        admin_managed_ids = admin_scopes.get(scope_name)
+        m2m_attr_name = field_names.get('m2m')
+        fk_attr_name  = field_names.get('fk')
+
+        has_m2m = m2m_attr_name and hasattr(model, m2m_attr_name)
+        has_fk  = fk_attr_name and hasattr(model, fk_attr_name)
+
+        if not has_m2m and not has_fk:
+            continue
+
+        dimension_filters = []
+
+        # Handle many-to-many scope
+        if has_m2m:
+            m2m_rel = getattr(model, m2m_attr_name)
+            if admin_managed_ids:
+                dimension_filters.append(m2m_rel.any(m2m_rel.entity.class_.id.in_(admin_managed_ids)))
+
+        # Handle foreign key scope
+        if has_fk:
+            fk_col = getattr(model, fk_attr_name)
+            if admin_managed_ids:
+                dimension_filters.append(fk_col.in_(admin_managed_ids))
+
+        # If admin manages nothing in this dimension, exclude items with values
+        if not admin_managed_ids:
+            # force false for this dimension (admin has no rights here)
+            dimension_filters.append(False)
+
+        if dimension_filters:
+            all_scope_filters.append(or_(*dimension_filters))
+
+    # ✅ Require ALL dimensions to match
+    if all_scope_filters:
+        q = q.filter(and_(*all_scope_filters))
+
+    return q
+
+
+def get_item_if_admin_can_manage(model, item_id, admin_user):
+    """
+    Fetches a single item by its ID, but only if the admin has permission to see it.
+    """
+    query = get_visible_to_admin_query(model, admin_user)
+    return query.filter(model.id == item_id).first()
+
+
+
+#=================================================================
+#Dashboard
+#=================================================================
+@admin.route('/dashboard')
+def dashboard():
+    student_count = None
+    try :
+        if current_user.role == "admin":
+            group_ids, stage_ids, school_ids, subject_ids  = get_user_scope_ids()
+            query = Users.query.filter_by(role='student')
+            if group_ids and stage_ids and school_ids:
+                query = query.filter(
+                    Users.groupid.in_(group_ids),
+                    Users.stageid.in_(stage_ids),
+                    Users.schoolid.in_(school_ids),
+                    Users.subjectid.in_(subject_ids)
+                )
+                student_count = query.distinct().count()
+            else:
+                student_count = 0
+        elif current_user.role == "super_admin":
+            students = Users.query.filter_by(role='student').all()
+            student_count = len(students)
+    except :
+        pass
+    return render_template('admin/dashboard.html', student_count=student_count)
+
+
+#Filter for all admin routes
+@admin.route('/api/filters')
+def api_admin_filters():
+    subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
+    groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
+    stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
+
+    subject_school_map = {}
+    for subject in subjects:
+        # Get schools through assistant_managed_schools relationship
+        managed_school_ids = [school.id for school in current_user.managed_schools]
+        schools_list = [{"id": school.id, "name": school.name} for school in subject.schools if school.id in managed_school_ids]
+        schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+        subject_school_map[subject.id] = schools_list
+
+    filter_data = {
+        "subjects": [{"id": s.id, "name": s.name} for s in subjects],
+        "groups": [{"id": g.id, "name": g.name} for g in groups],
+        "stages": [{"id": s.id, "name": s.name} for s in stages],
+        "subject_school_map": subject_school_map
+    }
+    return jsonify(filter_data)
+
+
+
+
+
+
+
+#=================================================================
+#Announcements
+#=================================================================
+
+@admin.route('/api/announcements-data', methods=["GET"])
+def announcements_data():
+    announcements_query = get_visible_to_admin_query(Announcements, current_user)
+    announcements = announcements_query.order_by(Announcements.creation_date.desc()).all()
+
+    announcements_list = []
+    for ann in announcements:
+        schools_names = [s.name for s in getattr(ann, 'schools_mm', [])] if getattr(ann, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(ann, 'stages_mm', [])] if getattr(ann, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(ann, 'groups_mm', [])] if getattr(ann, 'groups_mm', None) else []
+
+        # Format for display: "Item1, Item2" or "All" if empty
+        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
+        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+
+        announcements_list.append({
+            "id": ann.id,
+            "title": ann.title,
+            "content": ann.content,
+            "creation_date": ann.creation_date.strftime('%Y-%m-%d %H:%M'),
+            "subject": ann.subject.name if ann.subject else "N/A",
+            "schools": schools_display,
+            "stages": stages_display,
+            "groups": groups_display
+        })
+    
+    return jsonify(announcements_list)
+
+
+@admin.route('/api/announcement/<int:announcement_id>', methods=["GET"])
+def get_announcement_data(announcement_id):
+    """API endpoint to fetch single announcement data for editing"""
+    announcement = get_item_if_admin_can_manage(Announcements, announcement_id, current_user)
+    if not announcement:
+        return jsonify({"success": False, "message": "Announcement not found or you do not have permission to view it."}), 404
+
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(announcement, 'schools_mm', [])] if getattr(announcement, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(announcement, 'stages_mm', [])] if getattr(announcement, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(announcement, 'groups_mm', [])] if getattr(announcement, 'groups_mm', None) else []
+
+    announcement_data = {
+        "id": announcement.id,
+        "title": announcement.title,
+        "content": announcement.content,
+        "subject": {
+            "id": announcement.subject.id if announcement.subject else None,
+            "name": announcement.subject.name if announcement.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+    }
+
+    return jsonify({"success": True, "announcement": announcement_data})
+
+
+@admin.route('/announcements', methods=["GET", "POST"])
+def announcements():
+
+    if request.method == "POST":
+        group_ids_user, stage_ids_user, school_ids_user, subject_ids_user  = get_user_scope_ids()
+
+
+        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
+
+
+
+        subject_school_map = {}
+        for subject in subjects:
+            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+            subject_school_map[subject.id] = schools_list
+
+
+        title = (request.form.get("title") or "").strip()
+        content = (request.form.get("content") or "").strip()
+        
+        if not title or not content:
+            flash("Title and content are required.", "danger")
+            return redirect(url_for("admin.announcements"))
+
+
+        subject_id_single = int_or_none(request.form.get("subject_id"))
+
+        group_ids_mm  = parse_multi_ids("groups_mm[]")
+        stage_ids_mm  = parse_multi_ids("stages_mm[]")
+        school_ids_mm = parse_multi_ids("schools_mm[]")
+
+        if not group_ids_mm:
+            group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
+        if not stage_ids_mm:
+            stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
+
+
+        if not school_ids_mm:
+
+            subject_id = subject_id_single
+
+            if subject_id and subject_id in subject_school_map:
+                school_ids_mm = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                flash("Choose a subject" , "danger")
+                return redirect(url_for("admin.announcements"))
+
+
+        if group_ids_mm:
+            if not can_manage(group_ids_mm, group_ids_user):
+                flash("You are not allowed to post to one or more selected groups.", "danger")
+                return redirect(url_for("admin.announcements"))
+        if stage_ids_mm:
+            if not can_manage(stage_ids_mm, stage_ids_user):
+                flash("You are not allowed to post to one or more selected stages.", "danger")
+                return redirect(url_for("admin.announcements"))
+
+        if school_ids_mm:
+            if not can_manage(school_ids_mm, school_ids_user):
+                flash("You are not allowed to post to one or more selected schools.", "danger")
+                return redirect(url_for("admin.announcements"))
+
+
+        if subject_id_single:
+            if subject_id_single not in subject_ids_user:
+                flash("You are not allowed to post to this subject.", "danger")
+                return redirect(url_for("admin.announcements"))
+        else :
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.announcements"))
+
+
+
+
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+
+        new_announcement = Announcements(
+            title=title,
+            content=content,
+            subjectid=subject_id_single,
+            creation_date=naive_local_time
+        )
+
+        db.session.add(new_announcement)
+
+
+        if group_ids_mm:
+            new_announcement.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
+        if stage_ids_mm:
+            new_announcement.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
+        if school_ids_mm:
+            new_announcement.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
+
+        db.session.commit()
+        
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Create',
+            log={
+                "action_name": "Create",
+                "resource_type": "announcement",
+                "action_details": {
+                    "id": new_announcement.id,
+                    "title": new_announcement.title,
+                    "summary": f"Announcement '{new_announcement.title}' was created."
+                },
+                "data": {
+                    "content": new_announcement.content,
+                    "stages_mm": [s.id for s in new_announcement.stages_mm],
+                    "groups_mm": [g.id for g in new_announcement.groups_mm],
+                    "schools_mm": [s.id for s in new_announcement.schools_mm],
+                    "subjects": [new_announcement.subject.name]
+                },
+                "before": None,
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        flash("Announcement created successfully!", "success")
+        return redirect(url_for("admin.announcements"))
+
+
+    return render_template("admin/announcements/announcements.html")
+
+
+
+
+@admin.route("/announcements/delete/<int:announcement_id>", methods=["POST"])
+def delete_announcement(announcement_id):
+
+    announcement = get_item_if_admin_can_manage(Announcements, announcement_id, current_user)
+
+    if not announcement:
+        flash("Announcement not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.announcements"))
+
+
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "announcement",
+            "action_details": {
+                "id": announcement.id,
+                "title": announcement.title,
+                "summary": f"Announcement '{announcement.title}' was deleted."
+            },
+            "data": None,
+            "before": {
+                "title": announcement.title,
+                "content": announcement.content,
+                "stages_mm": [s.id for s in announcement.stages_mm],
+                "groups_mm": [g.id for g in announcement.groups_mm],
+                "schools_mm": [s.id for s in announcement.schools_mm],
+                "subjects": [announcement.subject.name]
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.delete(announcement)
+    db.session.commit()
+    
+    flash("Announcement deleted successfully!", "success")
+    return redirect(url_for("admin.announcements"))
+
+
+@admin.route("/announcements/edit/<int:announcement_id>", methods=["POST"])
+def edit_announcement(announcement_id):
+    announcement = get_item_if_admin_can_manage(Announcements, announcement_id, current_user)
+    if not announcement:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Announcement not found or you do not have permission to edit it."}), 404
+        flash("Announcement not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.announcements"))
+
+    group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
+
+    # Store old values for logging
+    old_announcement = {
+        "title": announcement.title,
+        "content": announcement.content,
+        "subjectid": announcement.subjectid,
+        "groups_mm": [g.id for g in announcement.groups_mm],
+        "stages_mm": [s.id for s in announcement.stages_mm],
+        "schools_mm": [s.id for s in announcement.schools_mm],
+    }
+
+    title = (request.form.get("title") or "").strip()
+    content = (request.form.get("content") or "").strip()
+    
+    if not title or not content:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Title and content are required."}), 400
+        flash("Title and content are required.", "danger")
+        return redirect(url_for("admin.announcements"))
+
+    subject_id_single = int_or_none(request.form.get("subject_id"))
+
+    group_ids_mm = parse_multi_ids("groups_mm[]")
+    stage_ids_mm = parse_multi_ids("stages_mm[]")
+    school_ids_mm = parse_multi_ids("schools_mm[]")
+
+    if not group_ids_mm:
+        group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
+    if not stage_ids_mm:
+        stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
+
+    # Validation
+    if group_ids_mm:
+        if not can_manage(group_ids_mm, group_ids_user):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "You are not allowed to post to one or more selected groups."}), 403
+            flash("You are not allowed to post to one or more selected groups.", "danger")
+            return redirect(url_for("admin.announcements"))
+    if stage_ids_mm:
+        if not can_manage(stage_ids_mm, stage_ids_user):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "You are not allowed to post to one or more selected stages."}), 403
+            flash("You are not allowed to post to one or more selected stages.", "danger")
+            return redirect(url_for("admin.announcements"))
+
+    if school_ids_mm:
+        if not can_manage(school_ids_mm, school_ids_user):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "You are not allowed to post to one or more selected schools."}), 403
+            flash("You are not allowed to post to one or more selected schools.", "danger")
+            return redirect(url_for("admin.announcements"))
+
+    if subject_id_single:
+        if subject_id_single not in subject_ids_user:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "You are not allowed to post to this subject."}), 403
+            flash("You are not allowed to post to this subject.", "danger")
+            return redirect(url_for("admin.announcements"))
+    else:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "You must select a subject."}), 400
+        flash("You must select a subject.", "danger")
+        return redirect(url_for("admin.announcements"))
+
+    # Update announcement
+    announcement.title = title
+    announcement.content = content
+    announcement.subjectid = subject_id_single
+
+    if group_ids_mm:
+        announcement.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
+    if stage_ids_mm:
+        announcement.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
+    if school_ids_mm:
+        announcement.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
+
+    db.session.commit()
+
+    # Log the edit action
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Edit',
+        log={
+            "action_name": "Edit",
+            "resource_type": "announcement",
+            "action_details": {
+                "id": announcement.id,
+                "title": announcement.title,
+                "summary": f"Announcement '{announcement.title}' was edited."
+            },
+            "data": None,
+            "before": old_announcement,
+            "after": {
+                "title": announcement.title,
+                "content": announcement.content,
+                "subjectid": announcement.subjectid,
+                "groups_mm": [g.id for g in announcement.groups_mm],
+                "stages_mm": [s.id for s in announcement.stages_mm],
+                "schools_mm": [s.id for s in announcement.schools_mm],
+            }
+        }
+    )
+    db.session.add(new_log)
+    db.session.commit()
+
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        schools_names = [s.name for s in getattr(announcement, 'schools_mm', [])] if getattr(announcement, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(announcement, 'stages_mm', [])] if getattr(announcement, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(announcement, 'groups_mm', [])] if getattr(announcement, 'groups_mm', None) else []
+
+        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
+        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+
+        announcement_data = {
+            "id": announcement.id,
+            "title": announcement.title,
+            "content": announcement.content,
+            "creation_date": announcement.creation_date.strftime('%Y-%m-%d %H:%M'),
+            "subject": announcement.subject.name if announcement.subject else "N/A",
+            "schools": schools_display,
+            "stages": stages_display,
+            "groups": groups_display
+        }
+        return jsonify({"success": True, "message": "Announcement updated successfully!", "announcement": announcement_data})
+
+    flash("Announcement updated successfully!", "success")
+    return redirect(url_for("admin.announcements"))
+
+
+#=================================================================
+#Students
+#=================================================================
+@admin.route('/students', methods=['GET'])
+def students():
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 51
+
+    search = request.args.get('search', '', type=str).strip()
+    group = request.args.get('group', '', type=str).strip()
+    stage = request.args.get('stage', '', type=str).strip()
+    school = request.args.get('school', '', type=str).strip()
+    subject = request.args.get('subject', '', type=str).strip()
+
+    query = Users.query.filter(Users.role == 'student', Users.code != 'nth', Users.code != 'Nth')
+
+    # Apply admin scope restrictions
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        if group_ids:
+            query = query.filter(Users.groupid.in_(group_ids))
+        if stage_ids:
+            query = query.filter(Users.stageid.in_(stage_ids))
+        if school_ids:
+            query = query.filter(Users.schoolid.in_(school_ids))
+        if subject_ids:
+            query = query.filter(Users.subjectid.in_(subject_ids))
+
+    if search:
+        search_like = f"%{search}%"
+        query = query.filter(
+            (Users.name.ilike(search_like)) |
+            (Users.code.ilike(search_like)) |
+            (Users.phone_number.ilike(search_like)) |
+            (Users.email.ilike(search_like)) | 
+            (Users.parent_phone_number.ilike(search_like))
+
+        )
+
+    if group:
+        query = query.join(Groups).filter(Groups.name == group)
+
+    if stage:
+        query = query.join(Stages).filter(Stages.name == stage)
+
+    if school:
+        query = query.join(Schools).filter(Schools.name == school)
+
+    if subject:
+        query = query.join(Subjects).filter(Subjects.name == subject)
+
+    query = query.distinct()
+
+    # Order by code alphabetically (handles format like ABC-001, BRS-001, etc.)
+    pagination = query.order_by(Users.code.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    users = pagination.items
+
+    # Filter dropdown options based on admin scope
+    if current_user.role == "super_admin":
+        groups = Groups.query.all()
+        stages = Stages.query.all()
+        schools = Schools.query.all()
+        subjects = Subjects.query.all()
+    else:
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        groups = Groups.query.filter(Groups.id.in_(group_ids)).all() if group_ids else []
+        stages = Stages.query.filter(Stages.id.in_(stage_ids)).all() if stage_ids else []
+        schools = Schools.query.filter(Schools.id.in_(school_ids)).all() if school_ids else []
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all() if subject_ids else []
+
+    return render_template(
+        'admin/students.html',
+        users=users,
+        groups=groups,
+        stages=stages,
+        schools=schools,
+        subjects=subjects,
+        pagination=pagination,
+    )
+
+#=================================================================
+#Approve Students
+#=================================================================
+@admin.route('/approve/students', methods=['GET', 'POST'])
+def approve_students():
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 50
+
+    # Base query for students needing approval
+    query = Users.query.filter(
+        Users.role == 'student',
+        (Users.code == 'nth') | (Users.code == 'Nth')
+    )
+
+    # Apply admin scope restrictions
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Apply filters based on admin's scope
+        if group_ids:
+            query = query.filter(Users.groupid.in_(group_ids))
+        if stage_ids:
+            query = query.filter(Users.stageid.in_(stage_ids))
+        if school_ids:
+            query = query.filter(Users.schoolid.in_(school_ids))
+        if subject_ids:
+            query = query.filter(Users.subjectid.in_(subject_ids))
+
+    pagination = query.order_by(Users.id.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    users = pagination.items
+
+    # Filter schools based on admin scope
+    if current_user.role == "super_admin":
+        schools = Schools.query.all()
+    else:
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        schools = Schools.query.filter(Schools.id.in_(school_ids)).all() if school_ids else []
+
+    SCHOOL_ABBREVIATIONS = {
+        "Albashaer international school": "BIS",
+        "Aspire International school": "AIS",
+        "British International College in Cairo": "BIC",
+        "British Ramses school": "BRS",
+        "Capital International School": "CIS",
+        "Egypt British international school": "EBS",
+        "Global Achievers": "GAS",
+        "Green Hills": "GRH",
+        "Gulf English school": "GES",
+        "Heights Center": "HTC",
+        "Manchester International School": "MIS",
+        "Modern British international school": "MBS",
+        "Modern education School": "MES",
+        "Online group": "ONL",
+        "Summits": "SUM",
+        "Sun of Knowledge International school": "SKI",
+        "Private": "PRV",
+    }
+
+    school_codes = {}
+    for school in schools:
+        abbr = SCHOOL_ABBREVIATIONS.get(school.name)
+        if abbr:
+            school_codes[school.id] = abbr
+        else:
+            school_codes[school.id] = school.name[:3].upper()
+
+    last_school_indices = {}
+    for school in schools:
+        # Query to find the highest numeric code for each school
+        students_with_codes = Users.query.filter(
+            Users.role == 'student',
+            Users.schoolid == school.id,
+            Users.code != 'nth',
+            Users.code != 'Nth',
+            Users.code.ilike(f"{school_codes[school.id]}-%")
+        ).all()
+        
+        last_index = 0
+        for student in students_with_codes:
+            if student.code:
+                try:
+                    # Extract the numeric part after the hyphen
+                    code_parts = student.code.split('-')
+                    if len(code_parts) >= 2:
+                        index = int(code_parts[-1])
+                        if index > last_index:
+                            last_index = index
+                except Exception:
+                    continue
+        
+        last_school_indices[school.id] = last_index
+
+    # Filter dropdown options based on admin scope
+    if current_user.role == "super_admin":
+        groups = Groups.query.all()
+        stages = Stages.query.all()
+        subjects = Subjects.query.all()
+    else:
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        groups = Groups.query.filter(Groups.id.in_(group_ids)).all() if group_ids else []
+        stages = Stages.query.filter(Stages.id.in_(stage_ids)).all() if stage_ids else []
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all() if subject_ids else []
+
+    return render_template(
+        'admin/approve.html',
+        users=users,
+        school_codes=school_codes,
+        last_school_indices=last_school_indices,
+        schools=schools,
+        groups=groups,
+        stages=stages,
+        pagination=pagination,
+        subjects=subjects
+    )
+
+
+@admin.route('/approve/student/<int:user_id>', methods=['POST'])
+def approve_student(user_id):
+    user = Users.query.get_or_404(user_id)
+    
+    # Check if admin has permission to approve this student
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Verify the student is within admin's scope
+        has_permission = False
+        if group_ids and user.groupid in group_ids:
+            has_permission = True
+        elif stage_ids and user.stageid in stage_ids:
+            has_permission = True
+        elif school_ids and user.schoolid in school_ids:
+            has_permission = True
+        elif subject_ids and user.subjectid in subject_ids:
+            has_permission = True
+            
+        if not has_permission:
+            flash('You do not have permission to approve this student.', 'danger')
+            return redirect(url_for('admin.approve_students'))
+    
+    new_code = request.form.get('code').strip()
+
+    if new_code:
+        code_exists = Users.query.filter(
+            Users.code == new_code,
+            Users.id != user.id
+        ).first()
+
+        if code_exists:
+            flash('This code is already used by another user. Please choose a different code.', 'danger')
+            return redirect(url_for('admin.approve_students'))
+
+        user.code = new_code
+
+        # Check if a Parent with this phone number already exists
+        existing_parent = Parent.query.filter_by(phone_number=user.parent_phone_number).first()
+        if existing_parent:
+            # If parent exists, just update the student_id if needed
+            if existing_parent.student_id != user.id:
+                existing_parent.student_id = user.id
+        else:
+            # If not, create a new Parent
+            new_parent = Parent(
+                phone_number=user.parent_phone_number,
+                password=generate_password_hash(user.parent_phone_number),  # password is the number
+                student_id=user.id  # Set the required student_id field
+            )
+            db.session.add(new_parent)
+
+        db.session.commit()
+
+
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Create',
+            log={
+                "action_name": "Create",
+                "resource_type": "student",
+                "action_details": {
+                    "id": user.id,
+                    "title": user.name,
+                    "summary": f"Student '{user.name}' was approved and assigned a code."
+                },
+                "data": {
+                    "name": user.name,
+                    "email": user.email,
+                    "phone_number": user.phone_number,
+                    "code": user.code,
+                    "groupid": user.groupid,
+                    "stageid": user.stageid,
+                    "schoolid": user.schoolid,
+                    "subjectid": user.subjectid,
+                    "role": user.role,
+                    "student_whatsapp": user.student_whatsapp,
+                    "parent_whatsapp": user.parent_whatsapp,
+                },
+                "before": None,
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        flash('Student approved successfully!', 'success')
+
+        return redirect(url_for('admin.approve_students'))
+    else:
+        flash('No code provided. Please enter a code.', 'danger')
+        return redirect(url_for('admin.approve_students'))
+
+
+@admin.route('/reject/student/<int:user_id>', methods=['POST'])
+def reject_student(user_id):
+    user = Users.query.get_or_404(user_id)
+    
+    # Check if admin has permission to reject this student
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Verify the student is within admin's scope
+        has_permission = False
+        if group_ids and user.groupid in group_ids:
+            has_permission = True
+        elif stage_ids and user.stageid in stage_ids:
+            has_permission = True
+        elif school_ids and user.schoolid in school_ids:
+            has_permission = True
+        elif subject_ids and user.subjectid in subject_ids:
+            has_permission = True
+            
+        if not has_permission:
+            flash('You do not have permission to reject this student.', 'danger')
+            return redirect(url_for('admin.approve_students'))
+    
+    # Log the action before deleting
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "student",
+            "action_details": {
+                "id": user.id,
+                "title": user.name,
+                "summary": f"Student '{user.name}' was rejected and deleted."
+            },
+            "data": None,
+            "before": {
+                "name": user.name,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "parent_phone_number": user.parent_phone_number,
+                "email": user.email,
+                "parent_email": user.parent_email,
+                "parent_name": user.parent_name,
+                "parent_type": user.parent_type,
+                "code": user.code,
+                "groupid": user.groupid,
+                "stageid": user.stageid,
+                "schoolid": user.schoolid,
+                "subjectid": user.subjectid,
+                "role": user.role
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.delete(user)
+    db.session.commit()
+
+    flash('Student rejected successfully!', 'success')
+    return redirect(url_for('admin.approve_students'))
+
+
+
+#=================================================================
+# Student Info (Student_data.html)
+#=================================================================
+@admin.route("/student/<int:user_id>", methods=["GET"])
+def student(user_id):
+    student_obj = Users.query.filter_by(id=user_id, role="student").first()
+    if not student_obj:
+        flash("Student not found!", "danger")
+        return redirect(url_for("admin.students"))
+
+    # Check if admin has permission to view this student
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Verify the student is within admin's scope
+        has_permission = False
+        if group_ids and student_obj.groupid in group_ids:
+            has_permission = True
+        elif stage_ids and student_obj.stageid in stage_ids:
+            has_permission = True
+        elif school_ids and student_obj.schoolid in school_ids:
+            has_permission = True
+        elif subject_ids and student_obj.subjectid in subject_ids:
+            has_permission = True
+            
+        if not has_permission:
+            flash('You do not have permission to view this student.', 'danger')
+            return redirect(url_for('admin.students'))
+
+    quiz_grades = student_obj.quiz_grades
+    submissions = student_obj.submissions
+
+    assignments = get_all(Assignments, student_obj.id).filter(Assignments.type == "Assignment")
+    
+    # Get exam assignments for quiz display
+    exam_assignments = get_all(Assignments, student_obj.id).filter(Assignments.type == "Exam")
+
+    videos = get_all(Videos, student_obj.id)
+
+    submission_ids = {sub.assignment_id for sub in submissions}
+    submission_marks = {sub.assignment_id: sub.mark for sub in submissions}
+    watched_videos = {view.video_id: view.view_count for view in VideoViews.query.filter_by(student_id=student_obj.id).all()}
+
+    corrector_names = {}
+    for grade in quiz_grades:
+        corrector = Users.query.filter_by(id=grade.corrector_id).first()
+        corrector_names[grade.id] = corrector.name if corrector else "N/A"
+    
+    parent = Parent.query.filter_by(student_id=student_obj.id).first()
+
+    return render_template(
+        "admin/student_data.html",
+        student=student_obj,
+        quiz_grades=exam_assignments,
+        submission_ids=submission_ids,
+        submission_marks=submission_marks,
+        assignments=assignments,
+        videos=videos,
+        watched_videos=watched_videos,
+        corrector_names=corrector_names,
+        parent=parent
+    )
+
+
+@admin.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+def edit_user(user_id):
+    user = Users.query.get_or_404(user_id)
+
+    if user.role == "admin" or user.role == "super_admin":
+        flash('User is an admin. Use the "Edit Admin" page.', 'error')
+        return redirect(url_for('admin.edit_assistant', user_id=user_id))
+
+    # Check if admin has permission to edit this user
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Verify the user is within admin's scope
+        has_permission = False
+        if group_ids and user.groupid in group_ids:
+            has_permission = True
+        elif stage_ids and user.stageid in stage_ids:
+            has_permission = True
+        elif school_ids and user.schoolid in school_ids:
+            has_permission = True
+        elif subject_ids and user.subjectid in subject_ids:
+            has_permission = True
+            
+        if not has_permission:
+            flash('You do not have permission to edit this user.', 'danger')
+            return redirect(url_for('admin.students'))
+
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all()
+
+    if request.method == 'POST':
+        if 'delete_user' in request.form:
+            try:
+
+
+                # Save old user data for logging
+                old_user_data = {
+                    "id": user.id,
+                    "name": user.name,
+                    "email": user.email,
+                    "phone_number": user.phone_number,
+                    "parent_phone_number": user.parent_phone_number,
+                    "code": user.code,
+                    "groupid": user.groupid,
+                    "stageid": user.stageid,
+                    "schoolid": user.schoolid,
+                    "subjectid": user.subjectid,
+                    "profile_picture": user.profile_picture,
+                    "role": user.role,
+                    "parent_email": user.parent_email,
+                    "parent_name": user.parent_name,
+                    "parent_type": user.parent_type,
+                    "points": user.points,
+                    "otp": user.otp,
+                    "login_count": user.login_count,
+                    "last_website_access": str(user.last_website_access) if user.last_website_access else None,
+                }
+
+                for submission in Submissions.query.filter_by(student_id=user.id).all():
+                    if submission.file_url:
+                        local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+                        if os.path.exists(local_path):
+                            try:
+                                os.remove(local_path)
+                            except Exception:
+                                pass  # Ignore file errors, continue deleting
+                        try:
+                            storage.delete_file(folder=f"submissions/uploads/student_{submission.student_id}", file_name=submission.file_url)
+                        except Exception as e:
+                            flash(f"Error deleting from s3: {e}", 'error')
+                            pass  # Ignore S3 errors, continue deleting
+                    db.session.delete(submission)
+
+                QuizGrades.query.filter_by(student_id=user.id).delete(synchronize_session=False)
+                VideoViews.query.filter_by(student_id=user.id).delete(synchronize_session=False)
+
+                storage.delete_file(folder="profile_pictures", file_name=user.profile_picture)
+                local_path = os.path.join("website", "static", "profile_pictures", user.profile_picture)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                try:
+                    Parent.query.filter_by(student_id=user.id).delete(synchronize_session=False)
+                except Exception:
+                    pass
+
+                # Generate random suffix for email and phone
+                random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+                # Clear all user fields and assign random but unique values to avoid DB constraint errors
+                user.role = "Student_Deleted"
+                user.password = "Password"
+                user.phone_number = "del_" + random_suffix
+                user.parent_phone_number = "del_p_" + random_suffix # Use a different prefix to avoid unique constraint errors
+                user.email = "deleted_" + random_suffix + "@example.com"
+                user.parent_email = "deleted_p_" + random_suffix + "@example.com"
+                user.parent_name = "Deleted_" + random_suffix
+                user.parent_type = "Deleted" # This was also potentially too long
+                user.profile_picture = "deleted_" + random_suffix + ".jpg"
+                user.name = ""
+                user.code = ""
+                user.points = 0
+                user.otp = None
+                user.groupid = None
+                user.stageid = None
+                user.schoolid = None
+                user.login_count = 0
+                user.last_website_access = None
+
+                db.session.commit()
+
+                # Log the user deletion
+                new_log = AssistantLogs(
+                    assistant_id=current_user.id,
+                    action='Delete',
+                    log={
+                        "action_name": "Delete",
+                        "resource_type": "user",
+                        "action_details": {
+                            "id": old_user_data['id'],
+                            "title": old_user_data['name'],
+                            "summary": f"User '{old_user_data['name']}' (id={old_user_data['id']}) was deleted."
+                        },
+                        "data": None,
+                        "before": old_user_data,
+                        "after": None
+                    }
+                )
+                db.session.add(new_log)
+                db.session.commit()
+
+                flash('User and related data deleted successfully!', 'success')
+                return redirect(url_for('admin.students'))
+            except Exception as e:
+                flash(f"Error occurred while deleting user: {e}", 'error')
+                return redirect(url_for('admin.edit_user', user_id=user_id))
+        try:
+            # Save old user data for logging
+            old_user_data = {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "parent_phone_number": user.parent_phone_number,
+                "code": user.code,
+                "groupid": user.groupid,
+                "stageid": user.stageid,
+                "schoolid": user.schoolid,
+                "subjectid": user.subjectid,
+                "profile_picture": user.profile_picture,
+                "role": user.role,
+                "parent_email": user.parent_email,
+                "parent_name": user.parent_name,
+                "parent_type": user.parent_type,
+                "points": user.points,
+                "otp": user.otp,
+                "login_count": user.login_count,
+                "last_website_access": str(user.last_website_access) if user.last_website_access else None,
+            }
+
+            user.name = request.form['name']
+            user.email = request.form['email']
+            user.phone_number = request.form['phone_number']
+            user.parent_phone_number = request.form['parent_phone_number']
+            # user.code = request.form['code']
+            user.groupid = int(request.form['group']) if request.form['group'] else None
+            user.stageid = int(request.form['stage']) if request.form['stage'] else None
+            user.schoolid = int(request.form['school']) if request.form['school'] else None
+            user.subjectid = int(request.form['subject']) if request.form['subject'] else None
+            if request.form['code'] != user.code :
+                code_exists = Users.query.filter(
+                    Users.code == request.form['code'].strip(),
+                    Users.id != user.id
+                ).first()
+                if code_exists:
+                    flash('This code is already used by another user. Please choose a different code.', 'danger')
+                    return redirect(url_for('admin.edit_user', user_id=user_id))
+                user.code = request.form['code']
+
+            db.session.commit()
+
+            # Log the user edit
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Edit',
+                log={
+                    "action_name": "Edit",
+                    "resource_type": "user",
+                    "action_details": {
+                        "id": user.id,
+                        "title": user.name,
+                        "summary": f"User '{user.name}' (id={user.id}) was edited."
+                    },
+                    "data": None,
+                    "before": old_user_data,
+                    "after": {
+                        "id": user.id,
+                        "name": user.name,
+                        "email": user.email,
+                        "phone_number": user.phone_number,
+                        "parent_phone_number": user.parent_phone_number,
+                        "code": user.code,
+                        "groupid": user.groupid,
+                        "stageid": user.stageid,
+                        "schoolid": user.schoolid,
+                        "subjectid": user.subjectid,
+                        "profile_picture": user.profile_picture,
+                        "role": user.role,
+                        "parent_email": user.parent_email,
+                        "parent_name": user.parent_name,
+                        "parent_type": user.parent_type,
+                        "points": user.points,
+                        "otp": user.otp,
+                        "login_count": user.login_count,
+                        "last_website_access": str(user.last_website_access) if user.last_website_access else None,
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+
+            flash('Changes saved successfully!', 'success')
+            return redirect(url_for('admin.students'))
+        except Exception as e:
+            flash(f"Error occurred: {e}", 'error')
+            return redirect(url_for('admin.edit_user', user_id=user_id))
+    return render_template('admin/edit_user.html', user=user, groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+
+#Reset password for a user (Admin route)
+@admin.route('/reset_password/<int:user_id>')
+def reset_password(user_id):
+    user = Users.query.get_or_404(user_id)
+    
+    # Check if admin has permission to reset password for this user
+    if current_user.role != "super_admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        
+        # Verify the user is within admin's scope
+        has_permission = False
+        if group_ids and user.groupid in group_ids:
+            has_permission = True
+        elif stage_ids and user.stageid in stage_ids:
+            has_permission = True
+        elif school_ids and user.schoolid in school_ids:
+            has_permission = True
+        elif subject_ids and user.subjectid in subject_ids:
+            has_permission = True
+            
+        if not has_permission:
+            flash('You do not have permission to reset password for this user.', 'danger')
+            return redirect(url_for('admin.students'))
+    
+    random_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+    hashed_password = generate_password_hash(random_password, method="pbkdf2:sha256", salt_length=8)
+    user.password = hashed_password
+    db.session.commit()
+
+
+    log_entry = AssistantLogs(
+        assistant_id=current_user.id ,
+        action="reset_password",
+        log={
+            "action_name": "Edit",
+            "resource_type": "user_password",
+            "action_details": {
+                "id": user.id,
+                "title": user.name,
+                "summary": f"User '{user.name}' had their password reset."
+            },
+            "data": None,
+            "before": None,
+            "after": {
+                "password_reset": True
+            }
+        }
+    )
+    db.session.add(log_entry)
+    db.session.commit()
+
+    flash(f'Password has been set to "{random_password}"! Save it!', 'success')
+    try : 
+        send_whatsapp_message(user.phone_number, f"Your password has been reset to \n{random_password}. \nPlease login to your account and change your password.")
+    except :
+        pass
+    if user.role == 'student' :
+        return redirect(url_for('admin.student', user_id=user.id))
+    else :
+        return redirect(url_for('admin.assistants'))
+
+
+
+#=================================================================
+#Assistants
+#=================================================================
+@admin.route('/assistants', methods=['GET'])
+def assistants():
+    if current_user.role != 'super_admin':
+        flash('You are not authorized to edit an assistant.', 'danger')
+        return redirect(url_for('admin.assistants'))
+        
+    users = Users.query.filter(Users.role.in_(['admin', 'super_admin'])).all()
+    return render_template('admin/assistant/assistants.html', users=users)
+
+
+@admin.route('/edit_assistant/<int:user_id>', methods=['GET', 'POST'])
+def edit_assistant(user_id):
+    if current_user.role != 'super_admin':
+        flash('You are not authorized to edit an assistant.', 'danger')
+        return redirect(url_for('admin.assistants'))
+    user = Users.query.get_or_404(user_id)
+
+    if user.role == "student":
+        flash('User is a student. Use the "Edit Student" page.', 'error')
+        return redirect(url_for('admin.edit_user', user_id=user_id))
+
+    # 1. Fetch all items to display in the form
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all()
+
+    if request.method == 'POST':
+        if 'delete_user' in request.form:
+            if user.role == 'admin' and current_user.role != 'super_admin':
+                flash('You can\'t delete an assistant!', 'danger')
+                return redirect(url_for('admin.assistants', user_id=user_id))
+            if user.role == 'super_admin' and current_user.role != 'super_admin':
+                flash('You can\'t delete a super admin!', 'danger')
+                return redirect(url_for('admin.assistants'))
+            if user.id == current_user.id:
+                flash('You can\'t delete yourself!', 'danger')
+                return redirect(url_for('admin.assistants', user_id=user_id))
+            
+            # Log the action before deleting
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Delete',
+                log={
+                    "action_name": "Delete",
+                    "resource_type": "assistant",
+                    "action_details": {
+                        "id": user.id,
+                        "title": user.name,
+                        "summary": f"Assistant '{user.name}' was deleted."
+                    },
+                    "data": None,
+                    "before": {
+                        "name": user.name,
+                        "email": user.email,
+                        "phone_number": user.phone_number,
+                        "role": user.role
+                    },
+                    "after": None
+                }
+            )
+            db.session.add(new_log)
+            db.session.delete(user)
+            db.session.commit()
+            
+            flash('Assistant and related data have been deleted successfully!', 'success')
+            return redirect(url_for('admin.assistants'))
+        try:
+            # 2. Capture the "before" state, including management scopes
+            old_data = {
+                "name": user.name,
+                "email": user.email,
+                "phone_number": user.phone_number,
+                "role": user.role,
+                "managed_schools": [s.id for s in user.managed_schools],
+                "managed_groups": [g.id for g in user.managed_groups],
+                "managed_stages": [st.id for st in user.managed_stages],
+                "managed_subjects": [s.id for s in user.managed_subjects]
+            }
+            
+            # --- Update basic assistant info ---
+            user.name = request.form['name']
+            user.email = request.form['email']
+            user.phone_number = request.form['phone_number']
+
+            # 3. Get the lists of IDs for the new management scopes from the form
+            selected_school_ids = request.form.getlist('school_ids', type=int)
+            selected_group_ids = request.form.getlist('group_ids', type=int)
+            selected_stage_ids = request.form.getlist('stage_ids', type=int)
+            selected_subject_ids = request.form.getlist('subject_ids', type=int)
+
+            # If no schools selected, select all
+            if not selected_school_ids:
+                selected_school_ids = [school.id for school in Schools.query.all()]
+            # If no groups selected, select all
+            if not selected_group_ids:
+                selected_group_ids = [group.id for group in Groups.query.all()]
+            # If no stages selected, select all
+            if not selected_stage_ids:
+                selected_stage_ids = [stage.id for stage in Stages.query.all()]
+            # If no subjects selected, select all
+            if not selected_subject_ids:
+                selected_subject_ids = [subject.id for subject in Subjects.query.all()]
+            # Clear existing relationships first
+            user.managed_schools.clear()
+            user.managed_groups.clear()
+            user.managed_stages.clear()
+            user.managed_subjects.clear()
+            # Query for the new objects to assign
+            schools_to_assign = Schools.query.filter(Schools.id.in_(selected_school_ids)).all()
+            groups_to_assign = Groups.query.filter(Groups.id.in_(selected_group_ids)).all()
+            stages_to_assign = Stages.query.filter(Stages.id.in_(selected_stage_ids)).all()
+            subjects_to_assign = Subjects.query.filter(Subjects.id.in_(selected_subject_ids)).all()
+            # Assign the new relationships
+            user.managed_schools.extend(schools_to_assign)
+            user.managed_groups.extend(groups_to_assign)
+            user.managed_stages.extend(stages_to_assign)
+            user.managed_subjects.extend(subjects_to_assign)
+            db.session.commit() # Commit all changes at once
+
+            # 4. Create the log with the "before" and "after" data
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Edit',
+                log={
+                    "action_name": "Edit",
+                    "resource_type": "assistant",
+                    "action_details": {
+                        "id": user.id,
+                        "title": user.name,
+                        "summary": f"Assistant '{user.name}' was edited."
+                    },
+                    "data": None,
+                    "before": old_data,
+                    "after": {
+                        "name": user.name,
+                        "email": user.email,
+                        "phone_number": user.phone_number,
+                        "role": user.role,
+                        "managed_schools": selected_school_ids,
+                        "managed_groups": selected_group_ids,
+                        "managed_stages": selected_stage_ids,
+                        "managed_subjects": selected_subject_ids
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+
+            flash('Changes saved successfully!', 'success')
+            return redirect(url_for('admin.assistants'))
+        except Exception as e:
+            db.session.rollback() # Rollback changes if an error occurs
+            flash(f"(Check if the phone number or email is already in use) Error occurred: {e}", 'error')
+            return redirect(url_for('admin.edit_assistant', user_id=user_id))
+            
+    # Pass all items to the template for the GET request
+    return render_template('admin/assistant/edit_admin.html', user=user, groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+
+@admin.route('/add_assistant', methods=['GET', 'POST'])
+def add_assistant():
+    if current_user.role != 'super_admin':
+        flash('You are not authorized to add an assistant.', 'danger')
+        return redirect(url_for('admin.assistants'))
+    
+    # 1. Fetch all items to display in the form
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all()
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        phone_number = request.form.get('phone_number')
+        role = request.form.get('role')
+        password = request.form.get('password')
+
+        existing_user = Users.query.filter_by(email=email).first()
+        if existing_user:
+            flash('A user with this email already exists.', 'error')
+            return render_template('admin/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+        new_admin = Users(
+            name=name,
+            email=email,
+            phone_number=phone_number,
+            role=role,
+            password=generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
+        )
+        try:
+            db.session.add(new_admin)
+            db.session.flush()  # Flush to get the ID before committing
+            
+            # 2. Get the lists of IDs for the management scopes from the form
+            selected_school_ids = request.form.getlist('school_ids', type=int)
+            selected_group_ids = request.form.getlist('group_ids', type=int)
+            selected_stage_ids = request.form.getlist('stage_ids', type=int)
+            selected_subject_ids = request.form.getlist('subject_ids', type=int)
+
+            # If no schools selected, select all
+            if not selected_school_ids:
+                selected_school_ids = [school.id for school in Schools.query.all()]
+            # If no groups selected, select all
+            if not selected_group_ids:
+                selected_group_ids = [group.id for group in Groups.query.all()]
+            # If no stages selected, select all
+            if not selected_stage_ids:
+                selected_stage_ids = [stage.id for stage in Stages.query.all()]
+            # If no subjects selected, select all
+            if not selected_subject_ids:
+                selected_subject_ids = [subject.id for subject in Subjects.query.all()]
+            
+            # Query for the objects to assign
+            schools_to_assign = Schools.query.filter(Schools.id.in_(selected_school_ids)).all()
+            groups_to_assign = Groups.query.filter(Groups.id.in_(selected_group_ids)).all()
+            stages_to_assign = Stages.query.filter(Stages.id.in_(selected_stage_ids)).all()
+            subjects_to_assign = Subjects.query.filter(Subjects.id.in_(selected_subject_ids)).all()
+            
+            # Assign the relationships
+            new_admin.managed_schools.extend(schools_to_assign)
+            new_admin.managed_groups.extend(groups_to_assign)
+            new_admin.managed_stages.extend(stages_to_assign)
+            new_admin.managed_subjects.extend(subjects_to_assign)
+            
+            db.session.commit()
+
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Create',
+                log={
+                    "action_name": "Create",
+                    "resource_type": "assistant",
+                    "action_details": {
+                        "id": new_admin.id,
+                        "title": new_admin.name,
+                        "summary": f"New assistant '{new_admin.name}' with role '{new_admin.role}' was created."
+                    },
+                    "data": {
+                        "name": new_admin.name,
+                        "email": new_admin.email,
+                        "phone_number": new_admin.phone_number,
+                        "role": new_admin.role,
+                        "managed_schools": selected_school_ids,
+                        "managed_groups": selected_group_ids,
+                        "managed_stages": selected_stage_ids,
+                        "managed_subjects": selected_subject_ids
+                    },
+                    "before": None,
+                    "after": None
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+
+            flash('Assistant added successfully!', 'success')
+            try :
+                send_whatsapp_message(new_admin.phone_number, f"Your assistant account has been created. \nYour email is {new_admin.email}. \nYour password is {password}. \nPlease login to your account and change your password.")
+            except :
+                pass
+            return redirect(url_for('admin.assistants'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error occurred: {e}", 'error')
+            return render_template('admin/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups, stages=stages, schools=schools, subjects=subjects)
+    
+    # Pass all items to the template for the GET request
+    return render_template('admin/assistant/add_assistant.html', groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+
+#=================================================================
+#Assignments
+#=================================================================
+
+
+# --- helpers for assignments -------------------------------------------------
+
+def int_or_none(x):
+    try:
+        return int(x) if x not in (None, "", "None") else None
+    except (TypeError, ValueError):
+        return None
+
+def parse_multi_ids(field_name):
+    """Parse <select multiple> values safely into a list[int]."""
+    return [int(v) for v in request.form.getlist(field_name) if str(v).isdigit()]
+
+def parse_deadline(dt_str):
+    """Parse HTML datetime-local input."""
+    return datetime_obj.strptime(dt_str, "%Y-%m-%dT%H:%M")
+
+
+def qualified_students_count_for_assignment(assignment):
+    """
+    Count students that qualify for this assignment:
+      - If MM targets exist for a dimension, use them.
+      - Else if legacy FK exists, use it.
+      - Else dimension is 'global' (no filter for that dimension).
+      - Subject is always a single subject (not MM).
+    """
+    # base filter: active students with valid code
+    base_filters = [
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+
+    # collect MM ids safely (relationship may be empty)
+    mm_group_ids  = [g.id for g in getattr(assignment, "groups_mm", [])]
+    mm_stage_ids  = [s.id for s in getattr(assignment, "stages_mm", [])]
+    mm_school_ids = [s.id for s in getattr(assignment, "schools_mm", [])]
+
+    filters = list(base_filters)
+
+    # group filter
+    if mm_group_ids:
+        filters.append(Users.groupid.in_(mm_group_ids))
+    elif assignment.groupid:
+        filters.append(Users.groupid == assignment.groupid)
+
+    # stage filter
+    if mm_stage_ids:
+        filters.append(Users.stageid.in_(mm_stage_ids))
+    elif assignment.stageid:
+        filters.append(Users.stageid == assignment.stageid)
+
+    # school filter
+    if mm_school_ids:
+        filters.append(Users.schoolid.in_(mm_school_ids))
+    elif assignment.schoolid:
+        filters.append(Users.schoolid == assignment.schoolid)
+
+    # subject filter (single subject, not MM)
+    if getattr(assignment, "subjectid", None):
+        filters.append(Users.subjectid == assignment.subjectid)
+
+    return Users.query.filter(and_(*filters)).count()
+
+def qualified_students_count_for_quiz(quiz):
+    """
+    Count students that qualify for this quiz:
+      - If MM targets exist for a dimension, use them.
+      - Else if legacy FK exists, use it.
+      - Else dimension is 'global' (no filter for that dimension).
+      - Subject is always a single subject (not MM).
+    """
+    # base filter: active students with valid code
+    base_filters = [
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+
+    # collect MM ids safely (relationship may be empty)
+    mm_group_ids  = [g.id for g in getattr(quiz, "groups_mm", [])]
+    mm_stage_ids  = [s.id for s in getattr(quiz, "stages_mm", [])]
+    mm_school_ids = [s.id for s in getattr(quiz, "schools_mm", [])]
+
+    filters = list(base_filters)
+
+    # group filter
+    if mm_group_ids:
+        filters.append(Users.groupid.in_(mm_group_ids))
+    elif quiz.groupid:
+        filters.append(Users.groupid == quiz.groupid)
+
+    # stage filter
+    if mm_stage_ids:
+        filters.append(Users.stageid.in_(mm_stage_ids))
+    elif quiz.stageid:
+        filters.append(Users.stageid == quiz.stageid)
+
+    # school filter
+    if mm_school_ids:
+        filters.append(Users.schoolid.in_(mm_school_ids))
+    elif quiz.schoolid:
+        filters.append(Users.schoolid == quiz.schoolid)
+
+    # subject filter (single subject, not MM)
+    if getattr(quiz, "subjectid", None):
+        filters.append(Users.subjectid == quiz.subjectid)
+
+    return Users.query.filter(and_(*filters)).count()
+
+
+def get_qualified_students_query(target_object, admin_id=None):
+    """
+    Builds a SQLAlchemy query for students qualified for a target object 
+    (e.g., an assignment or quiz), optionally filtered by an admin's scope.
+    
+    Subject is always a single subject (not MM).
+    """
+    # base filter: active students with valid code
+    base_filters = [
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+
+    # collect MM ids safely (relationship may be empty)
+    mm_group_ids  = [g.id for g in getattr(target_object, "groups_mm", [])]
+    mm_stage_ids  = [s.id for s in getattr(target_object, "stages_mm", [])]
+    mm_school_ids = [s.id for s in getattr(target_object, "schools_mm", [])]
+
+    filters = list(base_filters)
+
+    # group filter
+    if mm_group_ids:
+        filters.append(Users.groupid.in_(mm_group_ids))
+    elif target_object.groupid:
+        filters.append(Users.groupid == target_object.groupid)
+
+    # stage filter
+    if mm_stage_ids:
+        filters.append(Users.stageid.in_(mm_stage_ids))
+    elif target_object.stageid:
+        filters.append(Users.stageid == target_object.stageid)
+
+    # school filter
+    if mm_school_ids:
+        filters.append(Users.schoolid.in_(mm_school_ids))
+    elif target_object.schoolid:
+        filters.append(Users.schoolid == target_object.schoolid)
+
+    # subject filter (single subject, not MM)
+    if getattr(target_object, "subjectid", None):
+        filters.append(Users.subjectid == target_object.subjectid)
+
+    # ==================================================
+    # ✅ Apply admin scope if provided
+    # ==================================================
+    if admin_id:
+        admin = Users.query.get(admin_id)
+        if admin:
+            managed_school_ids  = [s.id for s in admin.managed_schools]
+            managed_group_ids   = [g.id for g in admin.managed_groups]
+            managed_stage_ids   = [st.id for st in admin.managed_stages]
+            managed_subject_ids = [sub.id for sub in admin.managed_subjects]
+
+            scope_filter = and_(
+                Users.schoolid.in_(managed_school_ids)   if managed_school_ids else True,
+                Users.groupid.in_(managed_group_ids)     if managed_group_ids else True,
+                Users.stageid.in_(managed_stage_ids)     if managed_stage_ids else True,
+                Users.subjectid.in_(managed_subject_ids) if managed_subject_ids else True,
+            )
+            filters.append(scope_filter)
+
+    return Users.query.filter(and_(*filters))
+
+# --- route ---------------------------------------------------
+
+#-----------------------------------------------------------------
+# Assignments API (JSON) similar to announcements-data
+#-----------------------------------------------------------------
+@admin.route('/api/assignments-data', methods=["GET"])
+def assignments_data():
+
+    assignments_query = get_visible_to_admin_query(Assignments, current_user)
+    assignments = (
+        assignments_query
+        .filter(Assignments.type == "Assignment")
+        .order_by(Assignments.creation_date.desc())
+        .all()
+    )
+
+    assignments_list = []
+    for a in assignments:
+        # ✅ Qualified students scoped to admin
+        qualified_students_subq = (
+            get_qualified_students_query(a, current_user.id)
+            .with_entities(Users.id)
+            .subquery()
+        )
+        qualified_count = db.session.query(qualified_students_subq.c.id).count()
+
+        # ✅ Submitted students, also scoped to admin
+        submitted_count = (
+            Submissions.query
+            .with_entities(Submissions.student_id)
+            .filter(Submissions.assignment_id == a.id)
+            .filter(Submissions.student_id.in_(qualified_students_subq))
+            .distinct()
+            .count()
+        )
+
+        schools_names = [s.name for s in getattr(a, 'schools_mm', [])] if getattr(a, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(a, 'stages_mm', [])] if getattr(a, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(a, 'groups_mm', [])] if getattr(a, 'groups_mm', None) else []
+
+        assignments_list.append({
+            "id": a.id,
+            "title": a.title,
+            "description": a.description,
+            "creation_date": a.creation_date.strftime('%Y-%m-%d %I:%M %p') if a.creation_date else None,
+            "deadline_date": a.deadline_date.strftime('%Y-%m-%d %I:%M %p') if a.deadline_date else None,
+            "subject": a.subject.name if a.subject else "N/A",
+            "subject_id": a.subject.id if a.subject else None,
+            "schools": schools_names,
+            "stages": stages_names,
+            "groups": groups_names,
+            "status": a.status,
+            "submitted_students_count": submitted_count,
+            "qualified_students_count": qualified_count,
+            "points": a.points,
+            "created_by": a.created_by,
+            "created_at": a.creation_date.strftime('%Y-%m-%d %I:%M %p') if a.creation_date else None,
+            "last_edited_by": a.last_edited_by,
+            "last_edited_at": a.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if a.last_edited_at else None,
+        })
+
+    return jsonify(assignments_list)
+
+
+
+@admin.route('/api/assignment/<int:assignment_id>', methods=["GET"])
+def get_assignment_data(assignment_id):
+    """API endpoint to fetch single assignment data for editing"""
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        return jsonify({"success": False, "message": "Assignment not found or you do not have permission to view it."}), 404
+
+    if not assignment.type == "Assignment":
+        return jsonify({"success": False, "message": "Assignment is not an assignment."}), 400
+
+    existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
+    
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(assignment, 'schools_mm', [])] if getattr(assignment, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(assignment, 'stages_mm', [])] if getattr(assignment, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(assignment, 'groups_mm', [])] if getattr(assignment, 'groups_mm', None) else []
+
+    # Fetch user objects if created_by/last_edited_by are user IDs
+    created_by_user = Users.query.get(assignment.created_by) if assignment.created_by else None
+    last_edited_by_user = Users.query.get(assignment.last_edited_by) if assignment.last_edited_by else None
+    
+    assignment_data = {
+        "id": assignment.id,
+        "title": assignment.title,
+        "description": assignment.description,
+        "deadline_date": assignment.deadline_date.strftime('%Y-%m-%dT%H:%M') if assignment.deadline_date else None,
+        "subject": {
+            "id": assignment.subject.id if assignment.subject else None,
+            "name": assignment.subject.name if assignment.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+        "attachments": existing_attachments,
+        "status": assignment.status,
+        "points": assignment.points,
+        "created_by": created_by_user.name if created_by_user else None,
+        "created_at": assignment.creation_date.strftime('%Y-%m-%d %I:%M %p') if assignment.creation_date else None,
+        "last_edited_by": last_edited_by_user.name if last_edited_by_user else None,
+        "last_edited_at": assignment.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if assignment.last_edited_at else None,
+    }
+
+    return jsonify({"success": True, "assignment": assignment_data})
+
+
+@admin.route('/api/exams-data', methods=["GET"])
+def exams_data():
+    assignments_query = get_visible_to_admin_query(Assignments, current_user)
+    exams = (
+        assignments_query
+        .filter(Assignments.type == "Exam")
+        .order_by(Assignments.creation_date.desc())
+        .all()
+    )
+
+    exams_list = []
+    for e in exams:
+        # ✅ Subquery: only qualified students for this exam, scoped to current admin
+        qualified_students_subq = (
+            get_qualified_students_query(e, current_user.id)
+            .with_entities(Users.id)
+            .subquery()
+        )
+        qualified_count = db.session.query(qualified_students_subq.c.id).count()
+
+        # ✅ Submitted count, scoped to admin-managed students
+        submitted_count = (
+            Submissions.query
+            .with_entities(Submissions.student_id)
+            .filter(Submissions.assignment_id == e.id)
+            .filter(Submissions.student_id.in_(qualified_students_subq))
+            .distinct()
+            .count()
+        )
+
+        schools_names = [s.name for s in getattr(e, 'schools_mm', [])] if getattr(e, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(e, 'stages_mm', [])] if getattr(e, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(e, 'groups_mm', [])] if getattr(e, 'groups_mm', None) else []
+
+        user = Users.query.get(e.created_by) if e.created_by else None
+        last_edited_user = Users.query.get(e.last_edited_by) if e.last_edited_by else None
+
+        exams_list.append({
+            "id": e.id,
+            "title": e.title,
+            "description": e.description,
+            "creation_date": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
+            "deadline_date": e.deadline_date.strftime('%Y-%m-%d %I:%M %p') if e.deadline_date else None,
+            "subject": e.subject.name if e.subject else "N/A",
+            "subject_id": e.subject.id if e.subject else None,
+            "schools": schools_names,
+            "stages": stages_names,
+            "groups": groups_names,
+            "status": e.status,
+            "submitted_students_count": submitted_count,
+            "qualified_students_count": qualified_count,
+            "out_of": e.out_of,
+            "points": e.points,
+            "created_by": user.name if user else None,
+            "created_at": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
+            "last_edited_by": last_edited_user.name if last_edited_user else None,
+            "last_edited_at": e.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if e.last_edited_at else None,
+        })
+
+    return jsonify(exams_list)
+
+
+
+@admin.route('/api/exam/<int:exam_id>', methods=["GET"])
+def get_exam_data(exam_id):
+    """API endpoint to fetch single exam data for editing"""
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam or exam.type != "Exam":
+        return jsonify({"success": False, "message": "Exam not found or you do not have permission to view it."}), 404
+
+    existing_attachments = json.loads(exam.attachments) if exam.attachments else []
+
+    user = Users.query.get(exam.created_by) if exam.created_by else None
+    last_edited_user = Users.query.get(exam.last_edited_by) if exam.last_edited_by else None
+    
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(exam, 'schools_mm', [])] if getattr(exam, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(exam, 'stages_mm', [])] if getattr(exam, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(exam, 'groups_mm', [])] if getattr(exam, 'groups_mm', None) else []
+
+    exam_data = {
+        "id": exam.id,
+        "title": exam.title,
+        "description": exam.description,
+        "deadline_date": exam.deadline_date.strftime('%Y-%m-%dT%H:%M') if exam.deadline_date else None,
+        "subject": {
+            "id": exam.subject.id if exam.subject else None,
+            "name": exam.subject.name if exam.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+        "attachments": existing_attachments,
+        "status": exam.status,
+        "out_of": exam.out_of,
+        "points": exam.points,
+        "created_by": user.name if user else None,
+        "created_at": exam.creation_date.strftime('%Y-%m-%d %I:%M %p') if exam.creation_date else None,
+        "last_edited_by": last_edited_user.name if last_edited_user else None,
+        "last_edited_at": exam.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if exam.last_edited_at else None,
+    }
+
+    return jsonify({"success": True, "exam": exam_data})
+
+
+
+
+
+
+
+@admin.route('/assignments', methods=['GET', 'POST'])
+def assignments():
+
+
+    if request.method == "POST":
+        groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
+        stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
+        schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
+        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in getattr(current_user, "managed_subjects", [])])).all() if hasattr(current_user, "managed_subjects") else Subjects.query.all()
+
+        subject_school_map = {}
+        for subject in subjects:
+            # For each subject, get its associated schools and format them for JavaScript
+            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+            # Sort schools to put "Online" schools first, then alphabetically
+            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+            subject_school_map[subject.id] = schools_list
+
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+
+        subject_id_single = int_or_none(request.form.get("subject_id")) 
+
+        group_ids  = parse_multi_ids("groups[]")
+        stage_ids  = parse_multi_ids("stages[]")
+        school_ids = parse_multi_ids("schools[]")
+
+        if not group_ids:
+            group_ids = [g.id for g in groups]
+        if not stage_ids:
+            stage_ids = [s.id for s in stages]
+
+        if not school_ids:
+            subject_id = subject_id_single
+
+            if subject_id and subject_id in subject_school_map:
+                school_ids = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                flash("Choose a subject" , "danger")
+                return redirect(url_for("admin.assignments"))
+
+        if not subject_id_single:
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.assignments"))
+
+
+        if group_ids:
+            if not can_manage(group_ids, [g.id for g in groups]):
+                flash("You are not allowed to post to one or more selected groups.", "danger")
+                return redirect(url_for("admin.assignments"))
+
+
+        if stage_ids:
+            if not can_manage(stage_ids, [s.id for s in stages]):
+                flash("You are not allowed to post to one or more selected stages.", "danger")
+                return redirect(url_for("admin.assignments"))
+
+        if school_ids:
+            if not can_manage(school_ids, [s.id for s in schools]):
+                flash("You are not allowed to post to one or more selected schools.", "danger")
+                return redirect(url_for("admin.assignments"))
+
+        if subject_id_single:
+            if subject_id_single not in [s.id for s in subjects]:
+                flash("You are not allowed to post to this subject.", "danger")
+                return redirect(url_for("admin.assignments"))
+
+        # deadline
+        try:
+            deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.assignments"))
+
+        # points (int)
+        points_raw = request.form.get("points", 0)
+        points = int(points_raw) if str(points_raw).isdigit() else 0
+
+        # attachments
+        upload_dir = "website/assignments/uploads/"
+        attachments = []
+        os.makedirs(upload_dir, exist_ok=True)
+
+        for file in request.files.getlist("files[]"):
+            if file and file.filename:
+                original_filename = secure_filename(file.filename)
+                filename = f"{uuid.uuid4().hex}_{original_filename}"
+                file.save(os.path.join(upload_dir, filename))
+                try:
+                    with open(os.path.join(upload_dir, filename), "rb") as f:
+                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                except Exception:
+                    flash("Error uploading file to storage", "danger")
+                    return redirect(url_for("admin.assignments"))
+                attachments.append(filename)
+
+        link = request.form.get("link")
+        if link:
+            attachments.append(link)
+
+
+
+        # creation date
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        # ---- create and persist
+        new_assignment = Assignments(
+            title=title,
+            description=description,
+            subjectid=subject_id_single, 
+            deadline_date=deadline_date,
+            attachments=json.dumps(attachments),
+            points=points,
+            created_by=current_user.id,
+            creation_date=naive_local_time,
+        )
+
+        # IMPORTANT: add to session BEFORE assigning M2M relations
+        db.session.add(new_assignment)
+
+
+        new_assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        new_assignment.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
+        new_assignment.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
+
+
+        db.session.commit()
+
+        # --- LOGGING: Add log for assignment creation
+        try:
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Create',
+                log={
+                    "action_name": "Create",
+                    "resource_type": "assignment",
+                    "action_details": {
+                        "id": new_assignment.id,
+                        "title": new_assignment.title,
+                        "summary": f"Assignment '{new_assignment.title}' was created."
+                    },
+                    "data": {
+                        "title": new_assignment.title,
+                        "description": new_assignment.description,
+                        "deadline_date": str(new_assignment.deadline_date) if new_assignment.deadline_date else None,
+                        "stageid": new_assignment.stageid,
+                        "groupid": new_assignment.groupid,
+                        "schoolid": new_assignment.schoolid,
+                        "subjectid": new_assignment.subjectid,  # <--- add subject
+                        "groups": [g.id for g in getattr(new_assignment, "groups", [])],
+                        "stages": [s.id for s in getattr(new_assignment, "stages", [])],
+                        "schools": [s.id for s in getattr(new_assignment, "schools", [])],
+                        "attachments": json.loads(new_assignment.attachments) if new_assignment.attachments else [],
+                        "points": new_assignment.points,
+                    },
+                    "before": None,
+                    "after": None
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash("Assignment added, but failed to log the action.", "warning")
+
+        # If the client expects JSON (AJAX), return JSON without redirect
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            # Build light payload matching assignments-data schema
+            submitted_count = 0
+            qualified_count = qualified_students_count_for_assignment(new_assignment)
+            response_payload = {
+                "id": new_assignment.id,
+                "title": new_assignment.title,
+                "description": new_assignment.description,
+                "creation_date": new_assignment.creation_date.strftime('%Y-%m-%d %H:%M') if new_assignment.creation_date else None,
+                "deadline_date": new_assignment.deadline_date.strftime('%Y-%m-%d %H:%M') if new_assignment.deadline_date else None,
+                "subject": new_assignment.subject.name if new_assignment.subject else "N/A",
+                "subject_id": new_assignment.subject.id if new_assignment.subject else None,
+                "schools": [s.name for s in getattr(new_assignment, 'schools_mm', [])] if getattr(new_assignment, 'schools_mm', None) else [],
+                "stages": [s.name for s in getattr(new_assignment, 'stages_mm', [])] if getattr(new_assignment, 'stages_mm', None) else [],
+                "groups": [g.name for g in getattr(new_assignment, 'groups_mm', [])] if getattr(new_assignment, 'groups_mm', None) else [],
+                "status": new_assignment.status,
+                "points": new_assignment.points,
+                "submitted_students_count": submitted_count,
+                "qualified_students_count": qualified_count,
+            }
+            return jsonify({"success": True, "message": "Assignment added successfully!", "assignment": response_payload})
+
+        flash("Assignment added successfully!", "success")
+        return redirect(url_for("admin.assignments"))
+
+
+    return render_template(
+        'admin/assignments/assignments.html'
+    )
+
+
+
+
+@admin.route("/assignments/<int:assignment_id>/submissions", methods=["GET", "POST"])
+def view_assignment_submissions(assignment_id):
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    if not assignment.type == "Assignment":
+        # flash("Assignment is not an assignment.", "danger")
+        # return redirect(url_for("admin.assignments"))
+        return redirect(url_for("admin.view_exam_submissions", exam_id=assignment_id))
+
+
+    if request.method == "POST":
+        submission_id = request.form.get("submission_id")
+        mark = request.form.get("mark")
+        submission = Submissions.query.get_or_404(submission_id)
+        submission.mark = mark
+        try:
+            db.session.commit()
+            try:
+                send_whatsapp_message(submission.student.phone_number, f"Your Submission in {assignment.title} has been graded!")
+                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded for {assignment.title}!")
+            except:
+                pass
+            flash("Grade updated successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating grade: {str(e)}", "danger")
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+
+    # ✅ Subquery of qualified student IDs (scoped to current admin)
+    qualified_students_subq = (
+        get_qualified_students_query(assignment, current_user.id)
+        .with_entities(Users.id)
+        .subquery()
+    )
+
+    # ✅ Only submissions from students the admin manages
+    submissions = (
+        Submissions.query
+        .join(Users, Submissions.student_id == Users.id)
+        .filter(Submissions.assignment_id == assignment_id)
+        .filter(Submissions.student_id.in_(qualified_students_subq))
+        .all()
+    )
+
+    # ✅ All qualified students (for template use)
+    all_qualified_students = (
+        get_qualified_students_query(assignment, current_user.id).all()
+    )
+
+    # ✅ Students who have submitted (set of IDs)
+    submitted_student_ids = {sub.student_id for sub in submissions}
+
+    # ✅ Students who have NOT submitted
+    not_submitted_students = [
+        student for student in all_qualified_students
+        if student.id not in submitted_student_ids
+    ]
+
+
+
+    
+
+    whatsapp_notifications = Assignments_whatsapp.query.filter_by(
+        assignment_id=assignment_id
+    ).all()
+
+
+    notification_status = {notif.user_id: notif.message_sent for notif in whatsapp_notifications}
+    
+
+    return render_template(
+        "admin/assignments/assignment_submissions.html", 
+        assignment=assignment, 
+        submitted_student_ids = submitted_student_ids,
+        submissions=submissions,
+        not_submitted_students=not_submitted_students,
+        notification_status=notification_status
+    )
+
+
+#Get original Pdf
+@admin.route("/assignments/annotate/<int:submission_id>")
+def edit_pdf(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    pdfurl = f"/admin/getpdf/{submission_id}"
+    filename = submission.file_url
+
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id)
+
+#Save new pdf and grade
+@admin.route("/assignments/annotate", methods=["POST"])
+def save_pdf():
+    submission_id = request.form.get("submission_id")
+    grade = request.form.get("grade")
+    
+    # Handle chunked upload
+    file_chunk = request.files.get("file_chunk")
+    filename_from_form = request.form.get("filename")
+    if not filename_from_form:
+        return jsonify({"error": "Missing filename."}), 400
+    
+    original_filename = secure_filename(filename_from_form)
+    # Convert to float first, then to int to handle decimal values from JavaScript
+    offset = int(float(request.form.get("offset", 0)))
+    total_size = int(float(request.form.get("total_size", 0)))
+
+    if not file_chunk or not original_filename:
+        return jsonify({"error": "Missing file data."}), 400
+
+    submission = Submissions.query.get_or_404(submission_id)
+    student_id = submission.student_id
+    folder = f"student_{student_id}"
+    
+    # Create temp folder for chunked upload
+    temp_folder = os.path.join("website", "submissions", "uploads", folder, "temp")
+    os.makedirs(temp_folder, exist_ok=True)
+    
+    temp_filename = f"annotated_{submission_id}_{original_filename}.part"
+    temp_file_path = os.path.join(temp_folder, temp_filename)
+    
+    chunk_data = file_chunk.read()
+    chunk_size = len(chunk_data)
+
+    try:
+        with open(temp_file_path, "ab") as f:
+            f.seek(offset)
+            f.write(chunk_data)
+    except IOError as e:
+        return jsonify({"error": f"Could not write to file: {e}"}), 500
+
+    # If this is the final chunk, finalize the upload
+    if offset + chunk_size >= total_size:
+        # Validate file extension
+        ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+        if ext != "pdf":
+            os.remove(temp_file_path)
+            return jsonify({"error": "Only PDF files are allowed for annotations"}), 400
+
+        # Create final filename based on assignment type
+        assignment = Assignments.query.get(submission.assignment_id)
+        original_submission_filename = submission.file_url
+        name, ext = os.path.splitext(original_submission_filename)
+        
+        annotated_filename = f"{name}_annotated{ext}"
+        
+        # Move temp file to final location
+        final_folder = os.path.join("website", "submissions", "uploads", folder)
+        os.makedirs(final_folder, exist_ok=True)
+        final_file_path = os.path.join(final_folder, annotated_filename)
+        
+        # Remove existing file if it exists before renaming
+        if os.path.exists(final_file_path):
+            try:
+                os.remove(final_file_path)
+            except Exception as e:
+                pass
+        
+        os.rename(temp_file_path, final_file_path)
+        
+        # Clean up temp file if it still exists
+        if os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+            except Exception as e:
+                pass
+
+        # Upload to storage
+        try:
+            with open(final_file_path, "rb") as data:
+                storage.upload_file(data, f"submissions/uploads/student_{student_id}", annotated_filename)
+        except Exception as e:
+            os.remove(final_file_path)
+            return jsonify({"error": f"Error uploading to storage: {e}"}), 500
+
+        # Save grade if provided
+        if grade is not None:
+            submission.mark = grade
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'status': 'error', 'message': f'Failed to save grade: {str(e)}'}), 500
+        assignment = Assignments.query.get(submission.assignment_id)
+        if assignment.type == "Exam":
+            redirect_url = url_for("admin.view_exam_submissions", exam_id=submission.assignment_id)
+        else:
+            redirect_url = url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id)
+
+        # Send WhatsApp notifications
+        try:
+            if assignment.type == "Exam":
+                send_whatsapp_message(submission.student.phone_number, f"Your Exam {assignment.title} has been graded!")
+                send_whatsapp_message(submission.student.parent_phone_number, 
+                f"Student {submission.student.name} has been graded for Exam {assignment.title}!"
+                f"Grade: {grade}")
+            else:
+                send_whatsapp_message(submission.student.phone_number, f"Your Assignment {assignment.title} has been graded!")
+                send_whatsapp_message(submission.student.parent_phone_number, 
+                f"Student {submission.student.name} has been graded for Assignment {assignment.title}!"
+                f"Grade: {grade}")
+        except Exception as e:
+            pass
+
+        return jsonify({'success': True, 'message': 'Grade saved successfully!', 'redirect_url': redirect_url}), 200
+
+    # Return success for chunk received
+    return jsonify({"message": "Chunk received."}), 200
+
+#Get original pdf (backend route for annotation)
+@admin.route("/getpdf/<int:submission_id>")
+def get_pdf(submission_id):
+
+    submission = Submissions.query.get_or_404(submission_id)
+    folder = f"student_{submission.student_id}"
+    filename = submission.file_url
+    file_path = os.path.join("website/submissions/uploads", folder, filename)
+
+    if not os.path.isfile(file_path):
+        try:
+            storage.download_file(
+                folder=f"submissions/uploads/student_{submission.student_id}",
+                file_name=filename,
+                local_path=file_path
+            )
+        except Exception as e:
+            flash(f'Error downloading file: {str(e)}', 'danger')
+            flash('File not found!', 'danger')
+            return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
+
+    return send_from_directory(os.path.join("submissions/uploads", folder), filename)
+
+
+#Get annotated pdf
+@admin.route("/getpdf2/<int:submission_id>")
+def get_pdf2(submission_id):
+
+    submission = Submissions.query.get_or_404(submission_id)
+    folder = f"student_{submission.student_id}"
+    filename = submission.file_url 
+
+    filename = filename.replace(".pdf", "_annotated.pdf")
+
+
+
+    return send_from_directory(os.path.join("submissions/uploads", folder), filename)
+
+
+# Upload corrected PDF with chunked upload (new route)
+@admin.route("/upload-corrected-pdf-chunk/<int:submission_id>", methods=["POST"])
+def upload_corrected_pdf_chunk(submission_id):
+    """
+    Handles uploading a corrected PDF in chunks.
+    When the last chunk is received, it finalizes the upload and saves the grade.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({
+            "status": "error",
+            "error": "Authentication required",
+            "action": "redirect_login"
+        }), 401
+    
+    submission = Submissions.query.get_or_404(submission_id)
+    
+    # Get chunk data from the request
+    file_chunk = request.files.get("file_chunk")
+    filename_from_form = request.form.get("filename")
+    mark = request.form.get("mark")
+    
+    if not filename_from_form:
+        return jsonify({
+            "status": "error",
+            "error": "Missing filename.",
+            "action": "restart_upload"
+        }), 400
+    
+    original_filename = secure_filename(filename_from_form)
+    offset = int(float(request.form.get("offset", 0)))
+    total_size = int(float(request.form.get("total_size", 0)))
+
+    if not file_chunk or not original_filename:
+        return jsonify({
+            "status": "error",
+            "error": "Missing file data.",
+            "action": "restart_upload"
+        }), 400
+    
+    # Validate PDF file type
+    ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+    if ext != "pdf":
+        return jsonify({
+            "status": "error",
+            "error": "Only PDF files are allowed for corrected submissions.",
+            "action": "invalid_file_type"
+        }), 400
+
+    # Define temp path for the file being assembled
+    student_id = submission.student_id
+    folder = f"student_{student_id}"
+    temp_folder = os.path.join("website", "submissions", "uploads", folder, "temp")
+    os.makedirs(temp_folder, exist_ok=True)
+    
+    temp_filename = f"corrected_{submission_id}_{original_filename}.part"
+    temp_file_path = os.path.join(temp_folder, temp_filename)
+    
+    # Read the chunk
+    chunk_data = file_chunk.read()
+    chunk_size = len(chunk_data)
+    
+    # Verify chunk integrity
+    current_file_size = 0
+    if os.path.exists(temp_file_path):
+        current_file_size = os.path.getsize(temp_file_path)
+        
+        if current_file_size != offset:
+            if current_file_size < offset:
+                return jsonify({
+                    "status": "error",
+                    "error": "Upload corrupted - missing chunks detected",
+                    "action": "restart_upload",
+                    "current_offset": current_file_size,
+                    "expected_offset": offset
+                }), 400
+            
+            elif current_file_size > offset:
+                try:
+                    with open(temp_file_path, "r+b") as f:
+                        f.truncate(offset)
+                    return jsonify({
+                        "status": "warning",
+                        "message": "Chunk overlap detected, file truncated",
+                        "action": "retry_chunk",
+                        "retry_offset": offset
+                    }), 200
+                except IOError as e:
+                    try:
+                        os.remove(temp_file_path)
+                    except:
+                        pass
+                    return jsonify({
+                        "status": "error",
+                        "error": "Failed to recover from corruption",
+                        "action": "restart_upload"
+                    }), 500
+    
+    # Append the chunk to the temporary file
+    try:
+        with open(temp_file_path, "ab") as f:
+            f.seek(offset)
+            f.write(chunk_data)
+        
+        # Verify the write was successful
+        new_file_size = os.path.getsize(temp_file_path)
+        expected_size = offset + chunk_size
+        
+        if new_file_size != expected_size:
+            return jsonify({
+                "status": "error",
+                "error": "Chunk write verification failed",
+                "action": "retry_chunk",
+                "retry_offset": offset
+            }), 500
+            
+    except IOError as e:
+        return jsonify({
+            "status": "error",
+            "error": f"Could not write to file: {str(e)}",
+            "action": "restart_upload",
+            "details": str(e)
+        }), 500
+    
+    # Finalization Logic - Check if this was the last chunk
+    if offset + chunk_size >= total_size:
+        # Final file size verification
+        final_temp_size = os.path.getsize(temp_file_path)
+        if final_temp_size != total_size:
+            try:
+                os.remove(temp_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": "Upload corrupted - final size mismatch",
+                "action": "restart_upload",
+                "expected_size": total_size,
+                "actual_size": final_temp_size
+            }), 400
+        
+        # Create final filename based on original submission
+        original_submission_filename = submission.file_url
+        name, ext = os.path.splitext(original_submission_filename)
+        annotated_filename = f"{name}_annotated{ext}"
+        
+        # Move temp file to final location
+        final_folder = os.path.join("website", "submissions", "uploads", folder)
+        os.makedirs(final_folder, exist_ok=True)
+        final_file_path = os.path.join(final_folder, annotated_filename)
+        
+        # Remove existing corrected file if it exists
+        if os.path.exists(final_file_path):
+            try:
+                os.remove(final_file_path)
+            except Exception as e:
+                pass
+        
+        try:
+            os.rename(temp_file_path, final_file_path)
+        except Exception as e:
+            try:
+                os.remove(temp_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": "Failed to finalize file",
+                "action": "restart_upload",
+                "details": str(e)
+            }), 500
+        
+        # Clean up temp file if it still exists
+        if os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+            except Exception as e:
+                pass
+        
+        # Upload to storage
+        try:
+            with open(final_file_path, "rb") as data:
+                storage.upload_file(data, f"submissions/uploads/student_{student_id}", annotated_filename)
+        except Exception as e:
+            try:
+                os.remove(final_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": f"Error uploading to storage: {str(e)}",
+                "action": "restart_upload"
+            }), 500
+        
+        # Save grade if provided
+        if mark is not None and mark.strip():
+            submission.mark = mark
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({
+                    'status': 'error',
+                    'error': f'Failed to save grade: {str(e)}',
+                    'action': 'restart_upload'
+                }), 500
+        
+        # Send WhatsApp notifications
+        assignment = Assignments.query.get(submission.assignment_id)
+        try:
+            if assignment.type == "Exam":
+                send_whatsapp_message(submission.student.phone_number, 
+                    f"Your Exam '{assignment.title}' has been graded!")
+                send_whatsapp_message(submission.student.parent_phone_number, 
+                    f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}")
+            else:
+                send_whatsapp_message(submission.student.phone_number, 
+                    f"Your Assignment '{assignment.title}' has been graded!")
+                send_whatsapp_message(submission.student.parent_phone_number, 
+                    f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}")
+        except Exception as e:
+            pass
+        
+        return jsonify({
+            'status': 'success',
+            'action': 'upload_complete',
+            'message': 'Corrected PDF uploaded successfully!'
+        }), 200
+    
+    # Return success for chunk received
+    return jsonify({
+        "status": "success",
+        "action": "continue",
+        "message": "Chunk received."
+    }), 200
+
+
+# Upload corrected EXAM PDF with chunked upload (new route for exams)
+@admin.route("/upload-corrected-exam-pdf-chunk/<int:submission_id>", methods=["POST"])
+def upload_corrected_exam_pdf_chunk(submission_id):
+    """
+    Handles uploading a corrected exam PDF in chunks.
+    When the last chunk is received, it finalizes the upload and saves the grade.
+    """
+    if not current_user.is_authenticated:
+        return jsonify({
+            "status": "error",
+            "error": "Authentication required",
+            "action": "redirect_login"
+        }), 401
+    
+    submission = Submissions.query.get_or_404(submission_id)
+    
+    # Get chunk data from the request
+    file_chunk = request.files.get("file_chunk")
+    filename_from_form = request.form.get("filename")
+    mark = request.form.get("mark")
+    
+    if not filename_from_form:
+        return jsonify({
+            "status": "error",
+            "error": "Missing filename.",
+            "action": "restart_upload"
+        }), 400
+    
+    original_filename = secure_filename(filename_from_form)
+    offset = int(float(request.form.get("offset", 0)))
+    total_size = int(float(request.form.get("total_size", 0)))
+
+    if not file_chunk or not original_filename:
+        return jsonify({
+            "status": "error",
+            "error": "Missing file data.",
+            "action": "restart_upload"
+        }), 400
+    
+    # Validate PDF file type
+    ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
+    if ext != "pdf":
+        return jsonify({
+            "status": "error",
+            "error": "Only PDF files are allowed for corrected submissions.",
+            "action": "invalid_file_type"
+        }), 400
+
+    # Define temp path for the file being assembled
+    student_id = submission.student_id
+    folder = f"student_{student_id}"
+    temp_folder = os.path.join("website", "submissions", "uploads", folder, "temp")
+    os.makedirs(temp_folder, exist_ok=True)
+    
+    temp_filename = f"corrected_exam_{submission_id}_{original_filename}.part"
+    temp_file_path = os.path.join(temp_folder, temp_filename)
+    
+    # Read the chunk
+    chunk_data = file_chunk.read()
+    chunk_size = len(chunk_data)
+    
+    # Verify chunk integrity
+    current_file_size = 0
+    if os.path.exists(temp_file_path):
+        current_file_size = os.path.getsize(temp_file_path)
+        
+        if current_file_size != offset:
+            if current_file_size < offset:
+                return jsonify({
+                    "status": "error",
+                    "error": "Upload corrupted - missing chunks detected",
+                    "action": "restart_upload",
+                    "current_offset": current_file_size,
+                    "expected_offset": offset
+                }), 400
+            
+            elif current_file_size > offset:
+                try:
+                    with open(temp_file_path, "r+b") as f:
+                        f.truncate(offset)
+                    return jsonify({
+                        "status": "warning",
+                        "message": "Chunk overlap detected, file truncated",
+                        "action": "retry_chunk",
+                        "retry_offset": offset
+                    }), 200
+                except IOError as e:
+                    try:
+                        os.remove(temp_file_path)
+                    except:
+                        pass
+                    return jsonify({
+                        "status": "error",
+                        "error": "Failed to recover from corruption",
+                        "action": "restart_upload"
+                    }), 500
+    
+    # Append the chunk to the temporary file
+    try:
+        with open(temp_file_path, "ab") as f:
+            f.seek(offset)
+            f.write(chunk_data)
+        
+        # Verify the write was successful
+        new_file_size = os.path.getsize(temp_file_path)
+        expected_size = offset + chunk_size
+        
+        if new_file_size != expected_size:
+            return jsonify({
+                "status": "error",
+                "error": "Chunk write verification failed",
+                "action": "retry_chunk",
+                "retry_offset": offset
+            }), 500
+            
+    except IOError as e:
+        return jsonify({
+            "status": "error",
+            "error": f"Could not write to file: {str(e)}",
+            "action": "restart_upload",
+            "details": str(e)
+        }), 500
+    
+    # Finalization Logic - Check if this was the last chunk
+    if offset + chunk_size >= total_size:
+        # Final file size verification
+        final_temp_size = os.path.getsize(temp_file_path)
+        if final_temp_size != total_size:
+            try:
+                os.remove(temp_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": "Upload corrupted - final size mismatch",
+                "action": "restart_upload",
+                "expected_size": total_size,
+                "actual_size": final_temp_size
+            }), 400
+        
+        # Create final filename based on original submission
+        original_submission_filename = submission.file_url
+        name, ext = os.path.splitext(original_submission_filename)
+        annotated_filename = f"{name}_annotated{ext}"
+        
+        # Move temp file to final location
+        final_folder = os.path.join("website", "submissions", "uploads", folder)
+        os.makedirs(final_folder, exist_ok=True)
+        final_file_path = os.path.join(final_folder, annotated_filename)
+        
+        # Remove existing corrected file if it exists
+        if os.path.exists(final_file_path):
+            try:
+                os.remove(final_file_path)
+            except Exception as e:
+                pass
+        
+        try:
+            os.rename(temp_file_path, final_file_path)
+        except Exception as e:
+            try:
+                os.remove(temp_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": "Failed to finalize file",
+                "action": "restart_upload",
+                "details": str(e)
+            }), 500
+        
+        # Clean up temp file if it still exists
+        if os.path.exists(temp_file_path):
+            try:
+                os.remove(temp_file_path)
+            except Exception as e:
+                pass
+        
+        # Upload to storage
+        try:
+            with open(final_file_path, "rb") as data:
+                storage.upload_file(data, f"submissions/uploads/student_{student_id}", annotated_filename)
+        except Exception as e:
+            try:
+                os.remove(final_file_path)
+            except:
+                pass
+            return jsonify({
+                "status": "error",
+                "error": f"Error uploading to storage: {str(e)}",
+                "action": "restart_upload"
+            }), 500
+        
+        # Save grade if provided
+        if mark is not None and mark.strip():
+            submission.mark = mark
+            try:
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({
+                    'status': 'error',
+                    'error': f'Failed to save grade: {str(e)}',
+                    'action': 'restart_upload'
+                }), 500
+        
+        # Send WhatsApp notifications
+        assignment = Assignments.query.get(submission.assignment_id)
+        try:
+            send_whatsapp_message(submission.student.phone_number, 
+                f"Your Exam '{assignment.title}' has been graded!")
+            send_whatsapp_message(submission.student.parent_phone_number, 
+                f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}")
+        except Exception as e:
+            pass
+        
+        return jsonify({
+            'status': 'success',
+            'action': 'upload_complete',
+            'message': 'Corrected exam PDF uploaded successfully!'
+        }), 200
+    
+    # Return success for chunk received
+    return jsonify({
+        "status": "success",
+        "action": "continue",
+        "message": "Chunk received."
+    }), 200
+
+
+#Send late message for a submission (Per student) (Admin route)
+@admin.route("/assignments/<int:assignment_id>/submissions/<int:student_id>/late", methods=["POST"])
+def send_late_message_for_submission(assignment_id, student_id):
+    assignment = Assignments.query.get_or_404(assignment_id)
+    student = Users.query.get(student_id)
+    if not student:
+        flash("Student not found.", "danger")
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+
+    # Check if message was already sent
+    existing_notification = Assignments_whatsapp.query.filter_by(
+        assignment_id=assignment_id,
+        user_id=student_id
+    ).first()
+
+    if existing_notification and existing_notification.message_sent:
+        return jsonify({'status': 'info', 'message': 'Message was already sent to this student.'})
+
+    student_late_message_sent = False
+    parent_late_message_sent = False
+
+
+    if not student.student_whatsapp and not student.parent_whatsapp:
+        return jsonify({'status': 'info', 'message': 'Student has no WhatsApp number or parent WhatsApp number.'})
+
+
+    try:
+        if student.student_whatsapp:
+            send_whatsapp_message(student.student_whatsapp, f"You have not submitted the assignment '{assignment.title}'. Please submit as soon as possible.")
+            student_late_message_sent = True
+        if student.parent_whatsapp:
+            send_whatsapp_message(student.parent_whatsapp, f"Student {student.name} has not submitted the assignment '{assignment.title}'.")
+            parent_late_message_sent = True
+        
+        # Record the sent message
+        if student_late_message_sent or parent_late_message_sent:
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=assignment_id,
+                    user_id=student_id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Error sending WhatsApp message: {str(e)}'})
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'message': 'Reminder sent successfully!', 'student_late_message_sent': student_late_message_sent, 'parent_late_message_sent': parent_late_message_sent})
+
+#Delete a submission for student (Admin route)
+@admin.route("/assignments/delete_submission/<int:submission_id>", methods=["POST"])
+def delete_submission(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    assignment = Assignments.query.get(submission.assignment_id)
+    if not assignment:
+        flash("Assignment not found.", "danger")
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
+
+
+    if assignment.type == "Exam":
+        flash("You can't delete a submission for an exam.", "danger")
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
+
+    try:
+
+        # Delete all upload status records for this submission
+        Upload_status.query.filter_by(
+            assignment_id=submission.assignment_id,
+            user_id=submission.student_id
+        ).delete()
+
+
+        deadline_date = assignment.deadline_date
+        upload_time = submission.upload_time
+
+        if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
+            if upload_time.tzinfo is None:
+                upload_time = GMT_PLUS_2.localize(upload_time)
+        else:
+            if upload_time.tzinfo is not None:
+                upload_time = upload_time.replace(tzinfo=None)
+
+        if deadline_date > upload_time:
+            if assignment.points:
+                submission.student.points = (submission.student.points or 0) - assignment.points
+        else:
+            if assignment.points:
+                submission.student.points = (submission.student.points or 0) - (assignment.points / 2)
+
+        # Delete file from local storage
+        local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+        try :
+            local_path2 = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            if os.path.exists(local_path2):
+                os.remove(local_path2)
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+        except Exception:
+            pass
+        # Delete file from remote storage
+        try:
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+        except Exception:
+            flash("Error deleting file from storage.", "warning")
+        db.session.delete(submission)
+        db.session.commit()
+        flash("Submission deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred while deleting the submission: {str(e)}", "danger")
+
+    return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment.id))
+
+
+#Edit an assignment 
+@admin.route("/assignments/edit/<int:assignment_id>", methods=["GET", "POST"])
+def edit_assignment(assignment_id):
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        flash("Assignment not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    if not assignment.type == "Assignment":
+        flash("Assignment is not an assignment.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
+    existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
+
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all() 
+
+    def int_or_none(x):
+        try:
+            return int(x) if x not in (None, "", "None") else None
+        except (TypeError, ValueError):
+            return None
+
+    if request.method == "POST":
+        # Save a copy of the old assignment state for logging
+        old_assignment = {
+            "title": assignment.title,
+            "description": assignment.description,
+            "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
+            "stageid": assignment.stageid,
+            "groupid": assignment.groupid,
+            "schoolid": assignment.schoolid,
+            "groups_mm": [g.id for g in getattr(assignment, "groups_mm", [])],
+            "stages_mm": [s.id for s in getattr(assignment, "stages_mm", [])],
+            "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
+            "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
+            "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None, 
+        }
+
+        # Update basic fields
+        assignment.title = request.form.get("title", "").strip()
+        assignment.description = request.form.get("description", "").strip()
+        assignment.last_edited_by = current_user.id
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        assignment.last_edited_at = naive_local_time
+        # deadline
+        try:
+            assignment.deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.assignments"))
+
+
+        subject_id_single = int_or_none(request.form.get("subject")) 
+
+
+        if subject_id_single :
+            assignment.subjectid = subject_id_single
+
+
+        # NEW: multi-selects (for many-to-many relationships)
+        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
+        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
+        
+        # Handle new multi-select schools format (comma-separated string)
+        school_ids_str = request.form.get("school_ids", "").strip()
+        if school_ids_str:
+            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
+        else:
+            school_ids_mm = []
+
+        if not group_ids_mm:
+            groups = Groups.query.all()
+            group_ids_mm = [group.id for group in groups]
+
+        if  not stage_ids_mm:
+            stages = Stages.query.all()
+            stage_ids_mm = [stage.id for stage in stages]
+        
+        # If no schools provided, use schools from selected subject
+        if not school_ids_mm:
+            if subject_id_single:
+                # Get schools associated with the selected subject
+                subject = Subjects.query.get(subject_id_single)
+                if subject and hasattr(subject, 'schools'):
+                    school_ids_mm = [school.id for school in subject.schools]
+                else:
+                    # Fallback to all schools if subject has no schools
+                    schools = Schools.query.all()
+                    school_ids_mm = [school.id for school in schools]
+            else:
+                # If no subject selected, use all schools
+                schools = Schools.query.all()
+                school_ids_mm = [school.id for school in schools]
+
+        # Update many-to-many relationships
+        if hasattr(assignment, "groups_mm"):
+            assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
+        if hasattr(assignment, "stages_mm"):
+            assignment.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
+        if hasattr(assignment, "schools_mm"):
+            assignment.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
+
+        # Handle file upload
+        if "attachments" in request.files and request.files["attachments"].filename != "":
+            uploaded_file = request.files["attachments"]
+            original_filename = secure_filename(uploaded_file.filename)
+            random_uuid = uuid.uuid4().hex
+            filename = f"{random_uuid}_{original_filename}"
+            file_path = os.path.join("website/assignments/uploads", filename)
+            uploaded_file.save(file_path)
+            try:
+                with open(file_path, "rb") as f:
+                    storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+            except Exception:
+                flash("Error uploading file to storage", "danger")
+                return redirect(url_for("admin.assignments"))
+            existing_attachments.append(filename)
+
+        assignment.attachments = json.dumps(existing_attachments)
+        db.session.commit()
+
+        # Log the edit action
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Edit',
+            log={
+                "action_name": "Edit",
+                "resource_type": "assignment",
+                "action_details": {
+                    "id": assignment.id,
+                    "title": assignment.title,
+                    "summary": f"Assignment '{assignment.title}' was edited."
+                },
+                "data": None,
+                "before": old_assignment,
+                "after": {
+                    "title": assignment.title,
+                    "description": assignment.description,
+                    "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
+                    "stageid": assignment.stageid,
+                    "groupid": assignment.groupid,
+                    "schoolid": assignment.schoolid,
+                    "subjectid": getattr(assignment, "subjectid", None),  # Add subjectid
+                    "groups_mm": [g.id for g in getattr(assignment, "groups_mm", [])],
+                    "stages_mm": [s.id for s in getattr(assignment, "stages_mm", [])],
+                    "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
+                    "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
+                    "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None,  # Add subject name
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        # Check if it's an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Return updated assignment data
+            schools_names = [s.name for s in getattr(assignment, 'schools_mm', [])] if getattr(assignment, 'schools_mm', None) else []
+            stages_names = [s.name for s in getattr(assignment, 'stages_mm', [])] if getattr(assignment, 'stages_mm', None) else []
+            groups_names = [g.name for g in getattr(assignment, 'groups_mm', [])] if getattr(assignment, 'groups_mm', None) else []
+            
+            qualified_count = qualified_students_count_for_assignment(assignment)
+            submitted_count = (
+                Submissions.query
+                .with_entities(Submissions.student_id)
+                .filter_by(assignment_id=assignment.id)
+                .distinct()
+                .count()
+            )
+
+            updated_assignment = {
+                "id": assignment.id,
+                "title": assignment.title,
+                "description": assignment.description,
+                "creation_date": assignment.creation_date.strftime('%Y-%m-%d %I:%M %p') if assignment.creation_date else None,
+                "deadline_date": assignment.deadline_date.strftime('%Y-%m-%d %I:%M %p') if assignment.deadline_date else None,
+                "subject": assignment.subject.name if assignment.subject else "N/A",
+                "subject_id": assignment.subject.id if assignment.subject else None,
+                "schools": schools_names,
+                "stages": stages_names,
+                "groups": groups_names,
+                "status": assignment.status,
+                "points": assignment.points,
+                "submitted_students_count": submitted_count,
+                "qualified_students_count": qualified_count,
+            }
+            
+            return jsonify({"success": True, "message": "Assignment updated successfully!", "assignment": updated_assignment})
+
+        flash("Assignment updated successfully!", "success")
+        return redirect(url_for("admin.assignments"))
+        
+    if request.args.get("delete_attachment"):
+        filename_to_delete = request.args.get("delete_attachment")
+        if filename_to_delete in existing_attachments:
+            file_path = os.path.join("website/assignments/uploads", filename_to_delete)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            try:
+                storage.delete_file(folder="assignments/uploads", file_name=filename_to_delete)
+            except Exception:
+                pass
+            
+            # Log the delete attachment action
+            before_attachments = list(existing_attachments)
+            existing_attachments.remove(filename_to_delete)
+            assignment.attachments = json.dumps(existing_attachments)
+            db.session.commit()
+
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Edit',
+                log={
+                    "action_name": "Edit",
+                    "resource_type": "assignment_attachment",
+                    "action_details": {
+                        "id": assignment.id,
+                        "title": assignment.title,
+                        "summary": f"Attachment '{filename_to_delete}' was deleted from assignment '{assignment.title}'."
+                    },
+                    "data": None,
+                    "before": {
+                        "attachments": before_attachments
+                    },
+                    "after": {
+                        "attachments": existing_attachments
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+
+            flash("Attachment deleted successfully!", "success")
+        else:
+            flash("Attachment not found!", "error")
+        return redirect(url_for("admin.edit_assignment", assignment_id=assignment_id))
+
+    return render_template(
+        "admin/assignments/edit_assignment.html",
+        assignment=assignment,
+        groups=groups,
+        stages=stages,
+        attachments=existing_attachments,
+        schools=schools,
+        subjects=subjects  # Pass subjects to template
+    )
+
+#Delete an assignment 
+@admin.route("/assignments/delete/<int:assignment_id>", methods=["POST"])
+def delete_assignment(assignment_id):
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment not found or you do not have permission to delete it."}), 404
+        flash("Assignment not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
+    if not assignment.type == "Assignment":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment is not an assignment."}), 400
+        flash("Assignment is not an assignment.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    # Delete WhatsApp notifications for this assignment
+    try:
+        Assignments_whatsapp.query.filter_by(assignment_id=assignment_id).delete()
+        db.session.commit()
+    except Exception:
+        pass
+
+    try :
+        Upload_status.query.filter_by(assignment_id=assignment_id).delete()
+        db.session.commit()
+    except Exception:
+        pass
+        
+
+    submissions = Submissions.query.filter_by(assignment_id=assignment_id).all()
+
+    deleted_submissions = []
+    deleted_attachments = []
+
+    for submission in submissions:
+        if assignment.deadline_date > submission.upload_time:
+            if assignment.points:
+                student = Users.query.get(submission.student_id)
+                student.points = student.points - assignment.points
+                db.session.commit()
+        else:
+            if assignment.points:
+                student = Users.query.get(submission.student_id)
+                student.points = student.points - (assignment.points / 2)
+                db.session.commit()
+        try:
+            local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+            if os.path.exists(local_path):
+                os.remove(local_path)
+
+            annotated_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            if os.path.exists(annotated_path):
+                os.remove(annotated_path)
+
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            except Exception as e:
+                # Ignore S3 errors, continue deleting
+                pass
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+            except Exception as e:
+                # Ignore S3 errors, continue deleting
+                pass
+            db.session.delete(submission)
+            deleted_submissions.append({
+                "submission_id": submission.id,
+                "student_id": submission.student_id,
+                "file_url": submission.file_url
+            })
+        except Exception:
+            pass
+
+    if assignment.attachments:
+        try:
+            attachment_paths = json.loads(assignment.attachments)
+            for file_path in attachment_paths:
+                local_path = os.path.join("website/assignments/uploads", file_path)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                try:
+                    storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                except Exception:
+                    pass
+                deleted_attachments.append(file_path)
+        except Exception as e:
+            flash(f"Error while deleting attachments: {str(e)}", "danger")
+    
+    # Log the delete action before deleting the assignment
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "assignment",
+            "action_details": {
+                "id": assignment.id,
+                "title": assignment.title,
+                "summary": f"Assignment '{assignment.title}' was deleted."
+            },
+            "data": None,
+            "before": {
+                "title": assignment.title,
+                "description": assignment.description,
+                "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
+                "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
+                "points": assignment.points,
+                "submissions_deleted_count": len(deleted_submissions),
+                "subjectid": getattr(assignment, "subjectid", None),  # Add subjectid
+                "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None,  # Add subject name
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.delete(assignment)
+    db.session.commit()
+
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+    if wants_json:
+        return jsonify({"success": True, "message": "Assignment and its attachments deleted successfully!", "deleted_assignment_id": assignment_id})
+
+    flash("Assignment and its attachments deleted successfully!", "success")
+    return redirect(url_for("admin.assignments"))
+
+#Hide , Show Assignment (AJAX-friendly)
+@admin.route("/assignments/visibility/<int:assignment_id>", methods=["POST"]) 
+def toggle_assignment_visibility(assignment_id):
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment not found or permission denied."}), 404
+        flash("Assignment not found or you do not have permission to toggle its visibility.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
+
+    old_status = assignment.status
+    assignment.status = "Hide" if assignment.status == "Show" else "Show"
+    db.session.commit()
+    # Add log for toggling assignment visibility
+    try:
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Edit',
+            log={
+                "action_name": "Edit",
+                "resource_type": "assignment_visibility",
+                "action_details": {
+                    "id": assignment.id,
+                    "title": assignment.title,
+                    "summary": f"Assignment '{assignment.title}' visibility was changed."
+                },
+                "data": None,
+                "before": {
+                    "visibility_status": old_status
+                },
+                "after": {
+                    "visibility_status": assignment.status
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        pass
+
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+    if wants_json:
+        return jsonify({"success": True, "message": f"Assignment status is: {assignment.status} now!", "status": assignment.status, "assignment_id": assignment.id})
+
+    flash(f"Assignment status is: {assignment.status} now!", "success")
+    return redirect(url_for("admin.assignments"))
+
+#View submissions (Old route not used)
+@admin.route("/submissions", methods=["GET"])
+def view_submissions():
+    submissions = Submissions.query.join(Assignments).join(Users).order_by(Submissions.id.desc()).all()
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    assignments = Assignments.query.all()
+    return render_template(
+        "admin/submissions.html",
+        submissions=submissions,
+        groups=groups,
+        stages=stages,
+        assignments=assignments
+    )
+
+#View submission media (Important)
+@admin.route("/submissions/uploads/<int:submission_id>")
+def submission_media(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    folder = f"student_{submission.student_id}"
+    filename = submission.file_url
+    file_path = os.path.join("website/submissions/uploads", folder, filename)
+
+    if os.path.isfile(file_path):
+        return send_from_directory(f"submissions/uploads/{folder}", filename)
+    else:
+        try:
+            storage.download_file(folder=f"submissions/uploads/student_{submission.student_id}", file_name=filename, local_path=file_path)
+        except Exception as e:
+            flash(f'Error downloading file: {str(e)}', 'danger')
+            flash('File not found!', 'danger')
+            return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
+        return send_from_directory(f"submissions/uploads/{folder}", filename)
+
+#=================================================================
+#Materials
+#=================================================================
+
+@admin.route('/api/folders-data', methods=["GET"])
+def folders_data():
+    folders_query = get_visible_to_admin_query(Materials_folder, current_user)
+    folders = folders_query.order_by(Materials_folder.id.desc()).all()
+
+    folders_list = []
+    for folder in folders:
+        schools_names = [s.name for s in getattr(folder, 'schools_mm', [])] if getattr(folder, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(folder, 'stages_mm', [])] if getattr(folder, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(folder, 'groups_mm', [])] if getattr(folder, 'groups_mm', None) else []
+
+        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
+        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+
+        # Count materials in this folder
+        material_count = Materials.query.filter_by(folderid=folder.id).count()
+
+        folders_list.append({
+            "id": folder.id,
+            "title": folder.title,
+            "description": folder.description,
+            "category": folder.category,
+            "subject": folder.subject.name if folder.subject else "N/A",
+            "subject_id": folder.subject.id if folder.subject else None,
+            "schools": schools_display,
+            "stages": stages_display,
+            "groups": groups_display,
+            "material_count": material_count
+        })
+    
+    return jsonify(folders_list)
+
+
+@admin.route('/api/folder/<int:folder_id>', methods=["GET"])
+def get_folder_data(folder_id):
+    """API endpoint to fetch single folder data for editing"""
+    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
+    if not folder:
+        return jsonify({"success": False, "message": "Folder not found or you do not have permission to view it."}), 404
+
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(folder, 'schools_mm', [])] if getattr(folder, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(folder, 'stages_mm', [])] if getattr(folder, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(folder, 'groups_mm', [])] if getattr(folder, 'groups_mm', None) else []
+
+    folder_data = {
+        "id": folder.id,
+        "title": folder.title,
+        "description": folder.description,
+        "category": folder.category,
+        "subject": {
+            "id": folder.subject.id if folder.subject else None,
+            "name": folder.subject.name if folder.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+    }
+
+    return jsonify({"success": True, "folder": folder_data})
+
+
+
+
+
+
+
+
+@admin.route("/folders", methods=["GET", "POST"])
+def folders():
+
+
+
+    if request.method == "POST":
+
+
+        managed_group_ids = [g.id for g in getattr(current_user, "managed_groups", [])]
+        managed_stage_ids = [s.id for s in getattr(current_user, "managed_stages", [])]
+        managed_school_ids = [s.id for s in getattr(current_user, "managed_schools", [])]
+        managed_subject_ids = [s.id for s in getattr(current_user, "managed_subjects", [])]
+
+        groups = Groups.query.filter(Groups.id.in_(managed_group_ids)).all() if managed_group_ids else []
+        stages = Stages.query.filter(Stages.id.in_(managed_stage_ids)).all() if managed_stage_ids else []
+        schools = Schools.query.filter(Schools.id.in_(managed_school_ids)).all() if managed_school_ids else []
+        subjects = Subjects.query.filter(Subjects.id.in_(managed_subject_ids)).all() if managed_subject_ids else []
+
+        subject_school_map = {}
+        for subject in subjects:
+            # For each subject, get its associated schools and format them for JavaScript
+            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+            # Sort schools to put "Online" schools first, then alphabetically
+            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+            subject_school_map[subject.id] = schools_list
+
+
+
+
+
+
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        category = request.form.get("category")
+
+        subject_id_single = int_or_none(request.form.get("subject_id"))
+
+        group_ids  = parse_multi_ids("groups_mm[]")
+        stage_ids  = parse_multi_ids("stages_mm[]")
+        school_ids = parse_multi_ids("schools_mm[]")
+
+        if not title:
+            flash("Title is required!", "danger")
+            return redirect(url_for("admin.folders"))
+
+        if not group_ids:
+            group_ids = [g.id for g in groups]
+        if not stage_ids:
+            stage_ids = [s.id for s in stages]
+        if not school_ids:
+
+            subject_id = subject_id_single
+
+            if subject_id and subject_id in subject_school_map:
+                school_ids = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                flash("Choose a subject" , "danger")
+                return redirect(url_for("admin.announcements"))
+
+        if not subject_id_single:
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.folders"))
+
+        if group_ids:
+            if not set(group_ids).issubset(set(managed_group_ids)):
+                flash("You are not allowed to create a folder for one or more selected groups.", "danger")
+                return redirect(url_for("admin.folders"))
+        if stage_ids:
+            if not set(stage_ids).issubset(set(managed_stage_ids)):
+                flash("You are not allowed to create a folder for one or more selected stages.", "danger")
+                return redirect(url_for("admin.folders"))
+        if school_ids:
+            if not set(school_ids).issubset(set(managed_school_ids)):
+                flash("You are not allowed to create a folder for one or more selected schools.", "danger")
+                return redirect(url_for("admin.folders"))
+
+
+        if subject_id_single:
+            if subject_id_single not in managed_subject_ids:
+                flash("You are not allowed to create a folder for this subject.", "danger")
+                return redirect(url_for("admin.folders"))
+
+        new_record = Materials_folder(
+            title=title,
+            description=description,
+            subjectid=subject_id_single,
+            category=category,
+        )
+
+        # IMPORTANT: add to session BEFORE assigning M2M relations
+        db.session.add(new_record)
+
+        # attach many-to-many scopes if provided
+        if group_ids:
+            new_record.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        if stage_ids:
+            new_record.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
+        if school_ids:
+            new_record.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
+        
+        db.session.commit()
+
+        # Log the action
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Create',
+            log={
+                "action_name": "Create",
+                "resource_type": "materials_folder",
+                "action_details": {
+                    "id": new_record.id,
+                    "title": new_record.title,
+                    "summary": f"Materials folder '{new_record.title}' was created."
+                },
+                "data": {
+                    "title": new_record.title,
+                    "description": new_record.description,
+                    "category": new_record.category,
+                    "stages_mm": [s.id for s in new_record.stages_mm],
+                    "groups_mm": [g.id for g in new_record.groups_mm],
+                    "schools_mm": [s.id for s in new_record.schools_mm],
+                    "subject": new_record.subject.name
+                },
+                "before": None,
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        # AJAX response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            folder_data = {
+                "id": new_record.id,
+                "title": new_record.title,
+                "description": new_record.description,
+                "category": new_record.category,
+                "subject": new_record.subject.name if new_record.subject else "N/A",
+                "subject_id": new_record.subject.id if new_record.subject else None,
+                "schools": ', '.join([s.name for s in new_record.schools_mm]) if new_record.schools_mm else 'All Schools',
+                "stages": ', '.join([s.name for s in new_record.stages_mm]) if new_record.stages_mm else 'All Stages',
+                "groups": ', '.join([g.name for g in new_record.groups_mm]) if new_record.groups_mm else 'All Classes',
+                "material_count": 0
+            }
+            return jsonify({"success": True, "message": "Folder added successfully!", "folder": folder_data})
+
+        flash("Folder added successfully!", "success")
+        return redirect(url_for("admin.folders"))
+    
+
+    return render_template("admin/materials/folder.html")
+
+    
+@admin.route("/folders/<int:folder_id>/edit", methods=["GET", "POST"])
+def edit_folder(folder_id):
+    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
+    if not folder:
+        flash("Folder not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.folders"))
+
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all()
+
+    if request.method == "POST":
+        old_data = {
+            "title": folder.title,
+            "description": folder.description,
+            "category": folder.category,
+            "subjectid": folder.subjectid,
+            "stages_mm": [s.id for s in folder.stages_mm],
+            "groups_mm": [g.id for g in folder.groups_mm],
+            "schools_mm": [s.id for s in folder.schools_mm]
+        }
+
+        folder.title = (request.form.get("title") or "").strip()
+        folder.description = (request.form.get("description") or "").strip()
+        folder.category = request.form.get("category")
+        
+        # Handle subject selection
+        subject_id = int_or_none(request.form.get("subject"))
+        folder.subjectid = subject_id
+
+        # legacy single-selects (kept for backward compatibility)
+        stage_id_single = int_or_none(request.form.get("stage"))
+        group_id_single = int_or_none(request.form.get("group"))
+        school_id_single = int_or_none(request.form.get("school"))
+
+        # new multi-selects
+        group_ids_mm  = parse_multi_ids("groups_mm[]")
+        stage_ids_mm  = parse_multi_ids("stages_mm[]")
+        
+        # Handle new multi-select schools format (comma-separated string)
+        school_ids_str = request.form.get("school_ids", "").strip()
+        if school_ids_str:
+            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
+        else:
+            school_ids_mm = []
+
+        folder.stageid = stage_id_single
+        folder.groupid = group_id_single
+        folder.schoolid = school_id_single
+
+        if not group_id_single and not group_ids_mm:
+            groups = Groups.query.all()
+            group_ids_mm = [group.id for group in groups]
+
+        if not stage_id_single and not stage_ids_mm:
+            stages = Stages.query.all()
+            stage_ids_mm = [stage.id for stage in stages]
+        
+        if not school_id_single and not school_ids_mm:
+            schools = Schools.query.all()
+            school_ids_mm = [school.id for school in schools]
+
+        # Update many-to-many relationships
+        if hasattr(folder, "groups_mm"):
+            folder.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
+        if hasattr(folder, "stages_mm"):
+            folder.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
+        if hasattr(folder, "schools_mm"):
+            folder.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
+
+        db.session.commit()
+
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Edit',
+            log={
+                "action_name": "Edit",
+                "resource_type": "materials_folder",
+                "action_details": {
+                    "id": folder.id,
+                    "title": folder.title,
+                    "summary": f"Materials folder '{folder.title}' was edited."
+                },
+                "data": None,
+                "before": old_data,
+                "after": {
+                    "title": folder.title,
+                    "description": folder.description,
+                    "category": folder.category,
+                    "subjectid": folder.subjectid,
+                    "stages_mm": [s.id for s in folder.stages_mm],
+                    "groups_mm": [g.id for g in folder.groups_mm],
+                    "schools_mm": [s.id for s in folder.schools_mm]
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        # AJAX response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            folder_data = {
+                "id": folder.id,
+                "title": folder.title,
+                "description": folder.description,
+                "category": folder.category,
+                "subject": folder.subject.name if folder.subject else "N/A",
+                "subject_id": folder.subject.id if folder.subject else None,
+                "schools": ', '.join([s.name for s in folder.schools_mm]) if folder.schools_mm else 'All Schools',
+                "stages": ', '.join([s.name for s in folder.stages_mm]) if folder.stages_mm else 'All Stages',
+                "groups": ', '.join([g.name for g in folder.groups_mm]) if folder.groups_mm else 'All Classes',
+                "material_count": Materials.query.filter_by(folderid=folder.id).count()
+            }
+            return jsonify({"success": True, "message": "Folder updated successfully!", "folder": folder_data})
+
+        flash("Folder updated successfully!", "success")
+        return redirect(url_for("admin.folders"))
+    return render_template("admin/materials/folder_edit.html", folder=folder, groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+@admin.route("/folders/delete/<int:folder_id>", methods=["POST"])
+def delete_folder(folder_id):
+    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
+    if not folder:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Folder not found or you don't have permission."}), 404
+        flash("Folder not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.folders"))
+
+    try:
+        files = Materials.query.filter_by(folderid=folder.id).all()
+        for file in files:
+            file_path = os.path.join("website/material/uploads", file.url)
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            db.session.delete(file)
+            try :
+                storage.delete_file(folder="material/uploads", file_name=file.url)
+            except Exception:
+                pass
+        
+        # Log the action before deleting
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Delete',
+            log={
+                "action_name": "Delete",
+                "resource_type": "materials_folder",
+                "action_details": {
+                    "id": folder.id,
+                    "title": folder.title,
+                    "summary": f"Materials folder '{folder.title}' and all its files were deleted."
+                },
+                "data": None,
+                "before": {
+                    "title": folder.title,
+                    "description": folder.description,
+                    "category": folder.category,
+                    "files_count": len(files)
+                },
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.delete(folder)
+        db.session.commit()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Folder and all associated files deleted successfully!"})
+        
+        flash("Folder and all associated files deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"An error occurred while deleting the folder: {str(e)}"}), 500
+        flash(f"An error occurred while deleting the folder: {str(e)}", "danger")
+    return redirect(url_for("admin.folders"))
+
+
+@admin.route("/folders/<int:folder_id>", methods=["GET", "POST"])
+def view_material(folder_id):
+    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
+    if not folder:
+        flash("Folder not found or you do not have permission to view it.", "danger")
+        return redirect(url_for("admin.folders"))
+
+    materials_query = Materials.query.filter_by(folderid=folder_id).order_by(Materials.id.asc())
+
+    if request.method == "POST":
+        title = request.form["title"]
+
+        if 'record_file' not in request.files or request.files["record_file"].filename == '':
+            flash("No file selected.", "danger")
+            return redirect(url_for("admin.view_material", folder_id=folder_id))
+
+
+        file = request.files["record_file"]
+        original_filename = secure_filename(file.filename)
+        file_ext = os.path.splitext(original_filename)[1]
+        unique_filename = f"{uuid.uuid4().hex}{file_ext}"
+        filepath = os.path.join("website/material/uploads", unique_filename)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        file.save(filepath)
+        with open(filepath, "rb") as f:
+            storage.upload_file(f, folder="material/uploads", file_name=unique_filename)
+        filename = unique_filename  # Ensure the db entry uses the uuid filename
+
+        new_record = Materials(title=title, url=filename, folderid=folder_id)
+        db.session.add(new_record)
+        db.session.commit()
+
+        # Log the action
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Create',
+            log={
+                "action_name": "Create",
+                "resource_type": "material_file",
+                "action_details": {
+                    "id": new_record.id,
+                    "title": new_record.title,
+                    "summary": f"Material file '{new_record.title}' was added to folder '{folder.title}'."
+                },
+                "data": {
+                    "title": new_record.title,
+                    "filename": new_record.url,
+                    "folder_id": new_record.folderid
+                },
+                "before": None,
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        flash("File added successfully!", "success")
+        return redirect(url_for("admin.view_material", folder_id=folder_id))
+
+    materials = materials_query.all()
+    return render_template("admin/materials/material.html", material=materials, folder=folder)
+
+@admin.route("/material/delete/<int:folder_id>/<int:material_id>", methods=["POST"])
+def delete_material(folder_id, material_id):
+
+    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
+    if not folder:
+        flash("Folder not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.folders"))
+
+
+    material = Materials.query.get_or_404(material_id)
+
+
+
+    file_path = os.path.join("website/material/uploads", material.url)
+
+    # Log the action before deleting
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "material_file",
+            "action_details": {
+                "id": material.id,
+                "title": material.title,
+                "summary": f"Material file '{material.title}' was deleted."
+            },
+            "data": None,
+            "before": {
+                "title": material.title,
+                "filename": material.url,
+                "folder_id": material.folderid
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+
+    if os.path.isfile(file_path):
+        try:
+            os.remove(file_path)
+            try :
+                storage.delete_file(folder="material/uploads", file_name=material.url)
+            except Exception:
+                pass
+            flash("Material file deleted from the server.", "info")
+        except Exception as e:
+            flash(f"An error occurred while deleting the file: {str(e)}", "danger")
+
+    db.session.delete(material)
+    db.session.commit()
+    flash("Material deleted successfully!", "success")
+    return redirect(url_for("admin.view_material", folder_id=folder_id))
+
+
+@admin.route("/material/uploads/<int:material_id>")
+def material_media(material_id):
+    material = Materials.query.get_or_404(material_id)
+
+    filename = secure_filename(material.url)
+    file_path = os.path.join("website/material/uploads", filename)
+
+    if os.path.isfile(file_path):
+        return send_from_directory("material/uploads", filename)
+    else :
+        try :
+            storage.download_file(folder="material/uploads", file_name=filename, local_path=file_path)
+        except Exception:
+            flash("File not found", 'warning')
+            return redirect(url_for("admin.view_material", folder_id=material.folderid))
+        return send_from_directory("material/uploads", filename)
+    
+#=================================================================
+#Setup Subject , School , Stage , Class (Academic Setup)
+#================================================================= 
+
+@admin.route('/students/setup', methods=['GET', 'POST'])
+def students_setup():
+    if current_user.role != "super_admin":
+        flash("You are not authorized to access this page.", "danger")
+        return redirect(url_for("admin.index"))
+
+
+    # Handle add operations
+    if request.method == 'POST':
+    
+        entity_type = request.form.get('entity_type')
+        name = request.form.get('name')
+
+        if not name:
+            flash(f'{entity_type.capitalize()} name is required.', 'error')
+            return redirect(url_for('admin.students_setup'))
+
+        model_map = {
+            'school': Schools,
+            'stage': Stages,
+            'class': Groups,
+            'subject': Subjects
+        }
+
+        Model = model_map.get(entity_type)
+        if not Model:
+            flash('Invalid entity type.', 'error')
+            return redirect(url_for('admin.students_setup'))
+
+        # Ensure uniqueness (case-insensitive, trimmed)
+        name_clean = name.strip()
+        existing = Model.query.filter(db.func.lower(Model.name) == name_clean.lower()).first()
+        if existing:
+            flash(f'{entity_type.capitalize()} already exists.', 'error')
+        else:
+            new_item = Model(name=name_clean)
+            db.session.add(new_item)
+            try:
+                db.session.commit()
+                flash(f'{entity_type.capitalize()} created successfully!', 'success')
+                
+                # Log the action
+                new_log = AssistantLogs(
+                    assistant_id=current_user.id,
+                    action='Create',
+                    log={
+                        "action_name": "Create",
+                        "resource_type": entity_type,
+                        "action_details": {
+                            "id": new_item.id,
+                            "title": new_item.name,
+                            "summary": f"New {entity_type} '{new_item.name}' was created."
+                        },
+                        "data": {
+                            "name": new_item.name
+                        },
+                        "before": None,
+                        "after": None
+                    }
+                )
+                db.session.add(new_log)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error creating {entity_type}: {str(e)}', 'error')
+
+        return redirect(url_for('admin.students_setup'))
+
+    # Fetch all existing data
+    def get_data(Model):
+        data_list = []
+        for item in Model.query.order_by(Model.name).all(): # Added order_by for consistency
+            # --- Student count logic (no changes here) ---
+            users = getattr(item, 'users', None)
+            if users is not None:
+                try:
+                    count = users.filter_by(role='student').count()
+                except AttributeError:
+                    count = len([u for u in users if getattr(u, 'role', None) == 'student'])
+            else:
+                count = 0
+
+            # <<< --- START OF NEW CODE --- >>>
+            item_data = {'id': item.id, 'name': item.name, 'count': count}
+
+            # If the model is Schools, get its subjects
+            if Model == Schools:
+                subjects = getattr(item, 'subjects', None)
+                if subjects:
+                    item_data['subjects'] = [s.name for s in subjects.all()]
+            
+            # If the model is Subjects, get its schools
+            if Model == Subjects:
+                schools = getattr(item, 'schools', None)
+                if schools:
+                    item_data['schools'] = [s.name for s in schools.all()]
+
+            data_list.append(item_data)
+            # <<< --- END OF NEW CODE --- >>>
+            
+        return data_list
+
+    schools_data = get_data(Schools)
+    stages_data = get_data(Stages)
+    groups_data = get_data(Groups)
+    subjects_data = get_data(Subjects)
+    return render_template(
+        'admin/students_setup.html',
+        schools=schools_data,
+        stages=stages_data,
+        groups=groups_data,
+        subjects=subjects_data
+    )
+
+
+@admin.route('/assign-subjects', methods=['POST'])
+def assign_subjects_to_school():
+    if current_user.role != "super_admin":
+        flash("You are not authorized to access this page.", "danger")
+        return redirect(url_for("admin.index"))
+
+    school_id = request.form.get('school_id')
+    subject_ids_raw = request.form.get('subject_ids', '')  # e.g. "1,2,3"
+
+    if not school_id:
+        flash("Please select a school.", "error")
+        return redirect(url_for('admin.students_setup'))
+
+    # Split string into a list of integers
+    subject_ids = [int(x) for x in subject_ids_raw.split(',') if x.strip().isdigit()]
+
+    school = Schools.query.get_or_404(school_id)
+
+    selected_subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all()
+    school.subjects = selected_subjects
+
+    db.session.commit()
+
+    flash(f"Successfully updated subjects for {school.name}.", 'success')
+    return redirect(url_for('admin.students_setup'))
+
+
+@admin.route('/students/setup/delete/<entity>/<int:item_id>', methods=['POST'])
+def delete_entity(entity, item_id):
+    # return "FUCNTION PAUSED!"
+    if current_user.role != "super_admin":
+        flash("You are not authorized to delete this entity.", "danger")
+        return redirect(url_for("admin.students_setup"))
+    
+    model_map = {
+        'school': Schools,
+        'stage': Stages,
+        'class': Groups,
+        'subject': Subjects
+    }
+    Model = model_map.get(entity)
+    if not Model:
+        flash('Invalid entity type.', 'error')
+        return redirect(url_for('admin.students_setup'))
+
+    item = Model.query.get(item_id)
+    if item:
+        # Log the action before deleting
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Delete',
+            log={
+                "action_name": "Delete",
+                "resource_type": entity,
+                "action_details": {
+                    "id": item.id,
+                    "title": item.name,
+                    "summary": f"{entity.capitalize()} '{item.name}' was deleted."
+                },
+                "data": None,
+                "before": {
+                    "name": item.name
+                },
+                "after": None
+            }
+        )
+        db.session.add(new_log)
+        db.session.delete(item)
+        db.session.commit()
+        flash(f'{entity.capitalize()} deleted successfully!', 'success')
+    else:
+        flash(f'{entity.capitalize()} not found.', 'error')
+
+    return redirect(url_for('admin.students_setup'))
+
+#=================================================================
+#Quiz
+#=================================================================
+
+
+#Removed from here
+
+
+#===============================================================================
+#Sessions (Sessions have videos)
+#===============================================================================
+
+
+@admin.route('/api/sessions-data', methods=["GET"])
+def sessions_data():
+    sessions_query = get_visible_to_admin_query(Sessions, current_user)
+    sessions = sessions_query.order_by(Sessions.creation_date.desc()).all()
+
+    sessions_list = []
+    for session in sessions:
+        schools_names = [s.name for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
+
+        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
+        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+
+        # Count videos in this session
+        video_count = Videos.query.filter_by(session_id=session.id).count()
+
+        sessions_list.append({
+            "id": session.id,
+            "title": session.title,
+            "description": session.description,
+            "creation_date": session.creation_date.strftime('%Y-%m-%d %H:%M') if session.creation_date else None,
+            "subject": session.subject.name if session.subject else "N/A",
+            "subject_id": session.subject.id if session.subject else None,
+            "schools": schools_display,
+            "stages": stages_display,
+            "groups": groups_display,
+            "video_count": video_count
+        })
+    
+    return jsonify(sessions_list)
+
+
+@admin.route('/api/session/<int:session_id>', methods=["GET"])
+def get_session_data(session_id):
+    """API endpoint to fetch single session data for editing"""
+    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
+    if not session:
+        return jsonify({"success": False, "message": "Session not found or you do not have permission to view it."}), 404
+
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
+
+    session_data = {
+        "id": session.id,
+        "title": session.title,
+        "description": session.description,
+        "subject": {
+            "id": session.subject.id if session.subject else None,
+            "name": session.subject.name if session.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+    }
+
+    return jsonify({"success": True, "session": session_data})
+
+
+
+
+@admin.route("/sessions", methods=["GET", "POST"])
+def manage_sessions():
+
+    if request.method == "POST":
+
+
+        group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
+
+
+        sessions_query = get_visible_to_admin_query(Sessions, current_user)
+        sessions = sessions_query.order_by(Sessions.creation_date.desc()).all()
+        
+        groups = Groups.query.filter(Groups.id.in_(group_ids_user)).all()
+        stages = Stages.query.filter(Stages.id.in_(stage_ids_user)).all()
+        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids_user)).all()
+
+
+
+
+        subject_school_map = {}
+        for subject in subjects:
+            # For each subject, get its associated schools and format them for JavaScript
+            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+            # Sort schools to put "Online" schools first, then alphabetically
+            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+            subject_school_map[subject.id] = schools_list
+
+
+
+
+
+
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+
+        if not title:
+            flash("Session title is required.", "danger")
+            return redirect(url_for("admin.manage_sessions"))
+
+
+        group_id_single = int_or_none(request.form.get("group"))
+        stage_id_single = int_or_none(request.form.get("stage"))
+        school_id_single = int_or_none(request.form.get("school"))
+        subject_id_single = int_or_none(request.form.get("subject"))
+
+        # Handle multi-selects (matching assignment pattern)
+        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
+        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
+        
+        # Handle new multi-select schools format (comma-separated string)
+        school_ids_str = request.form.get("school_ids", "").strip()
+        if school_ids_str:
+            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
+        else:
+            school_ids_mm = []
+
+
+        if not group_id_single and not group_ids_mm:
+            group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
+        if not stage_id_single and not stage_ids_mm:
+            stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
+            
+        if not school_id_single and not school_ids_mm:
+            # Default school selection logic starts here.
+
+            # Check if a specific subject was selected from the form.
+            subject_id = subject_id_single
+
+            if subject_id and subject_id in subject_school_map:
+                # If a valid subject is selected, assign all schools associated with THAT subject.
+                school_ids_mm = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                # Fallback: If no specific subject was chosen, assign all schools
+                # the user has permission for. This preserves the original "all" behavior
+                # for cases where no subject is specified.
+                if school_ids_user:
+                    school_ids_mm = school_ids_user[:]
+                else:
+                    # Super-admin case: get all unique school IDs from the map
+                    all_school_ids = set()
+                    for schools in subject_school_map.values():
+                        for school in schools:
+                            all_school_ids.add(school['id'])
+                    school_ids_mm = list(all_school_ids)
+
+
+
+
+        if (group_id_single and group_id_single not in group_ids_user) or \
+           (not can_manage(group_ids_mm, group_ids_user)):
+            flash("You do not have permission for one of the selected groups.", "danger")
+            return redirect(url_for("admin.manage_sessions"))
+        if (stage_id_single and stage_id_single not in stage_ids_user) or \
+           (not can_manage(stage_ids_mm, stage_ids_user)):
+            flash("You do not have permission for one of the selected stages.", "danger")
+            return redirect(url_for("admin.manage_sessions"))
+        if (school_id_single and school_id_single not in school_ids_user) or \
+           (not can_manage(school_ids_mm, school_ids_user)):
+            flash("You do not have permission for one of the selected schools.", "danger")
+            return redirect(url_for("admin.manage_sessions"))
+        if subject_id_single:
+            if subject_id_single not in subject_ids_user:
+                flash("You do not have permission for this subject.", "danger")
+                return redirect(url_for("admin.manage_sessions"))
+
+
+    
+
+        try:
+            new_session = Sessions(
+                title=title,
+                description=description,
+                added_by=current_user.id,
+                groupid=group_id_single,
+                stageid=stage_id_single,
+                schoolid=school_id_single,
+                subjectid=subject_id_single
+            )
+            db.session.add(new_session)
+
+
+            if group_ids_mm:
+                new_session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
+            if stage_ids_mm:
+                new_session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
+            if school_ids_mm:
+                new_session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
+
+            db.session.commit() 
+
+
+            if 'thumbnail' in request.files and request.files['thumbnail'].filename != '':
+                thumbnail = request.files['thumbnail']
+                filename = f'session_{new_session.id}.jpg'
+                local_path = os.path.join('website/static/sessions', filename)
+                os.makedirs(os.path.dirname(local_path), exist_ok=True)
+                thumbnail.save(local_path)
+                with open(local_path, "rb") as f:
+                    storage.upload_file(f, folder="sessions", file_name=filename)
+    
+            # AJAX response
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                session_data = {
+                    "id": new_session.id,
+                    "title": new_session.title,
+                    "description": new_session.description,
+                    "creation_date": new_session.creation_date.strftime('%Y-%m-%d %H:%M') if new_session.creation_date else None,
+                    "subject": new_session.subject.name if new_session.subject else "N/A",
+                    "subject_id": new_session.subject.id if new_session.subject else None,
+                    "schools": ', '.join([s.name for s in new_session.schools_mm]) if new_session.schools_mm else 'All Schools',
+                    "stages": ', '.join([s.name for s in new_session.stages_mm]) if new_session.stages_mm else 'All Stages',
+                    "groups": ', '.join([g.name for g in new_session.groups_mm]) if new_session.groups_mm else 'All Classes',
+                    "video_count": 0
+                }
+                return jsonify({"success": True, "message": "Session created successfully!", "session": session_data})
+            
+            flash("Session created successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": f"Error creating session: {str(e)}"}), 500
+            flash(f"Error creating session: {str(e)}", "danger")
+
+        return redirect(url_for("admin.manage_sessions"))
+
+    return render_template("admin/sessions/manage_sessions.html")
+
+
+@admin.route("/session/<int:session_id>", methods=["GET", "POST"])
+def session_details(session_id):
+    """
+    Displays a single session and its videos.
+    Handles adding new videos TO THIS session.
+    """
+    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
+    if not session:
+        flash("Session not found or you don't have permission.", "danger")
+        return redirect(url_for("admin.manage_sessions"))
+
+    if request.method == "POST":
+
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        video_url = (request.form.get("video_url") or "").strip()
+
+        if not title or not video_url:
+            flash("Video title and URL are required.", "danger")
+            return redirect(url_for("admin.session_details", session_id=session_id))
+
+
+        video_url = re.sub(r'&list=[^&]+', '', video_url)
+        video_url = re.sub(r'\?list=[^&]+$', '', video_url)
+
+        try:
+            new_video = Videos(
+                title=title,
+                description=description,
+                video_url=video_url,
+                session_id=session.id  
+            )
+            db.session.add(new_video)
+            db.session.commit()
+            flash("Video added successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error adding video: {str(e)}", "danger")
+
+        return redirect(url_for("admin.session_details", session_id=session_id))
+
+    return render_template("admin/sessions/session_details.html", session=session)
+
+@admin.route("/session/edit/<int:session_id>", methods=["GET", "POST"])
+def edit_session(session_id):
+    """
+    Handles editing the details and scope of a session.
+    """
+    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
+    if not session:
+        flash("Session not found or you don't have permission.", "danger")
+        return redirect(url_for("admin.manage_sessions"))
+
+    # Get data needed for both GET and POST
+    group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
+    groups = Groups.query.filter(Groups.id.in_(group_ids_user)).all()
+    stages = Stages.query.filter(Stages.id.in_(stage_ids_user)).all()
+    schools = Schools.query.filter(Schools.id.in_(school_ids_user)).all()
+    subjects = Subjects.query.filter(Subjects.id.in_(subject_ids_user)).all()
+
+    if request.method == "POST":
+        session.title = (request.form.get("title") or "").strip()
+        session.description = (request.form.get("description") or "").strip()
+
+        # Update scopes
+        session.groupid = int_or_none(request.form.get("group"))
+        session.stageid = int_or_none(request.form.get("stage"))
+        session.schoolid = int_or_none(request.form.get("school"))
+        session.subjectid = int_or_none(request.form.get("subject"))
+
+        # Handle multi-selects (matching assignment pattern)
+        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
+        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
+        
+        # Handle new multi-select schools format (comma-separated string)
+        school_ids_str = request.form.get("school_ids", "").strip()
+        if school_ids_str:
+            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
+        else:
+            school_ids_mm = []
+
+        if not group_ids_mm:
+            groups = Groups.query.all()
+            group_ids_mm = [group.id for group in groups]
+
+        if not stage_ids_mm:
+            stages = Stages.query.all()
+            stage_ids_mm = [stage.id for stage in stages]
+        
+        if not school_ids_mm:
+            schools = Schools.query.all()
+            school_ids_mm = [school.id for school in schools]
+
+        # Update many-to-many relationships
+        session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
+        session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
+        session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
+
+        # Handle thumbnail upload
+        if 'thumbnail' in request.files and request.files['thumbnail'].filename != '':
+            thumbnail = request.files['thumbnail']
+            filename = f'session_{session.id}.jpg'
+            local_path = os.path.join('website/static/sessions', filename)
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            thumbnail.save(local_path)
+            with open(local_path, "rb") as f:
+                storage.upload_file(f, folder="sessions", file_name=filename)
+
+        db.session.commit()
+        
+        # AJAX response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            session_data = {
+                "id": session.id,
+                "title": session.title,
+                "description": session.description,
+                "creation_date": session.creation_date.strftime('%Y-%m-%d %H:%M') if session.creation_date else None,
+                "subject": session.subject.name if session.subject else "N/A",
+                "subject_id": session.subject.id if session.subject else None,
+                "schools": ', '.join([s.name for s in session.schools_mm]) if session.schools_mm else 'All Schools',
+                "stages": ', '.join([s.name for s in session.stages_mm]) if session.stages_mm else 'All Stages',
+                "groups": ', '.join([g.name for g in session.groups_mm]) if session.groups_mm else 'All Classes',
+                "video_count": Videos.query.filter_by(session_id=session.id).count()
+            }
+            return jsonify({"success": True, "message": "Session updated successfully!", "session": session_data})
+        
+        flash("Session updated successfully!", "success")
+        return redirect(url_for("admin.manage_sessions"))
+
+    return render_template("admin/sessions/edit_session.html", session=session,
+                           groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+
+@admin.route("/session/<int:session_id>/delete", methods=["POST"])
+def delete_session(session_id):
+    """
+    Deletes a session and all its associated videos.
+    """
+    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
+    if not session:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Session not found or you don't have permission."}), 404
+        flash("Session not found or you don't have permission.", "danger")
+        return redirect(url_for("admin.manage_sessions"))
+
+    try:
+        filename = f'session_{session.id}.jpg'
+        local_path = os.path.join('website/static/sessions', filename)
+        if os.path.exists(local_path):
+            os.remove(local_path)
+        storage.delete_file(folder="sessions", file_name=filename)
+
+        db.session.delete(session)
+        db.session.commit()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Session and all its videos were deleted."})
+        
+        flash("Session and all its videos were deleted.", "success")
+    except Exception as e:
+        db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Error deleting session: {str(e)}"}), 500
+        flash(f"Error deleting session: {str(e)}", "danger")
+
+    return redirect(url_for("admin.manage_sessions"))
+
+
+#=================================================================
+#Video Management Routes (Updated)
+#=================================================================
+
+@admin.route("/videos/edit/<int:video_id>", methods=["GET", "POST"])
+def manage_videos(video_id):
+    """
+    Edits an individual video. Now redirects back to its parent session.
+    Scope management is removed as it's handled by the session.
+    """
+    video = get_item_if_admin_can_manage(Videos, video_id, current_user)
+    if not video:
+        flash("Video not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.manage_sessions")) # Fallback redirect
+
+    if request.method == "POST":
+        video.title = (request.form.get("title") or "").strip()
+        video.description = (request.form.get("description") or "").strip()
+        video.video_url = (request.form.get("video_url") or "").strip()
+
+        if not video.title or not video.video_url:
+            flash("Title and video URL are required.", "danger")
+            return redirect(url_for("admin.edit_video", video_id=video_id))
+
+
+        
+        db.session.commit()
+
+        flash("Video updated successfully!", "success")
+        return redirect(url_for("admin.session_details", session_id=video.session_id))
+
+    return render_template("admin/edit_video.html", video=video)
+
+
+@admin.route("/videos/<int:video_id>/delete", methods=["POST"])
+def delete_video(video_id):
+    """
+    Deletes a single video. Now redirects back to its parent session.
+    """
+    video = get_item_if_admin_can_manage(Videos, video_id, current_user)
+    if not video:
+        flash("Video not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.manage_sessions")) 
+
+    session_id_redirect = video.session_id
+
+
+    db.session.delete(video)
+    db.session.commit()
+    flash("Video deleted successfully!", "success")
+    return redirect(url_for("admin.session_details", session_id=session_id_redirect))
+
+@admin.route("/videos/play/<int:video_id>")
+def play_videos(video_id):
+    video = Videos.query.get_or_404(video_id)
+    return render_template("admin/video_play.html", video=video)
+
+#=================================================================
+#Attendance
+#=================================================================
+
+def get_qualified_students_for_attendance_session(session):
+    """
+    Returns a list of students qualified for this attendance session.
+    Uses MM relationships if present, else legacy FKs, else global.
+    """
+    base_filters = [
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+
+    mm_group_ids  = [g.id for g in getattr(session, "groups_mm", [])]
+    mm_stage_ids  = [s.id for s in getattr(session, "stages_mm", [])]
+    mm_school_ids = [s.id for s in getattr(session, "schools_mm", [])]
+
+    filters = list(base_filters)
+
+    if mm_group_ids:
+        filters.append(Users.groupid.in_(mm_group_ids))
+    elif session.groupid:
+        filters.append(Users.groupid == session.groupid)
+
+    if mm_stage_ids:
+        filters.append(Users.stageid.in_(mm_stage_ids))
+    elif session.stageid:
+        filters.append(Users.stageid == session.stageid)
+
+    if mm_school_ids:
+        filters.append(Users.schoolid.in_(mm_school_ids))
+    elif session.schoolid:
+        filters.append(Users.schoolid == session.schoolid)
+
+    if getattr(session, "subjectid", None):
+        filters.append(Users.subjectid == session.subjectid)
+
+    return Users.query.filter(and_(*filters)).all()
+
+
+@admin.route('/api/attendance-data', methods=["GET"])
+def attendance_data():
+    attendance_query = get_visible_to_admin_query(Attendance_session, current_user)
+    sessions = attendance_query.order_by(Attendance_session.session_date.desc()).all()
+
+    sessions_list = []
+    for session in sessions:
+        schools_names = [s.name for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
+        stages_names = [s.name for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
+        groups_names = [g.name for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
+
+        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
+        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+
+        # Calculate stats
+        qualified_students = get_qualified_students_for_attendance_session(session)
+        num_entitled = len(qualified_students)
+        
+        # Count students marked as present (attendance_status = 'present')
+        num_present = Attendance_student.query.filter_by(
+            attendance_session_id=session.id,
+            attendance_status='present'
+        ).count()
+        
+        # Count students marked as absent (attendance_status = 'absent')
+        num_absent = Attendance_student.query.filter_by(
+            attendance_session_id=session.id,
+            attendance_status='absent'
+        ).count()
+
+        sessions_list.append({
+            "id": session.id,
+            "title": session.title,
+            "session_date": session.session_date.strftime('%Y-%m-%d %I:%M %p') if session.session_date else None,
+            "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
+            "subject": session.subject.name if session.subject else "N/A",
+            "subject_id": session.subject.id if session.subject else None,
+            "schools": schools_display,
+            "stages": stages_display,
+            "groups": groups_display,
+            "stats": {
+                "present": num_present,
+                "absent": num_absent,
+                "total": num_entitled
+            },
+            "points": session.points,
+        })
+    
+    return jsonify(sessions_list)
+
+
+@admin.route('/api/attendance/<int:session_id>', methods=["GET"])
+def get_attendance_data(session_id):
+    """API endpoint to fetch single attendance session data for editing"""
+    session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
+    if not session:
+        return jsonify({"success": False, "message": "Attendance session not found or you do not have permission to view it."}), 404
+
+    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
+    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
+    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
+
+    session_data = {
+        "id": session.id,
+        "title": session.title,
+        "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
+        "subject": {
+            "id": session.subject.id if session.subject else None,
+            "name": session.subject.name if session.subject else None
+        },
+        "schools_mm": schools_mm,
+        "stages_mm": stages_mm,
+        "groups_mm": groups_mm,
+    }
+
+    return jsonify({"success": True, "session": session_data})
+
+
+
+
+
+
+
+
+
+@admin.route("/attendance", methods=["GET", "POST"])
+def attendance():
+
+
+
+
+    if request.method == "POST":
+
+
+        attendance_query = get_visible_to_admin_query(Attendance_session, current_user)
+
+        groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
+        stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
+        schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
+        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
+
+        subject_school_map = {}
+        for subject in subjects:
+            # For each subject, get its associated schools and format them for JavaScript
+            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+            # Sort schools to put "Online" schools first, then alphabetically
+            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+            subject_school_map[subject.id] = schools_list
+
+
+
+
+
+
+        # Create a new attendance session
+        title = request.form.get("title")
+        group_ids = request.form.getlist("groups[]")
+        stage_ids = request.form.getlist("stages[]")
+        school_ids = request.form.getlist("schools[]")
+        subject_id = request.form.get("subject_id")
+        points_raw = request.form.get("points", 0)
+        points = int(points_raw) if str(points_raw).isdigit() else 0
+
+        try :
+            subject_id = int(subject_id)
+        except ValueError:
+            flash("Invalid subject.", "danger")
+            return redirect(url_for("admin.attendance"))
+
+        if not group_ids:
+            group_ids = [g.id for g in groups]
+        if not stage_ids:
+            stage_ids = [s.id for s in stages]
+
+        if not school_ids:
+            if subject_id and subject_id in subject_school_map:
+                school_ids = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                flash("Choose a subject" , "danger")
+                return redirect(url_for("admin.attendance"))
+        if not subject_id:
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.attendance"))
+
+
+
+        if group_ids:
+            if not can_manage(group_ids, [g.id for g in groups]):
+                flash("You are not allowed to post to one or more selected groups.", "danger")
+                return redirect(url_for("admin.attendance"))
+
+        if stage_ids:
+            if not can_manage(stage_ids, [s.id for s in stages]):
+                flash("You are not allowed to post to one or more selected stages.", "danger")
+                return redirect(url_for("admin.attendance"))
+
+        if school_ids:
+            if not can_manage(school_ids, [s.id for s in schools]):
+                flash("You are not allowed to post to one or more selected schools.", "danger")
+                return redirect(url_for("admin.attendance"))
+
+        if subject_id:
+            if subject_id not in [s.id for s in subjects]:
+                flash("You are not allowed to post to this subject.", "danger")
+                return redirect(url_for("admin.attendance"))
+
+        try:
+            session_date = parse_deadline(request.form.get("session_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.attendance"))
+
+        new_session = Attendance_session(
+            title=title,
+            session_date=session_date,
+            subjectid=subject_id,
+            points=points,
+        )
+        db.session.add(new_session)
+
+        if group_ids:
+            new_session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        if stage_ids:
+            new_session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
+        if school_ids:
+            new_session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
+
+        db.session.commit()
+        
+        # AJAX response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Calculate stats
+            qualified_students = get_qualified_students_for_attendance_session(new_session)
+            num_entitled = len(qualified_students)
+            num_marked = Attendance_student.query.filter_by(attendance_session_id=new_session.id).count()
+            
+            session_data = {
+                "id": new_session.id,
+                "title": new_session.title,
+                "session_date": new_session.session_date.strftime('%Y-%m-%d %I:%M %p') if new_session.session_date else None,
+                "session_date_iso": new_session.session_date.strftime('%Y-%m-%dT%H:%M') if new_session.session_date else None,
+                "subject": new_session.subject.name if new_session.subject else "N/A",
+                "subject_id": new_session.subject.id if new_session.subject else None,
+                "schools": ', '.join([s.name for s in new_session.schools_mm]) if new_session.schools_mm else 'All Schools',
+                "stages": ', '.join([s.name for s in new_session.stages_mm]) if new_session.stages_mm else 'All Stages',
+                "groups": ', '.join([g.name for g in new_session.groups_mm]) if new_session.groups_mm else 'All Classes',
+                "stats": {
+                    "present": num_marked,
+                    "absent": num_entitled - num_marked,
+                    "total": num_entitled
+                },
+                "points": new_session.points,
+            }
+            return jsonify({"success": True, "message": "Attendance session created successfully!", "session": session_data})
+        
+        flash("Attendance session created.", "success")
+        return redirect(url_for("admin.attendance"))
+
+
+
+    return render_template(
+        "admin/attendance/attendance.html")
+
+@admin.route("/attendance/edit/<int:session_id>", methods=["GET", "POST"])
+def edit_attendance_session(session_id):
+    session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
+
+    if not session:
+        flash("Attendance session not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.attendance"))
+
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all()
+
+    if request.method == "POST":
+        session.title = request.form.get("title")
+        session_date = request.form.get("session_date")
+        group_ids = request.form.getlist("groups[]")
+        stage_ids = request.form.getlist("stages[]")
+        school_ids_str = request.form.get("school_ids", "")
+        school_ids = [id.strip() for id in school_ids_str.split(",") if id.strip()]
+        subject_id = request.form.get("subject_id")
+
+        try:
+            session_date = parse_deadline(request.form.get("session_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
+
+        if not group_ids:
+            group_ids = [g.id for g in groups]
+        if not stage_ids:
+            stage_ids = [s.id for s in stages]
+        if not school_ids:
+            school_ids = [s.id for s in schools]
+        if not subject_id:
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
+
+        try :
+            subject_id = int(subject_id)
+        except ValueError:
+            flash("Invalid subject.", "danger")
+            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
+
+        session.session_date = session_date
+        session.subjectid = subject_id
+        session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all() 
+        session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all() 
+
+        db.session.commit()
+        
+        # AJAX response
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            # Calculate stats
+            qualified_students = get_qualified_students_for_attendance_session(session)
+            num_entitled = len(qualified_students)
+            num_marked = Attendance_student.query.filter_by(attendance_session_id=session.id).count()
+            
+            session_data = {
+                "id": session.id,
+                "title": session.title,
+                "session_date": session.session_date.strftime('%Y-%m-%d %I:%M %p') if session.session_date else None,
+                "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
+                "subject": session.subject.name if session.subject else "N/A",
+                "subject_id": session.subject.id if session.subject else None,
+                "schools": ', '.join([s.name for s in session.schools_mm]) if session.schools_mm else 'All Schools',
+                "stages": ', '.join([s.name for s in session.stages_mm]) if session.stages_mm else 'All Stages',
+                "groups": ', '.join([g.name for g in session.groups_mm]) if session.groups_mm else 'All Classes',
+                "stats": {
+                    "present": num_marked,
+                    "absent": num_entitled - num_marked,
+                    "total": num_entitled
+                }
+            }
+            return jsonify({"success": True, "message": "Attendance session updated successfully!", "session": session_data})
+        
+        flash("Attendance session updated.", "success")
+        return redirect(url_for("admin.attendance"))
+
+    return render_template("admin/attendance/edit_session.html", session=session, groups=groups, stages=stages, schools=schools, subjects=subjects)
+
+@admin.route("/attendance/delete/<int:session_id>", methods=["POST"])
+def delete_attendance_session(session_id):
+    session = Attendance_session.query.get_or_404(session_id)
+    students = session.attendance_student.all()
+    try:
+        for student in students:
+            #delete points
+            student.student.points = student.student.points - session.points
+            db.session.commit()
+            db.session.delete(student)
+        db.session.delete(session)
+        db.session.commit()
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Attendance session deleted successfully!"})
+        
+        flash("Attendance session deleted.", "success")
+    except Exception as e:
+        db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Error deleting session: {str(e)}"}), 500
+        flash(f"Error deleting session: {str(e)}", "danger")
+    
+    return redirect(url_for("admin.attendance"))
+
+@admin.route("/attendance/<int:session_id>", methods=["GET", "POST"])
+def attendance_session_detail(session_id):
+    session = Attendance_session.query.get_or_404(session_id)
+    students = get_qualified_students_for_attendance_session(session)
+
+    if request.method == "POST":
+        for student in students:
+            status = request.form.get(f"status_{student.id}", "absent")
+            record = Attendance_student.query.filter_by(attendance_session_id=session.id, student_id=student.id).first()
+            if not record:
+                record = Attendance_student(attendance_session_id=session.id, student_id=student.id)
+                db.session.add(record)
+            record.attendance_status = status
+        db.session.commit()
+        flash("Attendance updated.", "success")
+        return redirect(url_for("admin.attendance_session_detail", session_id=session.id))
+
+    # Separate students with and without attendance records
+    attendance_records = {a.student_id: a.attendance_status for a in Attendance_student.query.filter_by(attendance_session_id=session.id).all()}
+    students_without_records = [s for s in students if s.id not in attendance_records]
+    students_with_records = [s for s in students if s.id in attendance_records]
+    
+    return render_template("admin/attendance/session_detail.html", 
+                         session=session, 
+                         students_without_records=students_without_records,
+                         students_with_records=students_with_records,
+                         attendance_map=attendance_records)
+
+@admin.route("/attendance/<int:session_id>/update", methods=["POST"])
+def update_student_attendance(session_id):
+    if not request.is_json:
+        return jsonify({"success": False, "error": "Invalid request format"}), 400
+    
+    data = request.get_json()
+    student_id = data.get("student_id")
+    status = data.get("status")
+    
+    if not student_id or status not in ["present", "absent"]:
+        return jsonify({"success": False, "error": "Invalid data"}), 400
+    
+    session = Attendance_session.query.get_or_404(session_id)
+    
+    # Check if student is qualified for this session
+    students = get_qualified_students_for_attendance_session(session)
+    if not any(s.id == student_id for s in students):
+        return jsonify({"success": False, "error": "Student not qualified for this session"}), 403
+    student = Users.query.get_or_404(student_id)
+    try:
+        record = Attendance_student.query.filter_by(attendance_session_id=session.id, student_id=student_id).first()
+        if not record:
+            record = Attendance_student(attendance_session_id=session.id, student_id=student_id)
+            db.session.add(record)
+            
+        if status == 'present' :
+            student.points += session.points
+
+        record.attendance_status = status
+        db.session.commit()
+        try :
+            send_whatsapp_message(student.phone_number, f"Your attendance for {session.title} has been updated to {status}.")
+            send_whatsapp_message(student.parent_phone_number, f"Student {student.name} has been {status} for {session.title} on {session.session_date.strftime('%d %B %Y at %I:%M %p')}.")
+        except Exception as e:
+            pass
+        
+        return jsonify({"success": True, "status": status})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+#=================================================================
+#Online Exam
+#=================================================================
+@admin.route("/online/exam", methods=["GET", "POST"])
+def online_exam():
+    # --- Ensure admin has access to see exams ---
+    assignments_query = get_visible_to_admin_query(Assignments, current_user)
+    groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
+    stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
+    schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
+    subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in getattr(current_user, "managed_subjects", [])])).all() if hasattr(current_user, "managed_subjects") else Subjects.query.all()
+    
+    subject_school_map = {}
+    for subject in subjects:
+        # For each subject, get its associated schools and format them for JavaScript
+        schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
+        # Sort schools to put "Online" schools first, then alphabetically
+        schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
+        subject_school_map[subject.id] = schools_list
+        
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+
+        subject_id_single = int_or_none(request.form.get("subject_id")) 
+
+        group_ids  = parse_multi_ids("groups[]")
+        stage_ids  = parse_multi_ids("stages[]")
+        school_ids = parse_multi_ids("schools[]")
+
+        if not group_ids:
+            group_ids = [g.id for g in groups]
+        if not stage_ids:
+            stage_ids = [s.id for s in stages]
+
+        if not school_ids:
+            subject_id = subject_id_single
+            if subject_id and subject_id in subject_school_map:
+                school_ids = [school['id'] for school in subject_school_map[subject_id]]
+            else:
+                flash("Choose a subject" , "danger")
+                return redirect(url_for("admin.online_exam"))
+
+
+        if not subject_id_single:
+            flash("You must select a subject.", "danger")
+            return redirect(url_for("admin.online_exam"))
+
+        if group_ids:
+            if not can_manage(group_ids, [g.id for g in groups]):
+                flash("You are not allowed to post to one or more selected groups.", "danger")
+                return redirect(url_for("admin.online_exam"))
+
+        if stage_ids:
+            if not can_manage(stage_ids, [s.id for s in stages]):
+                flash("You are not allowed to post to one or more selected stages.", "danger")
+                return redirect(url_for("admin.online_exam"))
+
+        if school_ids:
+            if not can_manage(school_ids, [s.id for s in schools]):
+                flash("You are not allowed to post to one or more selected schools.", "danger")
+                return redirect(url_for("admin.online_exam"))
+
+        if subject_id_single:
+            if subject_id_single not in [s.id for s in subjects]:
+                flash("You are not allowed to post to this subject.", "danger")
+                return redirect(url_for("admin.online_exam"))
+
+        # deadline
+        try:
+            deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.online_exam"))
+
+        # points (int)
+        points_raw = request.form.get("points", 0)
+        points = int(points_raw) if str(points_raw).isdigit() else 0
+
+        out_of_raw = request.form.get("out_of", 0)
+        out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
+
+
+        # attachments
+        upload_dir = "website/assignments/uploads/"
+        attachments = []
+        os.makedirs(upload_dir, exist_ok=True)
+
+        for file in request.files.getlist("files[]"):
+            if file and file.filename:
+                original_filename = secure_filename(file.filename)
+                filename = f"{uuid.uuid4().hex}_{original_filename}"
+                file.save(os.path.join(upload_dir, filename))
+                try:
+                    with open(os.path.join(upload_dir, filename), "rb") as f:
+                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                except Exception:
+                    flash("Error uploading file to storage", "danger")
+                    return redirect(url_for("admin.online_exam"))
+                attachments.append(filename)
+
+        link = request.form.get("link")
+        if link:
+            attachments.append(link)
+
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+
+
+        # ---- create and persist
+        new_exam = Assignments(
+            title=title,
+            description=description,
+            subjectid=subject_id_single, 
+            deadline_date=deadline_date,
+            attachments=json.dumps(attachments),
+            points=points,
+            type="Exam",
+            creation_date=naive_local_time,
+            created_by=current_user.id,
+            out_of= out_of,
+        )
+
+        # IMPORTANT: add to session BEFORE assigning M2M relations
+        db.session.add(new_exam)
+
+        new_exam.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        new_exam.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
+        new_exam.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
+
+        db.session.commit()
+
+        # --- LOGGING: Add log for exam creation
+        try:
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Create',
+                log={
+                    "action_name": "Create",
+                    "resource_type": "exam",
+                    "action_details": {
+                        "id": new_exam.id,
+                        "title": new_exam.title,
+                        "summary": f"Exam '{new_exam.title}' was created."
+                    },
+                    "data": {
+                        "title": new_exam.title,
+                        "description": new_exam.description,
+                        "deadline_date": str(new_exam.deadline_date) if new_exam.deadline_date else None,
+                        "stageid": new_exam.stageid,
+                        "groupid": new_exam.groupid,
+                        "schoolid": new_exam.schoolid,
+                        "subjectid": new_exam.subjectid,
+                        "groups": [g.id for g in getattr(new_exam, "groups", [])],
+                        "stages": [s.id for s in getattr(new_exam, "stages", [])],
+                        "schools": [s.id for s in getattr(new_exam, "schools", [])],
+                        "attachments": json.loads(new_exam.attachments) if new_exam.attachments else [],
+                        "points": new_exam.points,
+                        "out_of": new_exam.out_of,
+                    },
+                    "before": None,
+                    "after": None
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash("Exam added, but failed to log the action.", "warning")
+
+        # Return JSON for AJAX requests
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            schools_names = [s.name for s in getattr(new_exam, 'schools_mm', [])] if getattr(new_exam, 'schools_mm', None) else []
+            stages_names = [s.name for s in getattr(new_exam, 'stages_mm', [])] if getattr(new_exam, 'stages_mm', None) else []
+            groups_names = [g.name for g in getattr(new_exam, 'groups_mm', [])] if getattr(new_exam, 'groups_mm', None) else []
+            
+            qualified_count = qualified_students_count_for_assignment(new_exam)
+            
+            exam_data = {
+                "id": new_exam.id,
+                "title": new_exam.title,
+                "description": new_exam.description,
+                "creation_date": new_exam.creation_date.strftime('%Y-%m-%d %I:%M %p') if new_exam.creation_date else None,
+                "deadline_date": new_exam.deadline_date.strftime('%Y-%m-%d %I:%M %p') if new_exam.deadline_date else None,
+                "subject": new_exam.subject.name if new_exam.subject else "N/A",
+                "subject_id": new_exam.subject.id if new_exam.subject else None,
+                "schools": schools_names,
+                "stages": stages_names,
+                "groups": groups_names,
+                "points": new_exam.points,
+                "status": new_exam.status,
+                "submitted_students_count": 0,
+                "qualified_students_count": qualified_count,
+                "out_of": new_exam.out_of,
+            }
+            
+            return jsonify({"success": True, "message": "Exam added successfully!", "exam": exam_data})
+
+        flash("Exam added successfully!", "success")
+        return redirect(url_for("admin.online_exam"))
+
+    # ---- GET: list + form data
+    exams = assignments_query.filter(Assignments.type == "Exam").order_by(Assignments.id.desc()).all()
+
+    # stats per exam
+    for e in exams:
+        e.qualified_students_count = qualified_students_count_for_assignment(e)
+        e.submitted_students_count = (
+            Submissions.query
+            .with_entities(Submissions.student_id)
+            .filter_by(assignment_id=e.id)
+            .distinct()
+            .count()
+        )
+
+    return render_template(
+        "admin/online_exam/online_exam.html",
+        exams=exams,
+        groups=groups,
+        stages=stages,
+        subject_school_map=subject_school_map,
+        subjects=subjects
+    )
+
+@admin.route("/online/exam/submissions/<int:exam_id>", methods=["GET", "POST"])
+def view_exam_submissions(exam_id):
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+
+    if not exam:
+        flash("Exam not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    if not exam.type == "Exam":
+        # flash("Assignment is not an exam.", "danger")
+        # return redirect(url_for("admin.online_exam"))
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=exam_id))
+
+    if request.method == "POST":
+        submission_id = request.form.get("submission_id")
+        mark = request.form.get("mark")
+        submission = Submissions.query.get_or_404(submission_id)
+        submission.mark = mark
+        try:
+            db.session.commit()
+            try:
+                send_whatsapp_message(submission.student.phone_number, f"Your grade in {exam.title} has been updated!")
+                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded in {exam.title}!")
+            except:
+                pass
+            flash("Grade updated successfully!", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Error updating grade: {str(e)}", "danger")
+        return redirect(url_for("admin.view_exam_submissions", exam_id=exam_id))
+
+    # ✅ Subquery of qualified student IDs (scoped to current admin)
+    qualified_students_subq = (
+        get_qualified_students_query(exam, current_user.id)
+        .with_entities(Users.id)
+        .subquery()
+    )
+
+    # ✅ Only submissions from students the admin manages
+    submissions = (
+        Submissions.query
+        .join(Users, Submissions.student_id == Users.id)
+        .filter(Submissions.assignment_id == exam_id)
+        .filter(Submissions.student_id.in_(qualified_students_subq))
+        .all()
+    )
+
+    # ✅ All qualified students (for template use)
+    all_qualified_students = (
+        get_qualified_students_query(exam, current_user.id).all()
+    )
+
+    # ✅ Students who have submitted (set of IDs)
+    submitted_student_ids = {sub.student_id for sub in submissions}
+
+    # ✅ Students who have NOT submitted
+    not_submitted_students = [
+        student for student in all_qualified_students
+        if student.id not in submitted_student_ids
+    ]
+
+
+    whatsapp_notifications = Assignments_whatsapp.query.filter_by(
+        assignment_id=exam_id
+    ).all()
+
+    notification_status = {notif.user_id: notif.message_sent for notif in whatsapp_notifications}
+
+    return render_template(
+        "admin/online_exam/exam_submissions.html", 
+        exam=exam, 
+        submissions=submissions,
+        not_submitted_students=not_submitted_students,
+        notification_status=notification_status,
+        submitted_student_ids = submitted_student_ids,
+    )
+
+
+#Send late message for a submission (Per student) (Admin route)
+@admin.route("/online/exam/<int:assignment_id>/submissions/<int:student_id>/late", methods=["POST"])
+def send_late_message_for_submission_exam(assignment_id, student_id):
+    assignment = Assignments.query.get_or_404(assignment_id)
+    student = Users.query.get(student_id)
+    if not student:
+        flash("Student not found.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", assignment_id=assignment_id))
+
+    # Check if message was already sent
+    existing_notification = Assignments_whatsapp.query.filter_by(
+        assignment_id=assignment_id,
+        user_id=student_id
+    ).first()
+
+    if existing_notification and existing_notification.message_sent:
+        return jsonify({'status': 'info', 'message': 'Message was already sent to this student.'})
+
+    student_late_message_sent = False
+    parent_late_message_sent = False
+
+    if not student.student_whatsapp and not student.parent_whatsapp:
+        return jsonify({'status': 'info', 'message': 'Student has no WhatsApp number or parent WhatsApp number.'})
+
+    try:
+        if student.student_whatsapp:
+            send_whatsapp_message(student.student_whatsapp, f"You have not submitted the exam '{assignment.title}'. Please submit as soon as possible.")
+            student_late_message_sent = True
+        if student.parent_whatsapp:
+            send_whatsapp_message(student.parent_whatsapp, f"Student {student.name} has not submitted the exam '{assignment.title}'.")
+            parent_late_message_sent = True
+        
+        # Record the sent message
+        if student_late_message_sent or parent_late_message_sent:
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=assignment_id,
+                    user_id=student_id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Error sending WhatsApp message: {str(e)}'})
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'status': 'success', 'message': 'Reminder sent successfully!', 'student_late_message_sent': student_late_message_sent, 'parent_late_message_sent': parent_late_message_sent})
+
+
+
+
+
+
+
+
+@admin.route("/online/exam/toggle/<int:exam_id>", methods=["POST"])
+def toggle_exam(exam_id):
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Exam not found or you do not have permission to toggle its visibility."}), 404
+        flash("Exam not found or you do not have permission to toggle its visibility.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    if exam.type != "Exam":
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Assignment is not an exam."}), 400
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    old_status = exam.status
+    exam.status = "Hide" if exam.status == "Show" else "Show"
+    db.session.commit()
+    # Add log for toggling exam visibility
+    try:
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Edit',
+            log={
+                "action_name": "Edit",
+                "resource_type": "exam_visibility",
+                "action_details": {
+                    "id": exam.id,
+                    "title": exam.title,
+                    "summary": f"Exam '{exam.title}' visibility was changed."
+                },
+                "data": None,
+                "before": {
+                    "visibility_status": old_status
+                },
+                "after": {
+                    "visibility_status": exam.status
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        flash(f"Error logging exam visibility change: {str(e)}", "danger")
+    
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True, "message": f"Exam status is: {exam.status} now!", "status": exam.status})
+    
+    flash(f"Exam status is: {exam.status} now!", "success")
+    return redirect(url_for("admin.online_exam"))
+
+
+@admin.route("/online/exam/edit/<int:exam_id>", methods=["GET", "POST"])
+def edit_exam(exam_id):
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam:
+        flash("Exam not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    if not exam.type == "Exam":
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    existing_attachments = json.loads(exam.attachments) if exam.attachments else []
+
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    subjects = Subjects.query.all() 
+
+    def int_or_none(x):
+        try:
+            return int(x) if x not in (None, "", "None") else None
+        except (TypeError, ValueError):
+            return None
+
+    if request.method == "POST":
+        # Save a copy of the old exam state for logging
+        old_exam = {
+            "title": exam.title,
+            "description": exam.description,
+            "deadline_date": str(exam.deadline_date) if exam.deadline_date else None,
+            "stageid": exam.stageid,
+            "groupid": exam.groupid,
+            "schoolid": exam.schoolid,
+            "groups_mm": [g.id for g in getattr(exam, "groups_mm", [])],
+            "stages_mm": [s.id for s in getattr(exam, "stages_mm", [])],
+            "schools_mm": [s.id for s in getattr(exam, "schools_mm", [])],
+            "attachments": json.loads(exam.attachments) if exam.attachments else [],
+            "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None, 
+        }
+
+        # Update basic fields
+        exam.title = request.form.get("title", "").strip()
+        exam.description = request.form.get("description", "").strip()
+
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        exam.last_edited_by = current_user.id
+        exam.last_edited_at = naive_local_time
+        out_of_raw = request.form.get("out_of", 0)
+        out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
+        exam.out_of = out_of
+
+        # deadline
+        try:
+            exam.deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.online_exam"))
+
+        subject_id_single = int_or_none(request.form.get("subject")) 
+
+        if subject_id_single:
+            exam.subjectid = subject_id_single
+
+        # NEW: multi-selects (for many-to-many relationships)
+        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
+        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
+        
+        # Handle new multi-select schools format (comma-separated string)
+        school_ids_str = request.form.get("school_ids", "").strip()
+        if school_ids_str:
+            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
+        else:
+            school_ids_mm = []
+
+        if not group_ids_mm:
+            group_ids_mm = [group.id for group in groups]
+
+        if not stage_ids_mm:
+            stage_ids_mm = [stage.id for stage in stages]
+        
+        if not school_ids_mm:
+            if subject_id_single:
+                school_ids_mm = [school.id for school in schools if subject_id_single in [s.id for s in school.subjects]]
+            else:
+                school_ids_mm = [school.id for school in schools]
+
+        # Update many-to-many relationships
+        if hasattr(exam, "groups_mm"):
+            exam.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
+        if hasattr(exam, "stages_mm"):
+            exam.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
+        if hasattr(exam, "schools_mm"):
+            exam.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
+
+        # Handle file upload
+        if "attachments" in request.files and request.files["attachments"].filename != "":
+            uploaded_file = request.files["attachments"]
+            original_filename = secure_filename(uploaded_file.filename)
+            random_uuid = uuid.uuid4().hex
+            filename = f"{random_uuid}_{original_filename}"
+            file_path = os.path.join("website/assignments/uploads", filename)
+            uploaded_file.save(file_path)
+            try:
+                with open(file_path, "rb") as f:
+                    storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+            except Exception:
+                flash("Error uploading file to storage", "danger")
+                return redirect(url_for("admin.online_exam"))
+            existing_attachments.append(filename)
+
+        exam.attachments = json.dumps(existing_attachments)
+        db.session.commit()
+
+        # Log the edit action
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Edit',
+            log={
+                "action_name": "Edit",
+                "resource_type": "exam",
+                "action_details": {
+                    "id": exam.id,
+                    "title": exam.title,
+                    "summary": f"Exam '{exam.title}' was edited."
+                },
+                "data": None,
+                "before": old_exam,
+                "after": {
+                    "title": exam.title,
+                    "description": exam.description,
+                    "deadline_date": str(exam.deadline_date) if exam.deadline_date else None,
+                    "stageid": exam.stageid,
+                    "groupid": exam.groupid,
+                    "schoolid": exam.schoolid,
+                    "subjectid": getattr(exam, "subjectid", None),
+                    "groups_mm": [g.id for g in getattr(exam, "groups_mm", [])],
+                    "stages_mm": [s.id for s in getattr(exam, "stages_mm", [])],
+                    "schools_mm": [s.id for s in getattr(exam, "schools_mm", [])],
+                    "attachments": json.loads(exam.attachments) if exam.attachments else [],
+                    "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None,
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+
+        # Return JSON for AJAX requests
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            schools_names = [s.name for s in getattr(exam, 'schools_mm', [])] if getattr(exam, 'schools_mm', None) else []
+            stages_names = [s.name for s in getattr(exam, 'stages_mm', [])] if getattr(exam, 'stages_mm', None) else []
+            groups_names = [g.name for g in getattr(exam, 'groups_mm', [])] if getattr(exam, 'groups_mm', None) else []
+            
+            qualified_count = qualified_students_count_for_assignment(exam)
+            submitted_count = (
+                Submissions.query
+                .with_entities(Submissions.student_id)
+                .filter_by(assignment_id=exam.id)
+                .distinct()
+                .count()
+            )
+            
+            exam_data = {
+                "id": exam.id,
+                "title": exam.title,
+                "description": exam.description,
+                "creation_date": exam.creation_date.strftime('%Y-%m-%d %I:%M %p') if exam.creation_date else None,
+                "deadline_date": exam.deadline_date.strftime('%Y-%m-%d %I:%M %p') if exam.deadline_date else None,
+                "subject": exam.subject.name if exam.subject else "N/A",
+                "subject_id": exam.subject.id if exam.subject else None,
+                "schools": schools_names,
+                "stages": stages_names,
+                "groups": groups_names,
+                "status": exam.status,
+                "submitted_students_count": submitted_count,
+                "qualified_students_count": qualified_count,
+                "out_of": exam.out_of,
+            }
+            
+            return jsonify({"success": True, "message": "Exam updated successfully!", "exam": exam_data})
+
+        flash("Exam updated successfully!", "success")
+        return redirect(url_for("admin.online_exam"))
+        
+    if request.args.get("delete_attachment"):
+        filename_to_delete = request.args.get("delete_attachment")
+        if filename_to_delete in existing_attachments:
+            file_path = os.path.join("website/assignments/uploads", filename_to_delete)
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            try:
+                storage.delete_file(folder="assignments/uploads", file_name=filename_to_delete)
+            except Exception:
+                pass
+            
+            # Log the delete attachment action
+            before_attachments = list(existing_attachments)
+            existing_attachments.remove(filename_to_delete)
+            exam.attachments = json.dumps(existing_attachments)
+            db.session.commit()
+
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Edit',
+                log={
+                    "action_name": "Edit",
+                    "resource_type": "exam_attachment",
+                    "action_details": {
+                        "id": exam.id,
+                        "title": exam.title,
+                        "summary": f"Attachment '{filename_to_delete}' was deleted from exam '{exam.title}'."
+                    },
+                    "data": None,
+                    "before": {
+                        "attachments": before_attachments
+                    },
+                    "after": {
+                        "attachments": existing_attachments
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+
+            flash("Attachment deleted successfully!", "success")
+        else:
+            flash("Attachment not found!", "error")
+        return redirect(url_for("admin.edit_exam", exam_id=exam_id))
+
+
+
+
+    return render_template(
+        "admin/online_exam/edit_exam.html",
+        exam=exam,
+        groups=groups,
+        stages=stages,
+        attachments=existing_attachments,
+        schools=schools,
+        subjects=subjects
+    )
+
+@admin.route("/online/exam/delete/<int:exam_id>", methods=["POST"])
+def delete_exam(exam_id):
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Exam not found or you do not have permission to delete it."}), 404
+        flash("Exam not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    if not exam.type == "Exam":
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Assignment is not an exam."}), 400
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    submissions = Submissions.query.filter_by(assignment_id=exam_id).all()
+
+    deleted_submissions = []
+    deleted_attachments = []
+    # Also delete related Assignments_whatsapp records for this exam
+    whatsapp_notifications = Assignments_whatsapp.query.filter_by(assignment_id=exam_id).all()
+    for notif in whatsapp_notifications:
+        try:
+            db.session.delete(notif)
+        except Exception:
+            pass
+
+    
+    try :
+        Upload_status.query.filter_by(assignment_id=exam_id).delete()
+        db.session.commit()
+    except Exception:
+        pass
+        
+
+    for submission in submissions:
+        try:
+            if exam.deadline_date > submission.upload_time:
+                if exam.points:
+                    student = Users.query.get(submission.student_id)
+                    student.points = student.points - exam.points
+                    db.session.commit()
+            else:
+                if exam.points:
+                    student = Users.query.get(submission.student_id)
+                    student.points = student.points - (exam.points / 2)
+                    db.session.commit()
+
+            local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+            if os.path.exists(local_path):
+                os.remove(local_path)
+
+            annotated_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            if os.path.exists(annotated_path):
+                os.remove(annotated_path)
+
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            except Exception:
+                pass
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+            except Exception as e:
+                flash(f"Error deleting from s3: {e}", 'error')
+                pass
+            db.session.delete(submission)
+            deleted_submissions.append({
+                "submission_id": submission.id,
+                "student_id": submission.student_id,
+                "file_url": submission.file_url
+            })
+        except Exception:
+            pass
+
+    if exam.attachments:
+        try:
+            attachment_paths = json.loads(exam.attachments)
+            for file_path in attachment_paths:
+                local_path = os.path.join("website/assignments/uploads", file_path)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                try:
+                    storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                except Exception:
+                    pass
+                deleted_attachments.append(file_path)
+        except Exception as e:
+            flash(f"Error while deleting attachments: {str(e)}", "danger")
+    
+    # Log the delete action before deleting the exam
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "exam",
+            "action_details": {
+                "id": exam.id,
+                "title": exam.title,
+                "summary": f"Exam '{exam.title}' was deleted."
+            },
+            "data": None,
+            "before": {
+                "title": exam.title,
+                "description": exam.description,
+                "deadline_date": str(exam.deadline_date) if exam.deadline_date else None,
+                "attachments": json.loads(exam.attachments) if exam.attachments else [],
+                "submissions_deleted_count": len(deleted_submissions),
+                "subjectid": getattr(exam, "subjectid", None),
+                "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None,
+                "points": exam.points,
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.delete(exam)
+    db.session.commit()
+    
+    # Return JSON for AJAX requests
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({"success": True, "message": "Exam, its attachments, and points deleted successfully!"})
+    
+    flash("Exam, its attachments, and points deleted successfully!", "success")
+    return redirect(url_for("admin.online_exam"))
+
+
+
+
+@admin.route("/correction/exam/<int:submission_id>")
+def edit_pdf_exam(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    pdfurl = f"/admin/getpdf/{submission_id}"
+    filename = submission.file_url
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id)
+
+
+#=================================================================
+#Account
+#=================================================================
+
+@admin.route('/account', methods=['GET', 'POST'])
+def account():
+    if request.method == "POST":
+        current_password = request.form.get("current_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not check_password_hash(current_user.password, current_password):
+            flash("The current password is incorrect.", "danger")
+            return redirect(url_for("admin.account"))
+        if new_password != confirm_password:
+            flash("New password and confirm password do not match.", "danger")
+            return redirect(url_for("admin.account"))
+        if new_password.lower() == "password":
+            flash("New password cannot be 'password'. Please choose a stronger password.", "danger")
+            return redirect(url_for("admin.account"))
+
+        current_user.password = generate_password_hash(new_password, method="pbkdf2:sha256", salt_length=8)
+        db.session.commit()
+        flash("Your password has been successfully updated!", "success")
+        return redirect(url_for("admin.account"))
+
+    student_count = None
+    if current_user.role == "admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        query = Users.query.filter_by(role='student')
+        if group_ids and stage_ids and school_ids:
+            query = query.filter(
+                Users.groupid.in_(group_ids),
+                Users.stageid.in_(stage_ids),
+                Users.schoolid.in_(school_ids),
+                Users.subjectid.in_(subject_ids)
+            )
+            student_count = query.distinct().count()
+        else:
+            student_count = 0
+    elif current_user.role == "super_admin":
+        students = Users.query.filter_by(role='student').all()
+        student_count = len(students)
+
+    return render_template('admin/account.html', student_count=student_count)
+
+
+
+#=================================================================
+#Leaderboard
+#=================================================================
+
+
+@admin.route('/leaderboard', methods=['GET'])
+def leaderboard():
+    # Pagination parameters
+    try:
+        page = int(request.args.get('page', 1))
+        if page < 1:
+            page = 1
+    except ValueError:
+        page = 1
+    per_page = 30  # You can adjust this as needed
+
+    # Get filter parameters
+    school_id = request.args.get('school', type=int)
+    stage_id = request.args.get('grade', type=int)
+    group_id = request.args.get('class', type=int)
+    subject_id = request.args.get('subject', type=int)
+
+    # Get all schools, stages, groups, and subjects for filtering/sorting
+    schools = Schools.query.all()
+    stages = Stages.query.all()
+    groups = Groups.query.all()
+    subjects = Subjects.query.all()
+
+    # Get all students, sorted by points descending, with optional filters
+    users_query = Users.query.filter(
+        (Users.role == 'student') & (Users.code != 'nth') & (Users.code != 'Nth')
+    )
+
+    # Only show students the user manages
+    if current_user.role == "admin":
+        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        users_query = users_query.filter(
+            Users.groupid.in_(group_ids),
+            Users.stageid.in_(stage_ids),
+            Users.schoolid.in_(school_ids),
+            Users.subjectid.in_(subject_ids)
+        )
+
+    # Apply filters if provided
+    if school_id:
+        users_query = users_query.filter(Users.schoolid == school_id)
+    if stage_id:
+        users_query = users_query.filter(Users.stageid == stage_id)
+    if group_id:
+        users_query = users_query.filter(Users.groupid == group_id)
+    if subject_id:
+        users_query = users_query.filter(Users.subjectid == subject_id)
+
+    users_query = users_query.order_by(Users.points.desc())
+    total_users = users_query.count()
+    users = users_query.offset((page - 1) * per_page).limit(per_page).all()
+
+    # Calculate total pages
+    total_pages = (total_users + per_page - 1) // per_page
+
+    # Pass all users and filter data to the template, along with pagination info
+    return render_template(
+        'admin/leaderboard.html',
+        users=users,
+        schools=schools,
+        stages=stages,
+        groups=groups,
+        subjects=subjects,
+        page=page,
+        per_page=per_page,
+        total_users=total_users,
+        total_pages=total_pages,
+        selected_school=school_id,
+        selected_stage=stage_id,
+        selected_group=group_id,
+        selected_subject=subject_id
+    )
+
+
+
+#=================================================================
+#Whatsapp
+#=================================================================
+
+
+@admin.route('/whatsapp', methods=['GET', 'POST'])
+def whatsapp():
+    student_with_whatsapp_count = Users.query.filter(
+        Users.role == 'student',
+        Users.student_whatsapp.isnot(None),
+        Users.student_whatsapp != ''
+    ).count()
+
+    parent_with_whatsapp_count = Users.query.filter(
+        Users.role == 'student',
+        Users.parent_whatsapp.isnot(None),
+        Users.parent_whatsapp != ''
+    ).count()
+
+    if request.method == 'POST':
+        subject_id = request.form.get('subject_id', type=int)
+        school_id = request.form.get('school_id', type=int)
+        stage_id = request.form.get('stage_id', type=int)
+        group_id = request.form.get('group_id', type=int)
+        message = request.form.get('message', '')
+
+        # Query all students matching the filters
+        query = Users.query.filter(
+            db.and_(
+                Users.role == 'student',
+                Users.role != 'Nth',
+                Users.role != 'nth'
+            )
+        )
+        if subject_id:
+            query = query.filter(Users.subjectid == subject_id)
+        if school_id:
+            query = query.filter(Users.schoolid == school_id)
+        if stage_id:
+            query = query.filter(Users.stageid == stage_id)
+        if group_id:
+            query = query.filter(Users.groupid == group_id)
+
+        students = query.all()
+        sent_count = 0
+        for student in students:
+            # Send to student if they have WhatsApp
+            if student.student_whatsapp and student.student_whatsapp.strip():
+                try:
+                    send_whatsapp_message(student.student_whatsapp, message)
+                    sent_count += 1
+                except Exception as e:
+                    pass  # Optionally log error
+            # Send to parent if they have WhatsApp
+            if student.parent_whatsapp and student.parent_whatsapp.strip():
+                try:
+                    send_whatsapp_message(student.parent_whatsapp, message)
+                    sent_count += 1
+                except Exception as e:
+                    pass  # Optionally log error
+
+        return jsonify({"success": True, "message": f"Message sent to {sent_count} WhatsApp recipients (students and parents)."})
+
+    return render_template(
+        'admin/whatsapp.html',
+        student_with_whatsapp_count=student_with_whatsapp_count,
+        parent_with_whatsapp_count=parent_with_whatsapp_count
+    )
+
+@admin.route('/api/filters/recipients_count')
+def api_recipients_count():
+    """
+    Returns the count of students matching the selected subject, school, stage, and group,
+    and who have a WhatsApp number (either student or parent).
+    """
+    subject_id = request.args.get('subject_id', type=int)
+    school_id = request.args.get('school_id', type=int)
+    stage_id = request.args.get('stage_id', type=int)
+    group_id = request.args.get('group_id', type=int)
+
+    query = Users.query.filter(
+        db.and_(
+            Users.role != 'Nth',
+            Users.role != 'nth',
+            Users.role == 'student'
+        )
+    )
+
+    if subject_id:
+        query = query.filter(Users.subjectid == subject_id)
+    if school_id:
+        query = query.filter(Users.schoolid == school_id)
+    if stage_id:
+        query = query.filter(Users.stageid == stage_id)
+    if group_id:
+        query = query.filter(Users.groupid == group_id)
+
+
+    should_receive = query.filter(
+        db.or_(
+            db.and_(Users.phone_number.isnot(None), Users.phone_number != ''),
+            db.and_(Users.parent_phone_number.isnot(None), Users.parent_phone_number != '')
+        )
+    )
+
+
+    # Only count students with at least one WhatsApp number
+    query = query.filter(
+        db.or_(
+            db.and_(Users.student_whatsapp.isnot(None), Users.student_whatsapp != ''),
+            db.and_(Users.parent_whatsapp.isnot(None), Users.parent_whatsapp != '')
+        )
+    )
+
+
+
+    count = query.distinct().count()
+    should_receive_count = should_receive.distinct().count()
+    return jsonify({"count": count, "should_receive_count": should_receive_count})
+
+
+#=================================================================
+#Logs (Super Admin Only)
+#=================================================================
+@admin.route("/logs", methods=["GET"])
+def logs():
+    if current_user.role != 'super_admin' :
+        flash("You are not authorized to view logs.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    logs = AssistantLogs.query.order_by(AssistantLogs.timestamp.desc()).all()
+
+    for log in logs:
+        log.timestamp = log.timestamp.astimezone(GMT_PLUS_2)
+        log_diff = {}
+        log_data = log.log if isinstance(log.log, dict) else {}
+        before = log_data.get("before")
+        after = log_data.get("after")
+        if before and after and isinstance(before, dict) and isinstance(after, dict):
+            for key in set(before.keys()).union(after.keys()):
+                before_val = before.get(key)
+                after_val = after.get(key)
+                if before_val != after_val:
+                    log_diff[key] = {"before": before_val, "after": after_val}
+        log.diff = log_diff if log_diff else None
+    return render_template("admin/logs.html", logs=logs)
+
+
+#=================================================================
+#WhatsApp Messages (Super Admin Only)
+#=================================================================
+@admin.route("/whatsapp-messages", methods=["GET", "POST"])
+def whatsapp_messages():
+    if current_user.role != 'super_admin':
+        flash("You are not authorized to view WhatsApp messages.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    
+    # Handle POST request to send a new message
+    if request.method == "POST":
+        phone_number = request.form.get('phone_number', '').strip()
+        message_content = request.form.get('message', '').strip()
+        country_code = request.form.get('country_code', '2').strip()
+        
+        if not phone_number or not message_content:
+            flash("Phone number and message are required.", "danger")
+            return redirect(url_for("admin.whatsapp_messages"))
+        
+        try:
+            # Send the WhatsApp message
+            success, result_message = send_whatsapp_message(f"{phone_number}", message_content, country_code)
+            
+            if success:
+                flash(result_message, "success")
+            else:
+                flash(f"Failed to queue message: {result_message}", "danger")
+        except Exception as e:
+            flash(f"Error sending message: {str(e)}", "danger")
+        
+        return redirect(url_for("admin.whatsapp_messages"))
+    
+    # Get filter parameters
+    status_filter = request.args.get('status', 'all')
+    user_id_filter = request.args.get('user_id', type=int)
+    
+    # Build query
+    query = WhatsappMessages.query
+    
+    if status_filter != 'all':
+        query = query.filter_by(status=status_filter)
+    
+    if user_id_filter:
+        query = query.filter_by(user_id=user_id_filter)
+    
+    # Get messages ordered by date (newest first)
+    messages = query.order_by(WhatsappMessages.date_added.desc()).all()
+    
+    # Adjust timestamps to GMT+2/GMT+3
+    for message in messages:
+        if message.date_added:
+            message.date_added = message.date_added.astimezone(GMT_PLUS_2) + timedelta(hours=3)
+    
+    # Get all users for filter dropdown (optional)
+    users = Users.query.filter(Users.id.in_([m.user_id for m in messages if m.user_id])).all()
+    
+    return render_template(
+        "admin/whatsapp_messages.html",
+        messages=messages,
+        users=users,
+        status_filter=status_filter,
+        user_id_filter=user_id_filter
+    )
+
+
+
+#=================================================================
+# Critical Students Page (Based on "Exam" Assignments <60%) & Missing Assignments >=2
+#=================================================================
+
+
+@admin.route("/critical/students")
+def critical_students():
+    # Just load the HTML; the data is provided via AJAX from the API route.
+    return render_template(
+        "admin/critical_students.html",
+        critical_exam_students=[],
+        critical_assignment_students=[]
+    )
+
+
+
+
+
+
+    
+@admin.route("/critical/api")
+def critical_students_api():
+    """
+    API endpoint: Detect critical students (low exam % and missing assignments), JSON response.
+    Uses efficient single queries and robust type checking to avoid errors.
+    Filters by assignments where the admin manages the subject AND school AND group AND stage.
+    """
+    
+    # Get current user's managed scope
+    group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+    
+    # =====================================================================
+    # 1. Students with <60% in any Exam (Corrected AND Logic)
+    # =====================================================================
+    critical_exam_students = []
+
+    # If admin doesn't manage at least one of each category, they can't see anything.
+    if all([group_ids, stage_ids, school_ids, subject_ids]):
+        # Build base query for failing submissions
+        failing_submissions_query = Submissions.query.join(
+            Assignments, Submissions.assignment_id == Assignments.id
+        ).join(
+            Users, Submissions.student_id == Users.id
+        ).filter(
+            and_(
+                Users.role == "student",
+                Assignments.type == "Exam",
+                Assignments.out_of > 0,
+                Submissions.mark.isnot(None),
+                Submissions.mark.op('~')(r'^[0-9]+(\.[0-9]+)?$'), 
+                (cast(Submissions.mark, Float) / Assignments.out_of * 100) < 60
+            )
+        )
+        
+        # Build the strict AND filters for the admin's scope
+        subject_filter = Assignments.subjectid.in_(subject_ids)
+        
+        school_filter = or_(
+            Assignments.schoolid.in_(school_ids),
+            Assignments.schools_mm.any(Schools.id.in_(school_ids))
+        )
+        
+        group_filter = or_(
+            Assignments.groupid.in_(group_ids),
+            Assignments.groups_mm.any(Groups.id.in_(group_ids))
+        )
+        
+        stage_filter = or_(
+            Assignments.stageid.in_(stage_ids),
+            Assignments.stages_mm.any(Stages.id.in_(stage_ids))
+        )
+
+        # Apply all scope filters with AND
+        failing_submissions_query = failing_submissions_query.filter(
+            and_(subject_filter, school_filter, group_filter, stage_filter)
+        )
+        
+        failing_submissions = failing_submissions_query.all()
+
+        for sub in failing_submissions:
+            student = sub.student
+            assignment = sub.assignment
+            
+            student_mark = float(sub.mark)
+            full_mark = float(assignment.out_of)
+            percent = (student_mark / full_mark) * 100
+            
+            critical_exam_students.append({
+                "student_id": student.id,
+                "student_name": student.name,
+                "exam_title": assignment.title,
+                "student_mark": student_mark,
+                "full_mark": full_mark,
+                "percent": round(percent, 2),
+                "school_id": student.schoolid,
+                "subject_id": student.subjectid,
+            })
+
+    # =====================================================================
+    # 2. Students who missed 2+ Assignments (Optimized and Corrected)
+    # =====================================================================
+    critical_assignment_students = []
+    
+    # Proceed only if the admin has a valid scope
+    if all([group_ids, stage_ids, school_ids, subject_ids]):
+        # Step 1: Get all assignments matching the admin's strict AND scope ONCE
+        subject_filter = Assignments.subjectid.in_(subject_ids)
+        school_filter = or_(Assignments.schoolid.in_(school_ids), Assignments.schools_mm.any(Schools.id.in_(school_ids)))
+        group_filter = or_(Assignments.groupid.in_(group_ids), Assignments.groups_mm.any(Groups.id.in_(group_ids)))
+        stage_filter = or_(Assignments.stageid.in_(stage_ids), Assignments.stages_mm.any(Stages.id.in_(stage_ids)))
+        
+        scoped_hws = Assignments.query.filter(
+            Assignments.type == "Assignment",
+            and_(subject_filter, school_filter, group_filter, stage_filter)
+        ).all()
+
+        if scoped_hws:
+            # Step 2: Get all students within the admin's broad OR scope
+            students_query = Users.query.filter(Users.role == "student").filter(
+                or_(
+                    Users.groupid.in_(group_ids),
+                    Users.stageid.in_(stage_ids),
+                    Users.schoolid.in_(school_ids),
+                    Users.subjectid.in_(subject_ids)
+                )
+            )
+            all_students = students_query.all()
+
+            # Step 3: Get all relevant submissions in a single query
+            student_ids = [s.id for s in all_students]
+            assignment_ids = [a.id for a in scoped_hws]
+            all_submissions = Submissions.query.filter(
+                Submissions.student_id.in_(student_ids),
+                Submissions.assignment_id.in_(assignment_ids)
+            ).all()
+
+            # Map submissions to students for fast lookup
+            submissions_by_student = {}
+            for sub in all_submissions:
+                submissions_by_student.setdefault(sub.student_id, set()).add(sub.assignment_id)
+            
+            # Step 4: Process in Python (NO more database queries in the loop)
+            for student in all_students:
+                # For each student, determine which of the scoped assignments they should see
+                visible_hws = []
+                for hw in scoped_hws:
+                    # An assignment is visible if its targets match the student's profile.
+                    # An empty target list (e.g., no specific groups) means it's visible to all.
+                    g_targets = {g.id for g in hw.groups_mm} | ({hw.groupid} if hw.groupid else set())
+                    s_targets = {s.id for s in hw.stages_mm} | ({hw.stageid} if hw.stageid else set())
+                    sch_targets = {s.id for s in hw.schools_mm} | ({hw.schoolid} if hw.schoolid else set())
+                    
+                    group_match = (not g_targets) or (student.groupid in g_targets)
+                    stage_match = (not s_targets) or (student.stageid in s_targets)
+                    school_match = (not sch_targets) or (student.schoolid in sch_targets)
+                    subject_match = (hw.subjectid is None) or (student.subjectid == hw.subjectid)
+
+                    if group_match and stage_match and school_match and subject_match:
+                        visible_hws.append(hw)
+                
+                if not visible_hws:
+                    continue
+
+                total_hw = len(visible_hws)
+                submitted_ids = submissions_by_student.get(student.id, set())
+                done = sum(1 for hw in visible_hws if hw.id in submitted_ids)
+                missing = total_hw - done
+                
+                if missing >= 2:
+                    critical_assignment_students.append({
+                        "student_id": student.id,
+                        "student_name": student.name,
+                        "total_assignments": total_hw,
+                        "completed_assignments": done,
+                        "missing_assignments": missing
+                    })
+
+    # =====================================================================
+    # Final JSON Response
+    # =====================================================================
+    return jsonify({
+        "critical_exam_students": critical_exam_students,
+        "critical_assignment_students": critical_assignment_students
+    })
+
+
+#Upload status 
+@admin.route("/upload/status")
+def upload_status():
+    # Get all upload statuses with related user and assignment data
+    uploads = Upload_status.query.join(
+        Users, Upload_status.user_id == Users.id
+    ).join(
+        Assignments, Upload_status.assignment_id == Assignments.id
+    ).add_columns(
+        Upload_status.id,
+        Upload_status.upload_status,
+        Upload_status.upload_type,
+        Upload_status.file_name,
+        Upload_status.total_chunks,
+        Upload_status.current_chunk,
+        Upload_status.last_chunk_date,
+        Upload_status.last_chunk_size,
+        Upload_status.total_size,
+        Upload_status.bytes_uploaded,
+        Upload_status.progress_percent,
+        Upload_status.created_at,
+        Upload_status.failure_reason,
+        Users.id.label('user_id'),
+        Users.name.label('user_name'),
+        Assignments.id.label('assignment_id'),
+        Assignments.title.label('assignment_title')
+    ).order_by(Upload_status.last_chunk_date.desc()).all()
+    
+    # Format the data for the template
+    upload_data = []
+    for upload in uploads:
+        # Use the pre-calculated progress_percent from the model
+        progress_percentage = round(upload.progress_percent, 2)
+        
+        # Format file size for display
+        total_size_mb = round(upload.total_size / (1024 * 1024), 2) if upload.total_size else 0
+        uploaded_size_mb = round(upload.bytes_uploaded / (1024 * 1024), 2) if upload.bytes_uploaded else 0
+        
+        upload_data.append({
+            'id': upload.id,
+            'status': upload.upload_status,
+            'type': upload.upload_type,
+            'file_name': upload.file_name,
+            'user_id': upload.user_id,
+            'user_name': upload.user_name,
+            'assignment_id': upload.assignment_id,
+            'assignment_title': upload.assignment_title,
+            'total_chunks': upload.total_chunks,
+            'current_chunk': upload.current_chunk,
+            'progress_percentage': progress_percentage,
+            'total_size_mb': total_size_mb,
+            'uploaded_size_mb': uploaded_size_mb,
+            'created_at': upload.created_at,
+            'last_chunk_date': upload.last_chunk_date,
+            'failure_reason': upload.failure_reason
+        })
+    
+    # Get summary statistics
+    total_uploads = len(upload_data)
+    pending_uploads = sum(1 for u in upload_data if u['status'] == 'pending')
+    completed_uploads = sum(1 for u in upload_data if u['status'] == 'completed')
+    failed_uploads = sum(1 for u in upload_data if u['status'] == 'failed')
+    
+    stats = {
+        'total': total_uploads,
+        'pending': pending_uploads,
+        'completed': completed_uploads,
+        'failed': failed_uploads
+    }
+    
+    return render_template("admin/upload_status.html", uploads=upload_data, stats=stats)
+
+#------------------------------------------------------
+@admin.route('/zoom/user/<int:user_id>')
+def zoom_user(user_id):
+    user = Users.query.get_or_404(user_id)
+    user.zoom_id = None
+    db.session.commit()
+    flash(f"Zoom ID for {user.name} has been deleted successfully!", "success")
+    return redirect(url_for('admin.zoom'))
+
+@admin.route('/zoom')
+def zoom():
+    zoom_meetings = Zoom_meeting.query.all()
+    subjects = Subjects.query.all()
+    groups = Groups.query.all()
+    stages = Stages.query.all()
+    schools = Schools.query.all()
+    
+    return render_template("admin/zoom.html", 
+                         zoom_meetings=zoom_meetings,
+                         subjects=subjects,
+                         groups=groups,
+                         stages=stages,
+                         schools=schools)
+
+@admin.route('/zoom/<int:meeting_id>')
+def view_zoom_meeting(meeting_id):
+    # View details of a specific Zoom meeting
+    meeting = Zoom_meeting.query.get_or_404(meeting_id)
+    
+    # Get all memberships (participants with their Zoom details)
+    memberships = ZoomMeetingMember.query.filter_by(zoom_meeting_id=meeting.id).all()
+    
+    # Filter users based on meeting scope (subject, groups, stages, schools)
+    users_query = Users.query
+    
+    # Filter by subject if specified
+    if meeting.subject_id:
+        users_query = users_query.filter(Users.subjectid == meeting.subject_id)
+    
+    # Filter by groups if specified
+    if meeting.groups:
+        group_ids = [group.id for group in meeting.groups]
+        users_query = users_query.filter(Users.groupid.in_(group_ids))
+    
+    # Filter by stages if specified
+    if meeting.stages:
+        stage_ids = [stage.id for stage in meeting.stages]
+        users_query = users_query.filter(Users.stageid.in_(stage_ids))
+    
+    # Filter by schools if specified
+    if meeting.schools:
+        school_ids = [school.id for school in meeting.schools]
+        users_query = users_query.filter(Users.schoolid.in_(school_ids))
+    
+    #Get users with no zoom_id
+    all_users = users_query.filter(Users.zoom_id.is_(None)).all()
+    
+    return render_template("admin/view_zoom_meeting.html", meeting=meeting, memberships=memberships, all_users=all_users)
+
+@admin.route('/zoom/create', methods=['POST'])
+def create_zoom_meeting():
+    try:
+        import re
+        # Handle AJAX form submission to create a new Zoom meeting
+        meeting_input = request.form.get('meeting_id')
+        
+        # Extract meeting ID from Zoom invite link or use as is
+        # Zoom links can be like: https://zoom.us/j/1234567890 or https://us05web.zoom.us/j/1234567890
+        meeting_id = meeting_input
+        if 'zoom.us/' in meeting_input:
+            # Extract meeting ID from URL
+            match = re.search(r'/j/(\d+)', meeting_input)
+            if match:
+                meeting_id = match.group(1)
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid Zoom link format. Could not extract meeting ID.'
+                }), 400
+        
+        subject_id = request.form.get('subject_id')
+        creator_id = current_user.id
+        
+        # Get selected groups, stages, and schools
+        group_ids = request.form.getlist('groups[]')
+        stage_ids = request.form.getlist('stages[]')
+        school_ids = request.form.getlist('schools[]')
+        
+        # Check if meeting already exists
+        existing_meeting = Zoom_meeting.query.filter_by(meeting_id=meeting_id).first()
+        if existing_meeting:
+            return jsonify({
+                'success': False,
+                'message': 'A meeting with this ID already exists!'
+            }), 400
+        
+        # Create new Zoom meeting
+        new_meeting = Zoom_meeting(
+            meeting_id=meeting_id,
+            subject_id=subject_id if subject_id else None,
+            creator_id=creator_id
+        )
+        
+        # Add relationships
+        if group_ids:
+            new_meeting.groups = Groups.query.filter(Groups.id.in_(group_ids)).all()
+        if stage_ids:
+            new_meeting.stages = Stages.query.filter(Stages.id.in_(stage_ids)).all()
+        if school_ids:
+            new_meeting.schools = Schools.query.filter(Schools.id.in_(school_ids)).all()
+        
+        db.session.add(new_meeting)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Zoom meeting created successfully!',
+            'meeting_id': meeting_id
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400
+
+@admin.route('/zoom/<int:meeting_id>/delete', methods=['POST'])
+def delete_zoom_meeting(meeting_id):
+    try:
+        # Find the meeting
+        meeting = Zoom_meeting.query.get_or_404(meeting_id)
+        
+        # Delete the meeting (cascade will handle memberships)
+        db.session.delete(meeting)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Zoom meeting deleted successfully!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400
+
+@admin.route('/zoom/link_participant', methods=['POST'])
+def link_zoom_participant():
+    try:
+        data = request.get_json()
+        zoom_id = data.get('zoom_id')
+        user_id = data.get('user_id')
+        
+        if not zoom_id or not user_id:
+            return jsonify({
+                'success': False,
+                'message': 'Missing zoom_id or user_id'
+            }), 400
+        
+        # Find the membership record by zoom_id
+        membership = ZoomMeetingMember.query.filter_by(zoom_id=zoom_id).first()
+        
+        if not membership:
+            return jsonify({
+                'success': False,
+                'message': 'Membership not found for this Zoom ID'
+            }), 404
+        
+        # Find the user
+        user = Users.query.get_or_404(user_id)
+        
+        # Link the participant to the user
+        membership.user_id = user_id
+        
+        # Update the user's zoom_id
+        user.zoom_id = zoom_id
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Participant linked to {user.name} successfully!',
+            'user_name': user.name,
+            'user_email': user.email
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400
+
+@admin.route('/zoom/unlink_participant', methods=['POST'])
+def unlink_zoom_participant():
+    try:
+        data = request.get_json()
+        zoom_id = data.get('zoom_id')
+        
+        if not zoom_id:
+            return jsonify({
+                'success': False,
+                'message': 'Missing zoom_id'
+            }), 400
+        
+        # Find the membership record by zoom_id
+        membership = ZoomMeetingMember.query.filter_by(zoom_id=zoom_id).first()
+        
+        if not membership:
+            return jsonify({
+                'success': False,
+                'message': 'Membership not found for this Zoom ID'
+            }), 404
+        
+        # Unlink the participant by setting user_id to None
+        membership.user_id = None
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Participant unlinked successfully!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400

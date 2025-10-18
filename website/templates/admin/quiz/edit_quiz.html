@@ -1,0 +1,210 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Edit Quiz{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+  <div class="page-header-content">
+    <a href="{{ url_for('admin.create_quiz') }}" class="back-button">&larr; Go back to quizzes</a>
+    <h1 class="page-title">Edit Quiz</h1>
+  </div>
+</header>
+
+<main class="container">
+  <div class="card" style="max-width: 700px; margin: 0 auto;">
+    <form class="card-content" method="POST" enctype="multipart/form-data">
+      <div style="display: flex; flex-direction: column; gap: var(--space-4);">
+        <div>
+          <label for="quiz_name" class="form-label">Quiz Name</label>
+          <input type="text" id="quiz_name" name="quiz_name" value="{{ quiz.name }}" required class="form-input" />
+        </div>
+
+        <div>
+          <label for="full_mark" class="form-label">Full Mark</label>
+          <input type="number" id="full_mark" name="full_mark" value="{{ quiz.full_mark }}" min="0" class="form-input"
+            required />
+        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+        <div>
+          <label for="subject" class="form-label">Subject</label>
+          <div class="multi" id="ms-subjects">
+            <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">
+              {{ quiz.subject.name if quiz.subject else 'Select Subject' }} ▼
+            </button>
+            <div class="multi-list" id="ms-subjects-list">
+              {% for subject in subjects %}
+              <label>
+                <input type="radio" name="subject" value="{{ subject.id }}" required {% if quiz.subject and
+                  quiz.subject.id==subject.id %}checked{% endif %}>
+                {{ subject.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Schools</label>
+          <div class="multi" id="ms-schools">
+            <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools ▼</button>
+            <div class="multi-list" id="ms-schools-list">
+              <label class="multi-all"><input type="checkbox" value="" {% if not quiz.schools_mm %}checked{% endif
+                  %}>All Schools</label>
+              {% for school in schools %}
+              <label>
+                <input type="checkbox" name="schools_mm[]" value="{{ school.id }}" {% if quiz.schools_mm and school in
+                  quiz.schools_mm %}checked{% endif %}>
+                {{ school.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Years</label>
+          <div class="multi" id="ms-stages">
+            <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+            <div class="multi-list" id="ms-stages-list">
+              <label class="multi-all"><input type="checkbox" value="" {% if not quiz.stages_mm %}checked{% endif %}>All
+                Stages</label>
+              {% for stage in stages %}
+              <label>
+                <input type="checkbox" name="stages_mm[]" value="{{ stage.id }}" {% if quiz.stages_mm and stage in
+                  quiz.stages_mm %}checked{% endif %}>
+                {{ stage.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label">Classes</label>
+          <div class="multi" id="ms-groups">
+            <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Classes ▼</button>
+            <div class="multi-list" id="ms-groups-list">
+              <label class="multi-all"><input type="checkbox" value="" {% if not quiz.groups_mm %}checked{% endif %}>All
+                Classes</label>
+              {% for group in groups %}
+              <label>
+                <input type="checkbox" name="groups_mm[]" value="{{ group.id }}" {% if quiz.groups_mm and group in
+                  quiz.groups_mm %}checked{% endif %}>
+                {{ group.name }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: var(--space-4);">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  function setupDropdown(dropdownId, btnId, listId, labelAll) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    const btn = document.getElementById(btnId);
+    const list = document.getElementById(listId);
+    const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+    const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      const isCurrentlyOpen = dropdown.classList.contains('open');
+      document.querySelectorAll('.multi').forEach(d => d.classList.remove('open'));
+      if (!isCurrentlyOpen) dropdown.classList.add('open');
+    };
+
+    if (allCheckbox) {
+      allCheckbox.onchange = function () {
+        if (allCheckbox.checked) {
+          checkboxes.forEach(cb => cb.checked = false);
+        }
+        updateBtnLabel();
+      };
+    }
+
+    checkboxes.forEach(cb => {
+      cb.onchange = function () {
+        if (cb.checked && allCheckbox) {
+          allCheckbox.checked = false;
+        }
+        if (allCheckbox && !checkboxes.some(c => c.checked)) {
+          allCheckbox.checked = true;
+        }
+        updateBtnLabel();
+      };
+    });
+
+    function updateBtnLabel() {
+      let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+      if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+        btn.textContent = labelAll + " ▼";
+      } else if (selected.length === 1) {
+        btn.textContent = selected[0].substring(0, 20) + (selected[0].length > 20 ? '...' : '') + " ▼";
+      } else {
+        btn.textContent = selected.length + " selected ▼";
+      }
+    }
+    updateBtnLabel();
+  }
+
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('.multi.open').forEach(d => {
+      if (!d.contains(e.target)) d.classList.remove('open');
+    });
+  });
+
+  // Setup for multi-selects
+  setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+  setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+  setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+
+
+
+
+
+
+  // Setup for single-select (radio)
+  const subjectDropdown = document.getElementById('ms-subjects');
+  const subjectBtn = document.getElementById('ms-subjects-btn');
+  const subjectList = document.getElementById('ms-subjects-list');
+
+  if (subjectDropdown) {
+    subjectBtn.onclick = function (e) {
+      e.stopPropagation();
+      const isCurrentlyOpen = subjectDropdown.classList.contains('open');
+      document.querySelectorAll('.multi').forEach(d => d.classList.remove('open'));
+      if (!isCurrentlyOpen) subjectDropdown.classList.add('open');
+    };
+    subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+      radio.onchange = function () {
+        const selectedLabel = this.parentElement.textContent.trim();
+        subjectBtn.textContent = selectedLabel + " ▼";
+        subjectDropdown.classList.remove('open');
+      };
+    });
+  }
+
+</script>
+{% endblock %}

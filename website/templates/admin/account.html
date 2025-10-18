@@ -1,0 +1,374 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}My Account{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --primary-color: #4f46e5;
+        --primary-hover-color: #4338ca;
+        --primary-bg-light: #eef2ff;
+        --text-color-primary: #111827;
+        --text-color-secondary: #6b7280;
+        --border-color: #e5e7eb;
+        --card-bg-color: #ffffff;
+        --page-bg-color: #f9fafb;
+        --success-color: #10b981;
+        --error-color: #ef4444;
+        --card-shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+        --border-radius-md: 8px;
+        --border-radius-lg: 12px;
+    }
+
+    .account-page-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 32px;
+        padding: 20px;
+        max-width: 1200px;
+        margin: 20px auto;
+    }
+
+    .styled-card {
+        background-color: var(--card-bg-color);
+        border-radius: var(--border-radius-lg);
+        box-shadow: var(--card-shadow-soft);
+        padding: 32px;
+        border: 1px solid var(--border-color);
+        box-sizing: border-box;
+    }
+
+    .card-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--text-color-primary);
+        margin-top: 0;
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .card-subtitle {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text-color-primary);
+        margin-top: 0;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 12px;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+    }
+
+    .info-item .label {
+        font-weight: 500;
+        color: var(--text-color-secondary);
+        font-size: 15px;
+    }
+
+    .info-item .value {
+        color: var(--text-color-primary);
+        font-size: 16px;
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .role-badge {
+        padding: 4px 10px;
+        border-radius: 99px;
+        font-size: 13px;
+        font-weight: 600;
+        background-color: var(--primary-bg-light);
+        color: var(--primary-color);
+    }
+
+    .divider {
+        margin: 32px 0;
+        border: none;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .password-form .form-group {
+        margin-bottom: 18px;
+    }
+
+    .password-form .form-label {
+        display: block;
+        font-weight: 500;
+        color: var(--text-color-secondary);
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .input-group {
+        position: relative;
+    }
+
+    .input-group .icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-color-secondary);
+        pointer-events: none;
+        width: 20px;
+        height: 20px;
+    }
+
+    .password-form .form-input {
+        width: 100%;
+        padding: 12px 14px 12px 45px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-md);
+        font-size: 16px;
+        box-sizing: border-box;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        color: var(--text-color-primary);
+        background-color: #fff;
+    }
+
+    .password-form .form-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .submit-btn {
+        display: block;
+        width: 100%;
+        background: linear-gradient(to right, #4f46e5, #6366f1);
+        color: #fff;
+        padding: 14px 24px;
+        border-radius: var(--border-radius-md);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease-in-out;
+        border: none;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 12px;
+        box-shadow: 0 4px 10px -2px rgba(79, 70, 229, 0.3);
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 14px -2px rgba(79, 70, 229, 0.4);
+    }
+
+    .management-sections-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 28px;
+    }
+
+    .management-section h3 {
+        margin-top: 0;
+        margin-bottom: 12px;
+        font-size: 1rem;
+        color: var(--text-color-primary);
+        font-weight: 600;
+    }
+
+    .tags-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .tag-item {
+        background-color: var(--primary-bg-light);
+        color: var(--primary-color);
+        padding: 6px 14px;
+        border-radius: 9999px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .tag-item.empty {
+        background-color: #f3f4f6;
+        color: #6b7280;
+        font-style: italic;
+    }
+
+    @media (max-width: 992px) {
+        .account-page-wrapper {
+            grid-template-columns: 1fr;
+            padding: 15px;
+            gap: 24px;
+        }
+
+        .styled-card {
+            padding: 24px;
+        }
+    }
+
+    @media (max-width: 540px) {
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+
+        .info-item .value {
+            text-align: left;
+        }
+    }
+</style>
+
+<div class="account-page-wrapper">
+    <div class="styled-card">
+        <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                <path
+                    d="M12 2.5a5.5 5.5 0 0 1 3.096 10.047 9.005 9.005 0 0 1 5.9 8.181.75.75 0 1 1-1.499.044 7.5 7.5 0 0 0-14.993 0 .75.75 0 0 1-1.5-.045 9.005 9.005 0 0 1 5.9-8.181A5.5 5.5 0 0 1 12 2.5ZM8 8a4 4 0 1 0 8 0 4 4 0 0 0-8 0Z">
+                </path>
+            </svg>
+            My Account
+        </h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="label">Name</span>
+                <span class="value">{{ current_user.name }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Email</span>
+                <span class="value">{{ current_user.email }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Phone Number</span>
+                <span class="value">{{ current_user.phone_number }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Role</span>
+                <span class="value">
+                    <span class="role-badge">
+                        {% if current_user.role == 'super_admin' %}
+                        Admin
+                        {% else %}
+                        Assistant
+                        {% endif %}
+                    </span>
+                </span>
+            </div>
+        </div>
+        <hr class="divider">
+        <h3 class="card-subtitle">Change Password</h3>
+        <form method="POST" class="password-form">
+            <div class="form-group">
+                <label for="current_password" class="form-label">Current Password</label>
+                <div class="input-group">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3A5.25 5.25 0 0 0 12 1.5Zm-3.75 5.25v3a3 3 0 1 0 6 0v-3a3.75 3.75 0 1 0-7.5 0h1.5Z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <input type="password" id="current_password" name="current_password" class="form-input" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="new_password" class="form-label">New Password</label>
+                <div class="input-group">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.79-.263.993-1.487 1.294-2.203 3.063-2.203 4.851v6A.75.75 0 0 1 6 22.5a.75.75 0 0 1-.75-.75v-6c0-1.55.59-3.05 1.64-4.282A9.73 9.73 0 0 0 6.15 9.25a8.25 8.25 0 0 1 14.237 5.852.75.75 0 0 1-1.498.098 6.75 6.75 0 0 0-12.138-4.954.75.75 0 0 1 .18-1.043A6.75 6.75 0 0 0 15.75 1.5Z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <input type="password" id="new_password" name="new_password" class="form-input" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirm_new_password" class="form-label">Confirm New Password</label>
+                <div class="input-group">
+                    <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M15.75 1.5a6.75 6.75 0 0 0-6.651 7.906c.067.39-.032.79-.263.993-1.487 1.294-2.203 3.063-2.203 4.851v6A.75.75 0 0 1 6 22.5a.75.75 0 0 1-.75-.75v-6c0-1.55.59-3.05 1.64-4.282A9.73 9.73 0 0 0 6.15 9.25a8.25 8.25 0 0 1 14.237 5.852.75.75 0 0 1-1.498.098 6.75 6.75 0 0 0-12.138-4.954.75.75 0 0 1 .18-1.043A6.75 6.75 0 0 0 15.75 1.5Z"
+                            clip-rule="evenodd"></path>
+                    </svg>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-input" required>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn">Update Password</button>
+        </form>
+    </div>
+    <div class="styled-card">
+        <h2 class="card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28" height="28">
+                <path
+                    d="M12.75 12.75a.75.75 0 0 0-1.5 0v2.25H9a.75.75 0 0 0 0 1.5h2.25v2.25a.75.75 0 0 0 1.5 0v-2.25H15a.75.75 0 0 0 0-1.5h-2.25V12.75Z">
+                </path>
+                <path fill-rule="evenodd"
+                    d="M3.75 4.5a3 3 0 0 1 3-3h10.5a3 3 0 0 1 3 3v15a3 3 0 0 1-3 3H6.75a3 3 0 0 1-3-3v-15Zm3-1.5a1.5 1.5 0 0 0-1.5 1.5v15a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5v-15a1.5 1.5 0 0 0-1.5-1.5H6.75Z"
+                    clip-rule="evenodd"></path>
+            </svg>
+            Management Panel
+        </h2>
+        <p class="text-center">Number of students : {{ student_count }}</p>
+        <div class="management-sections-wrapper">
+            <div class="management-section">
+                <h3>Classes</h3>
+                <ul class="tags-list">
+                    {% if current_user.managed_groups %}
+                    {% for group in current_user.managed_groups %}
+                    <li class="tag-item">{{ group.name }}</li>
+                    {% endfor %}
+                    {% else %}
+                    <li class="tag-item empty">You do not manage any classes.</li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="management-section">
+                <h3>Stages</h3>
+                <ul class="tags-list">
+                    {% if current_user.managed_stages %}
+                    {% for stage in current_user.managed_stages %}
+                    <li class="tag-item">{{ stage.name }}</li>
+                    {% endfor %}
+                    {% else %}
+                    <li class="tag-item empty">You do not manage any stages.</li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="management-section">
+                <h3>Schools</h3>
+                <ul class="tags-list">
+                    {% if current_user.managed_schools %}
+                    {% for school in current_user.managed_schools %}
+                    <li class="tag-item">{{ school.name }}</li>
+                    {% endfor %}
+                    {% else %}
+                    <li class="tag-item empty">You do not manage any schools.</li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="management-section">
+                <h3>Subjects</h3>
+                <ul class="tags-list">
+                    {% if current_user.managed_subjects %}
+                    {% for subject in current_user.managed_subjects %}
+                    <li class="tag-item">{{ subject.name }}</li>
+                    {% endfor %}
+                    {% else %}
+                    <li class="tag-item empty">You do not manage any subjects.</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

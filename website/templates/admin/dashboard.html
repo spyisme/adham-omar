@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+
+    <title>{% block title %}Admin Panel - Amr{% endblock %}</title>
+
+    <meta name="description" content="Admin Dashboard for  Amr's teaching website">
+    <meta name="author" content=" Amr">
+
+    <link rel="stylesheet" href="/static/css/main.css" />
+    {% block additional_css %}{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+
+<body>
+
+
+    <div class="page-container">
+        <header class="top-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-controls="main-navigation"
+                        aria-expanded="false">
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                        <span class="bar"></span>
+                    </button>
+                    <a href="/admin/dashboard" class="logo"> Amr's Panel</a>
+                </div>
+                <div class="header-right">
+                    <a href="/logout" id="logout-link" class="logout-button">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        <span>Logout</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <nav class="main-navigation" id="main-navigation">
+            <ul>
+                <li>
+                    <a href="/admin/dashboard"
+                        class="nav-link {% if request.path == '/admin/dashboard' %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+
+                {% if current_user.email == "amr@spysnet.com" %}
+                <li>
+                    <a href="/admin/upload/status"
+                        class="nav-link {% if request.path == '/admin/upload/status' %}active{% endif %}">
+                        <svg fill="currentColor" width="18" height="18" viewBox="0 0 1920 1920"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="m773.596 1069.654 711.086 711.085c39.632 39.632 104.336 39.632 144.078 0l138.276-138.385c19.268-19.269 29.888-44.778 29.888-71.93 0-27.26-10.62-52.77-29.888-72.039l-698.714-698.714 11.495-32.625c63.5-178.675 18.284-380.45-115.284-514.018-123.715-123.605-305.126-171.01-471.648-128.313l272.281 272.282c32.516 32.406 50.362 75.652 50.362 121.744 0 45.982-17.846 89.227-50.362 121.744L654.48 751.17c-67.222 67.003-176.375 67.003-243.488 0L138.711 478.889c-42.589 166.522 4.707 347.934 128.313 471.648 123.714 123.715 306.22 172.325 476.027 127.218l30.545-8.101ZM1556.611 1920c-54.084 0-108.168-20.692-149.333-61.857L740.095 1190.96c-198.162 41.712-406.725-19.269-550.475-163.019C14.449 852.771-35.256 582.788 65.796 356.27l32.406-72.696 390.194 390.193c24.414 24.305 64.266 24.305 88.68 0l110.687-110.686c11.824-11.934 18.283-27.59 18.283-44.34 0-16.751-6.46-32.516-18.283-44.34L297.569 84.207 370.265 51.8C596.893-49.252 866.875.453 1041.937 175.515c155.026 155.136 212.833 385.157 151.851 594.815l650.651 650.651c39.961 39.852 61.967 92.95 61.967 149.443 0 56.383-22.006 109.482-61.967 149.334l-138.275 138.385c-41.275 41.165-95.36 61.857-149.553 61.857Z"
+                                fill-rule="evenodd" />
+                        </svg>
+                        <span>Upload Status</span>
+                    </a>
+                </li>
+                {% endif %}
+
+
+
+
+                <li>
+                    <a href="/admin/announcements"
+                        class="nav-link {% if request.path == '/admin/announcements' %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                            </path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                <li class="nav-category">Zoom</li>
+
+
+                <li>
+                    <a href="/admin/zoom"
+                        class="nav-link {% if request.path == '/admin/zoom' %}active{% endif %}">
+                        <?xml version="1.0" encoding="utf-8"?>
+                        <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+                        <svg fill="#000000" width="18" height="18" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                        <title>zoom</title>
+                        <path d="M19.283 17.4c-0.367 0.374-0.879 0.606-1.444 0.606-1.117 0-2.023-0.906-2.023-2.023s0.906-2.023 2.023-2.023c0.929 0 1.712 0.626 1.949 1.479l0.003 0.014c0.045 0.159 0.071 0.341 0.071 0.53 0 0.552-0.221 1.052-0.579 1.417l0-0zM15.471 13.586c-0.648 0.615-1.052 1.483-1.052 2.446 0 1.861 1.509 3.37 3.37 3.37s3.37-1.509 3.37-3.37c0-1.54-1.033-2.838-2.444-3.241l-0.024-0.006c-0.27-0.078-0.581-0.123-0.902-0.123-0.899 0-1.716 0.352-2.32 0.925l0.002-0.001zM28.296 12.601c-0.802 0.001-1.522 0.352-2.016 0.909l-0.002 0.003c-0.496-0.562-1.219-0.915-2.023-0.915-0.563 0-1.086 0.173-1.519 0.468l0.009-0.006c-0.316-0.278-0.73-0.451-1.184-0.462l-0.002-0v6.742l0.337-0.016c0.544-0.014 0.981-0.451 0.995-0.993l0-0.001 0.016-0.337v-2.361l0.017-0.337c0-0.001 0-0.002 0-0.003 0-0.245 0.061-0.477 0.169-0.679l-0.004 0.008c0.238-0.405 0.671-0.672 1.166-0.672s0.928 0.267 1.162 0.664l0.003 0.006c0.103 0.196 0.164 0.428 0.165 0.675v0l0.017 0.339v2.361l0.016 0.336c0.022 0.54 0.454 0.972 0.991 0.995l0.002 0 0.337 0.016v-3.708l0.015-0.337c0-0.001 0-0.002 0-0.003 0-0.247 0.062-0.48 0.171-0.683l-0.004 0.008c0.238-0.403 0.67-0.669 1.165-0.669 0.496 0 0.929 0.268 1.164 0.666l0.003 0.006c0.102 0.195 0.162 0.427 0.162 0.673 0 0.001 0 0.001 0 0.002v-0l0.019 0.337v2.361l0.016 0.336c0.020 0.541 0.454 0.975 0.993 0.995l0.002 0 0.337 0.016v-4.045c-0.001-1.488-1.208-2.694-2.697-2.694-0.001 0-0.002 0-0.003 0h0zM12.206 17.4c-0.37 0.393-0.894 0.638-1.475 0.638-1.117 0-2.023-0.906-2.023-2.023s0.906-2.023 2.023-2.023c0.924 0 1.703 0.619 1.945 1.465l0.004 0.014c0.047 0.163 0.075 0.351 0.075 0.544 0 0.536-0.209 1.024-0.549 1.386l0.001-0.001zM10.78 12.6h-0.005c-1.86 0.001-3.367 1.509-3.367 3.368s1.508 3.368 3.368 3.368 3.368-1.508 3.368-3.368c0-1.86-1.507-3.367-3.366-3.368h-0zM6.734 18.008l-0.337-0.015h-3.035l4.044-4.045-0.016-0.337c-0.013-0.544-0.451-0.982-0.994-0.995l-0.001-0-0.337-0.016h-5.052l0.018 0.337c0.026 0.538 0.455 0.967 0.99 0.995l0.002 0 0.337 0.016h3.037l-4.049 4.045 0.017 0.336c0.019 0.541 0.453 0.975 0.992 0.995l0.002 0 0.337 0.016h5.056l-0.018-0.337c-0.024-0.539-0.455-0.969-0.991-0.993l-0.002-0z"></path>
+                        </svg>
+                        <span>Zoom</span>
+                    </a>
+                </li>
+
+
+
+                <li class="nav-category">Content</li>
+                <li>
+                    <a href="/admin/assignments"
+                        class="nav-link {% if request.path.startswith('/admin/assignments') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                        <span>Assignments</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/online/exam"
+                        class="nav-link {% if request.path.startswith('/admin/online/exam') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+                            <path d="M16 2v4"></path>
+                            <path d="M8 2v4"></path>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                            <circle cx="8" cy="14" r="1"></circle>
+                            <circle cx="8" cy="17" r="1"></circle>
+                            <rect x="10.5" y="13" width="6" height="2" rx="1"></rect>
+                            <rect x="10.5" y="16" width="6" height="2" rx="1"></rect>
+                        </svg>
+                        <span>Exams</span>
+                    </a>
+                </li>
+
+
+
+
+
+                <li>
+                    <a href="/admin/folders"
+                        class="nav-link {% if request.path.startswith('/admin/folders') or request.path.startswith('/admin/view_material') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
+                            </path>
+                        </svg>
+                        <span>Material</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/sessions"
+                        class="nav-link {% if request.path.startswith('/admin/sessions') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+                        </svg>
+                        <span>Sessions</span>
+                    </a>
+                </li>
+
+                <li class="nav-category">Students</li>
+                <li>
+                    <a href="/admin/attendance"
+                        class="nav-link {% if request.path.startswith('/admin/attendance') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <span>Attendance</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/students"
+                        class="nav-link {% if request.path == '/admin/students' or request.path.startswith('/admin/edit_user') or request.path.startswith('/admin/student') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Manage Students</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/approve/students"
+                        class="nav-link {% if request.path.startswith('/admin/approve/students') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9 12l2 2l4-4"></path>
+                        </svg>
+                        <span>Approve Students</span>
+                        {% if pending_students_count > 0 %}
+                        <span class="notification-bubble">{{ pending_students_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+
+                <li>
+                    <a href="/admin/critical/students"
+                        class="nav-link {% if request.path == '/admin/critical/students' %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z">
+                            </path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Critical Students</span>
+                    </a>
+                </li>
+
+
+                <li>
+                    <a href="/admin/leaderboard"
+                        class="nav-link {% if request.path.startswith('/admin/leaderboard') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 21h8"></path>
+                            <path d="M12 17v4"></path>
+                            <path d="M17 5V3H7v2"></path>
+                            <path d="M17 5a5 5 0 0 1 0 10H7a5 5 0 0 1 0-10"></path>
+                            <path d="M21 7v2a4 4 0 0 1-4 4"></path>
+                            <path d="M3 7v2a4 4 0 0 0 4 4"></path>
+                        </svg>
+                        <span>Leaderboard</span>
+                    </a>
+                </li>
+
+                {% if current_user.role == "super_admin" %}
+                <li class="nav-category">Super Admin</li>
+                <li>
+                    <a href="/admin/whatsapp"
+                        class="nav-link {% if request.path.startswith('/admin/whatsapp') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="18" height="18"
+                            viewBox="0 0 682 682.667">
+                            <g>
+                                <path fill-rule="evenodd"
+                                    d="M544.387 93.008C484.512 33.063 404.883.035 320.05 0 145.246 0 2.98 142.262 2.91 317.113c-.024 55.895 14.577 110.457 42.331 158.551L.25 640l168.121-44.102c46.324 25.27 98.477 38.586 151.55 38.602h.134c174.785 0 317.066-142.273 317.132-317.133.036-84.742-32.921-164.418-92.8-224.36zM320.05 580.94h-.11c-47.296-.02-93.683-12.73-134.16-36.742l-9.62-5.715-99.766 26.172 26.628-97.27-6.27-9.972c-26.386-41.969-40.32-90.476-40.296-140.281.055-145.332 118.305-263.57 263.7-263.57 70.406.023 136.59 27.476 186.355 77.3s77.156 116.051 77.133 186.485C583.582 462.69 465.34 580.94 320.05 580.94zm144.586-197.418c-7.922-3.968-46.883-23.132-54.149-25.78-7.258-2.645-12.547-3.962-17.824 3.968-5.285 7.93-20.469 25.781-25.094 31.066-4.625 5.29-9.242 5.953-17.168 1.985-7.925-3.965-33.457-12.336-63.726-39.332-23.555-21.012-39.457-46.961-44.082-54.89-4.617-7.938-.04-11.813 3.476-16.173 8.578-10.652 17.168-21.82 19.809-27.105 2.644-5.29 1.32-9.918-.664-13.883-1.977-3.965-17.824-42.969-24.426-58.84-6.437-15.445-12.965-13.36-17.832-13.601-4.617-.231-9.902-.278-15.187-.278-5.282 0-13.868 1.98-21.133 9.918-7.262 7.934-27.73 27.102-27.73 66.106s28.394 76.683 32.355 81.972c3.96 5.29 55.879 85.328 135.367 119.649 18.906 8.172 33.664 13.043 45.176 16.695 18.984 6.031 36.254 5.18 49.91 3.14 15.226-2.277 46.879-19.171 53.488-37.68 6.602-18.51 6.602-34.374 4.617-37.683-1.976-3.304-7.261-5.285-15.183-9.254zm0 0"
+                                    fill="currentColor"></path>
+                            </g>
+                        </svg>
+                        <span>Whatsapp</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/assistants"
+                        class="nav-link {% if request.path.startswith('/admin/assistants') or request.path.startswith('/admin/edit_admin') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Manage Assistants</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/logs"
+                        class="nav-link {% if request.path.startswith('/admin/logs') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <path d="M8 6h8"></path>
+                            <path d="M8 10h8"></path>
+                            <path d="M8 14h6"></path>
+                        </svg>
+                        <span>Admin Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/students/setup"
+                        class="nav-link {% if request.path.startswith('/admin/students/setup') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 21V7l9-4 9 4v14"></path>
+                            <path d="M9 21V12h6v9"></path>
+                            <path d="M9 8h6"></path>
+                        </svg>
+                        <span>Academic Structure</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="nav-category">Account</li>
+                <li>
+                    <a href="/admin/account"
+                        class="nav-link {% if request.path.startswith('/admin/account') %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="8" r="4"></circle>
+                            <path d="M4 20c0-4 4-7 8-7s8 3 8 7"></path>
+                        </svg>
+                        <span>My Account</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <div class="flash-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="flash-message flash-{{ category }}">
+                    <span class="flash-message-content">{{ message }}</span>
+                    <button class="flash-close-btn" aria-label="Close">&times;</button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+
+            {% block content %}
+            <div class="content-header">
+                <h1>Welcome to the Admin Dashboard</h1>
+                <p>Use the navigation menu to manage website content and users.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="card">
+                    <h2>Total Students</h2>
+                    <p class="stat-number">{{ student_count }}</p>
+                </div>
+                <div class="card">
+                    <h2>Pending Approvals</h2>
+                    <p class="stat-number">{{ pending_students_count | default('0') }}</p>
+                </div>
+            </div>
+            {% endblock %}
+        </main>
+    </div>
+
+    <script>
+
+
+        // --- MOBILE NAVIGATION ---
+        const navToggle = document.getElementById('mobile-nav-toggle');
+        const mainNav = document.getElementById('main-navigation');
+        const pageContainer = document.querySelector('.page-container');
+
+        navToggle.addEventListener('click', () => {
+            const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
+            navToggle.setAttribute('aria-expanded', !isExpanded);
+            mainNav.classList.toggle('active');
+            pageContainer.classList.toggle('nav-active');
+        });
+
+        // --- LOGOUT CONFIRMATION ---
+        document.addEventListener('DOMContentLoaded', function () {
+            const logoutLink = document.getElementById('logout-link');
+            if (logoutLink) {
+                logoutLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "You will be logged out.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, logout'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = logoutLink.getAttribute('href');
+                        }
+                    });
+                });
+            }
+        });
+
+        // --- FLASH MESSAGES ---
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function (msg) {
+                if (msg.textContent.includes('Password')) {
+                    return; // Don't auto-hide sensitive messages
+                }
+
+                let isHovered = false;
+                let fadeTimeout;
+
+                const startFadeOut = () => {
+                    if (isHovered) return;
+                    fadeTimeout = setTimeout(() => {
+                        msg.style.opacity = '0';
+                        setTimeout(() => msg.remove(), 500);
+                    }, 3000);
+                };
+
+                const stopFadeOut = () => {
+                    clearTimeout(fadeTimeout);
+                    msg.style.opacity = '1';
+                };
+
+                msg.addEventListener('mouseenter', () => {
+                    isHovered = true;
+                    stopFadeOut();
+                });
+
+                msg.addEventListener('mouseleave', () => {
+                    isHovered = false;
+                    startFadeOut();
+                });
+
+                msg.querySelector('.flash-close-btn')?.addEventListener('click', function () {
+                    stopFadeOut();
+                    msg.style.opacity = '0';
+                    setTimeout(() => msg.remove(), 500);
+                });
+
+                startFadeOut();
+            });
+        });
+
+        function confirmAction(event, message) {
+            event.preventDefault(); // Prevent the default button action
+            Swal.fire({
+                title: "Confirm Action",
+                html: message,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "var(--button-bg)",
+                cancelButtonColor: "var(--flash-danger-bg)",
+                confirmButtonText: "Yes, proceed",
+                cancelButtonText: "No, cancel",
+                background: "var(--card-bg)",
+                color: "var(--text-color)",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Proceed with the button action
+                    const button = event.target;
+                    const form = button.closest("form");
+                    if (form) form.submit();
+                }
+            });
+        }
+    </script>
+
+    {% block additional_scripts %}{% endblock %}
+</body>
+
+</html>

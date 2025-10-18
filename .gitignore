@@ -1,0 +1,27 @@
+# Ignore .env file
+.env
+
+# Ignore nohup output file
+nohup.out
+
+# Ignore __pycache__ directories
+__pycache__/
+website/__pycache__/
+
+# Ignore .git folder to prevent nested repositories
+.git
+
+#Ignore uploads
+
+website/submissions
+website/records
+website/assignments
+website/material
+website/static/folders
+website/static/videos
+instance/site.db
+website/temp_videos/
+website/video_urls/
+python.log
+website/static/profile_pictures/
+website/static/sessions/

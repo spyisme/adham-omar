@@ -1,0 +1,429 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}WhatsApp Messages - Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>WhatsApp Messages</h1>
+        <p class="subtitle">View and manage WhatsApp messages sent through the system</p>
+    </div>
+</div>
+
+<!-- Send New Message Form -->
+<div class="send-message-section">
+    <h2>Send New Message</h2>
+    <form method="POST" action="{{ url_for('admin.whatsapp_messages') }}" class="send-message-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="country_code">Country Code:</label>
+                <input type="text" name="country_code" id="country_code" value="2" placeholder="2" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="phone_number">Phone Number:</label>
+                <input type="text" name="phone_number" id="phone_number" placeholder="1234567890" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="message">Message:</label>
+            <textarea name="message" id="message" rows="5" placeholder="Enter your message here..." required></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Send Message</button>
+    </form>
+</div>
+
+<div class="filters-section">
+    <form method="GET" action="{{ url_for('admin.whatsapp_messages') }}" class="filters-form">
+        <div class="filter-group">
+            <label for="statusFilter">Status:</label>
+            <select name="status" id="statusFilter" onchange="this.form.submit()">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                <option value="sent" {% if status_filter == 'sent' %}selected{% endif %}>Sent</option>
+                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="userFilter">User:</label>
+            <select name="user_id" id="userFilter" onchange="this.form.submit()">
+                <option value="">All Users</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if user_id_filter == user.id %}selected{% endif %}>
+                    {{ user.name }} 
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <button type="submit" class="btn btn-secondary">Apply Filters</button>
+        <a href="{{ url_for('admin.whatsapp_messages') }}" class="btn btn-outline">Clear Filters</a>
+    </form>
+</div>
+
+<div class="messages-container">
+    {% if messages %}
+    <div class="messages-grid">
+        {% for message in messages %}
+        <div class="message-card status-{{ message.status }}">
+            <div class="message-header">
+                <div class="message-meta">
+                    <span class="message-date">{{ message.date_added.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                    <span class="message-status badge-{{ message.status }}">{{ message.status|upper }}</span>
+                </div>
+            </div>
+            
+            <div class="message-body">
+                {% if message.user %}
+                <div class="message-recipient">
+                    <strong>Recipient:</strong> {{ message.user.name }} ({{ message.to }})
+                </div>
+                {% else %}
+                <div class="message-recipient">
+                    <strong>Recipient:</strong> <span class="text-muted">User not found ({{ message.to }})</span>
+                </div>
+                {% endif %}
+                
+                <div class="message-content">
+                    <strong>Message:</strong>
+                    <p>{{ message.content }}</p>
+                </div>
+                
+
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-messages">
+        <h3>No messages found.</h3>
+        <p>Try adjusting your filters to see more results.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .header-content h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0 0 0.5rem 0;
+    }
+
+    .subtitle {
+        color: #6b7280;
+        font-size: 1rem;
+        margin: 0;
+    }
+
+    /* Send Message Section */
+    .send-message-section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .send-message-section h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin: 0 0 1.5rem 0;
+    }
+
+    .send-message-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        flex: 1;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 0.625rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        background: #fff;
+        font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .btn-primary {
+        background: #10b981;
+        color: #fff;
+        padding: 0.625rem 1.25rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        align-self: flex-start;
+    }
+
+    .btn-primary:hover {
+        background: #059669;
+    }
+
+    .filters-section {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .filter-group select {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        min-width: 200px;
+        background: #fff;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .btn-secondary {
+        background: #4f46e5;
+        color: #fff;
+    }
+
+    .btn-secondary:hover {
+        background: #4338ca;
+    }
+
+    .btn-outline {
+        background: #fff;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-outline:hover {
+        background: #f9fafb;
+    }
+
+    .messages-container {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .messages-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .message-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.25rem;
+        background: #fff;
+        transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .message-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transform: translateY(-2px);
+    }
+
+    .message-card.status-pending {
+        border-left: 4px solid #f59e0b;
+    }
+
+    .message-card.status-sent {
+        border-left: 4px solid #10b981;
+    }
+
+    .message-card.status-failed {
+        border-left: 4px solid #ef4444;
+    }
+
+    .message-header {
+        margin-bottom: 1rem;
+    }
+
+    .message-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .message-date {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 500;
+    }
+
+    .message-status {
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .badge-pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .badge-sent {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .badge-failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .message-body {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .message-recipient {
+        font-size: 0.875rem;
+        color: #374151;
+    }
+
+    .message-recipient strong {
+        color: #1f2937;
+    }
+
+    .text-muted {
+        color: #9ca3af;
+    }
+
+    .message-content {
+        font-size: 0.875rem;
+    }
+
+    .message-content strong {
+        color: #1f2937;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .message-content p {
+        margin: 0;
+        padding: 0.75rem;
+        background: #f9fafb;
+        border-radius: 6px;
+        color: #374151;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+
+    .no-messages {
+        text-align: center;
+        padding: 3rem 1rem;
+    }
+
+    .no-messages h3 {
+        font-size: 1.5rem;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .no-messages p {
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+        }
+
+        .filters-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group select {
+            min-width: 100%;
+        }
+
+        .messages-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .btn-primary {
+            align-self: stretch;
+        }
+    }
+</style>
+{% endblock %}

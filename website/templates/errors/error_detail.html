@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .error-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .error-details dt {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .error-details dd {
+            margin-left: 0;
+            margin-bottom: 10px;
+        }
+
+        .traceback {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 20px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #17a2b8;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .back-btn:hover {
+            background-color: #138496;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Error Details</h1>
+        
+        {% if error %}
+            <div class="error-details">
+                <dl>
+                    <dt>Timestamp</dt>
+                    <dd>{{ error.timestamp }}</dd>
+                    
+                    <dt>Error Type</dt>
+                    <dd>{{ error.type }}</dd>
+                    
+                    <dt>Message</dt>
+                    <dd>{{ error.message }}</dd>
+                </dl>
+            </div>
+
+            {% if error.traceback %}
+                <h2>Traceback</h2>
+                <div class="traceback">{{ error.traceback }}</div>
+            {% endif %}
+        {% else %}
+            <p>Error not found.</p>
+        {% endif %}
+
+        <a href="{{ url_for('errors') }}" class="back-btn">Back to Error Log</a>
+    </div>
+</body>
+</html>

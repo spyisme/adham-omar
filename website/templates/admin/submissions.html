@@ -1,0 +1,354 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}All Submissions{% endblock %}
+{% block content %}
+<style>
+    /* --- General Setup & Variables --- */
+    :root {
+        --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --spacing-sm: 8px;
+        --spacing-md: 16px;
+        --spacing-lg: 24px;
+        --border-radius: 12px;
+        --transition: 0.2s ease-in-out;
+        --shadow-soft: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+        --shadow-medium: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    }
+
+    /* --- Main Layout --- */
+    .page-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--spacing-lg);
+        font-family: var(--font-family);
+    }
+    
+    .page-header h1 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--heading-color);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    /* --- Statistics Grid --- */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-md);
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--card-border);
+    }
+
+    .stat-card .icon {
+        font-size: 2rem;
+        padding: var(--spacing-md);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .stat-card .icon-total { background-color: rgba(88, 101, 242, 0.1); color: #5865f2; }
+    .stat-card .icon-ontime { background-color: rgba(87, 242, 135, 0.1); color: var(--success); }
+    .stat-card .icon-late { background-color: rgba(237, 66, 69, 0.1); color: var(--danger); }
+
+    .stat-card .info .value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--heading-color);
+    }
+    .stat-card .info .label {
+        font-size: 0.9rem;
+        color: var(--muted);
+    }
+
+    /* --- Filter Toolbar --- */
+    .filter-toolbar {
+        background: var(--card-bg);
+        padding: var(--spacing-md);
+        border-radius: var(--border-radius);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+        border: 1px solid var(--card-border);
+    }
+    
+    .filter-toolbar input, .filter-toolbar select {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        background: var(--input-bg);
+        color: var(--input-text);
+        border: 1px solid var(--input-border);
+        border-radius: 8px;
+    }
+    .filter-toolbar input { grid-column: 1 / -1; } /* Search spans full width on smaller grids */
+    @media (min-width: 768px) {
+        .filter-toolbar input { grid-column: span 2; }
+    }
+
+
+    /* --- Submissions Card List --- */
+    .submission-card {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        margin-bottom: var(--spacing-md);
+        box-shadow: var(--shadow-soft);
+        border: 1px solid var(--card-border);
+        transition: transform var(--transition), box-shadow var(--transition);
+        overflow: hidden;
+    }
+    .submission-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-medium);
+    }
+    
+    .card-content {
+        padding: var(--spacing-lg);
+        display: grid;
+        grid-template-areas: "header actions" "student actions" "time actions";
+        grid-template-columns: 1fr auto;
+        gap: var(--spacing-sm) var(--spacing-lg);
+        align-items: center;
+    }
+    
+    .card-header { grid-area: header; }
+    .student-info { grid-area: student; }
+    .submission-time { grid-area: time; }
+    .action-buttons { grid-area: actions; }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+    }
+
+    .assignment-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--heading-color);
+        text-decoration: none;
+    }
+    
+    .late-badge {
+        background-color: var(--danger);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 16px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .student-name {
+        color: var(--card-text);
+        text-decoration: none;
+    }
+    
+    .submission-time {
+        font-size: 0.9rem;
+        color: var(--muted);
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 8px;
+        text-align: center;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all var(--transition);
+    }
+    .btn-primary { background-color: var(--button-bg); color: var(--button-text); }
+    .btn-primary:hover { background-color: var(--button-hover-bg); transform: scale(1.05); }
+    .btn-secondary { background: none; border: 1px solid var(--input-border); color: var(--heading-color); }
+    .btn-secondary:hover { background: var(--secondary-bg); border-color: var(--card-border); transform: scale(1.05); }
+    .btn-success { background-color: var(--success); color: white; }
+    .btn-success:hover { background-color: #45a049; transform: scale(1.05); }
+
+    .no-results {
+        text-align: center;
+        padding: var(--spacing-lg);
+        color: var(--muted);
+        display: none;
+    }
+    
+    /* --- Responsive Adjustments --- */
+    @media (max-width: 600px) {
+        .card-content {
+            grid-template-areas: "header" "student" "time" "actions";
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+        .action-buttons {
+            flex-direction: row;
+            width: 100%;
+        }
+        .action-buttons > * {
+            flex-grow: 1;
+        }
+    }
+</style>
+
+<div class="page-container">
+    <header class="page-header">
+        <h1>All Submissions</h1>
+    </header>
+
+    <section class="stats-grid">
+        <div class="stat-card">
+            <div class="icon icon-total">📊</div>
+            <div class="info">
+                <div class="value" id="totalSubmissions">0</div>
+                <div class="label">Total Shown</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon icon-ontime">🕒</div>
+            <div class="info">
+                <div class="value" id="onTimeSubmissions">0</div>
+                <div class="label">On-Time</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="icon icon-late">🚨</div>
+            <div class="info">
+                <div class="value" id="lateSubmissions">0</div>
+                <div class="label">Late</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="filter-toolbar">
+        <input type="text" id="searchInput" placeholder="Search by assignment or student...">
+        <select id="groupFilter">
+            <option value="">All Classes</option>
+            {% for group in groups %}<option value="{{ group.name }}">{{ group.name }}</option>{% endfor %}
+        </select>
+        <select id="stageFilter">
+            <option value="">All Years</option>
+            {% for stage in stages %}<option value="{{ stage.name }}">{{ stage.name }}</option>{% endfor %}
+        </select>
+        <select id="assignmentFilter">
+            <option value="">All Assignments</option>
+            {% for assignment in assignments %}<option value="{{ assignment.title }}">{{ assignment.title }}</option>{% endfor %}
+        </select>
+        <select id="statusFilter">
+            <option value="all">All Statuses</option>
+            <option value="ontime">On-Time</option>
+            <option value="late">Late</option>
+        </select>
+    </section>
+
+    <main id="submissionsList">
+        {% for submission in submissions %}
+        <div class="submission-card" data-group="{{ submission.student.group.name }}" data-stage="{{ submission.student.stage.name }}">
+            <div class="card-content">
+                <div class="card-header">
+                    <a href="{{ url_for('admin.view_assignment_submissions', assignment_id=submission.assignment.id) }}" class="assignment-title">{{ submission.assignment.title }}</a>
+                    {% if submission.upload_time > submission.assignment.deadline_date %}
+                        <span class="late-badge">LATE</span>
+                    {% endif %}
+                </div>
+                
+                <div class="student-info">
+                    <a href="{{ url_for('admin.student', user_id=submission.student.id) }}" class="student-name">
+                        {{ submission.student.code }} | {{ submission.student.name }}
+                    </a>
+                </div>
+
+                <div class="submission-time">
+                    {{ submission.upload_time.strftime('%b %d, %Y at %I:%M %p') }}
+                </div>
+                
+                <div class="action-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="window.open('{{ url_for('admin.submission_media', submission_id=submission.id) }}', '_blank')">Open</button>
+                    {% if submission.mark %}
+                        <span class="btn btn-secondary" style="cursor: default;">Mark: {{ submission.mark }}</span>
+                    {% else %}
+                        <a href="{{ url_for('admin.view_assignment_submissions', assignment_id=submission.assignment.id) }}" class="btn btn-success">Mark</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="no-results">
+            <h3>No Submissions Found</h3>
+            <p>Try adjusting your search or filter criteria.</p>
+        </div>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function () {
+    const submissionsList = $("#submissionsList");
+    const noResultsMessage = $(".no-results");
+
+    function filterCards() {
+        let searchValue = $("#searchInput").val().toLowerCase();
+        let selectedGroup = $("#groupFilter").val().toLowerCase();
+        let selectedStage = $("#stageFilter").val().toLowerCase();
+        let selectedAssignment = $("#assignmentFilter").val().toLowerCase();
+        let selectedStatus = $("#statusFilter").val();
+
+        submissionsList.find(".submission-card").each(function () {
+            let card = $(this);
+            let assignmentText = card.find(".assignment-title").text().toLowerCase();
+            let studentText = card.find(".student-name").text().toLowerCase();
+            let isLate = card.find(".late-badge").length > 0;
+
+            let groupMatch = selectedGroup === "" || card.data("group").toLowerCase() === selectedGroup;
+            let stageMatch = selectedStage === "" || card.data("stage").toLowerCase() === selectedStage;
+            let assignmentMatch = selectedAssignment === "" || assignmentText.includes(selectedAssignment);
+            let statusMatch = selectedStatus === "all" || 
+                            (selectedStatus === "late" && isLate) ||
+                            (selectedStatus === "ontime" && !isLate);
+            let searchMatch = searchValue === "" || 
+                            assignmentText.includes(searchValue) || 
+                            studentText.includes(searchValue);
+
+            card.toggle(searchMatch && groupMatch && stageMatch && assignmentMatch && statusMatch);
+        });
+
+        updateStats();
+    }
+
+    function updateStats() {
+        let visibleCards = submissionsList.find(".submission-card:visible");
+        let totalSubmissions = visibleCards.length;
+        let lateSubmissions = visibleCards.find(".late-badge").length;
+        let onTimeSubmissions = totalSubmissions - lateSubmissions;
+
+        $("#totalSubmissions").text(totalSubmissions);
+        $("#lateSubmissions").text(lateSubmissions);
+        $("#onTimeSubmissions").text(onTimeSubmissions);
+        
+        // Show or hide the 'no results' message
+        noResultsMessage.toggle(totalSubmissions === 0);
+    }
+
+    $("#searchInput, #groupFilter, #stageFilter, #assignmentFilter, #statusFilter").on("input change", filterCards);
+
+    // Initial stats update on page load
+    updateStats();
+});
+</script>
+
+{% endblock %}

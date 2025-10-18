@@ -1,0 +1,296 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Upload Status{% endblock %}
+
+{% block content %}
+<style>
+    .upload-status-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .upload-status-header {
+        margin-bottom: 24px;
+        font-size: 24px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stat-card.primary { border-left: 4px solid #3b82f6; }
+    .stat-card.warning { border-left: 4px solid #f59e0b; }
+    .stat-card.success { border-left: 4px solid #10b981; }
+    .stat-card.danger { border-left: 4px solid #ef4444; }
+    
+    .stat-card-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+    
+    .stat-card-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+    
+    .upload-table-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .upload-table-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        font-size: 16px;
+        font-weight: 600;
+        color: #1f2937;
+    }
+    
+    .upload-table-body {
+        padding: 20px;
+    }
+    
+    .upload-table {
+        width: 100%;
+        font-size: 13px;
+        border-collapse: collapse;
+    }
+    
+    .upload-table thead th {
+        text-align: left;
+        padding: 10px 12px;
+        background: #f9fafb;
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .upload-table tbody td {
+        padding: 12px;
+        border-bottom: 1px solid #f3f4f6;
+        color: #374151;
+    }
+    
+    .upload-table tbody tr:hover {
+        background: #f9fafb;
+    }
+    
+    .upload-table a {
+        color: #3b82f6;
+        text-decoration: none;
+    }
+    
+    .upload-table a:hover {
+        text-decoration: underline;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-badge.completed {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    
+    .status-badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status-badge.failed {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+    
+    .status-badge.default {
+        background: #e5e7eb;
+        color: #374151;
+    }
+    
+    .progress-container {
+        min-width: 100px;
+    }
+    
+    .progress-bar-wrapper {
+        width: 100%;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 4px;
+    }
+    
+    .progress-bar-fill {
+        height: 100%;
+        background: #3b82f6;
+        transition: width 0.3s ease;
+    }
+    
+    .progress-text {
+        font-size: 11px;
+        color: #6b7280;
+    }
+    
+    .failure-row td {
+        background: #fef3c7 !important;
+        padding: 12px !important;
+    }
+    
+    .failure-label {
+        font-weight: 600;
+        color: #92400e;
+        font-size: 12px;
+    }
+    
+    .failure-message {
+        color: #dc2626;
+        font-size: 12px;
+    }
+    
+    .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #6b7280;
+        background: #f9fafb;
+        border-radius: 8px;
+        font-size: 13px;
+    }
+</style>
+
+<div class="upload-status-container">
+    <h1 class="upload-status-header">Upload Status</h1>
+    
+    <!-- Summary Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-card-title">Total Uploads</div>
+            <div class="stat-card-value">{{ stats.total }}</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-card-title">Pending</div>
+            <div class="stat-card-value">{{ stats.pending }}</div>
+        </div>
+        <div class="stat-card success">
+            <div class="stat-card-title">Completed</div>
+            <div class="stat-card-value">{{ stats.completed }}</div>
+        </div>
+        <div class="stat-card danger">
+            <div class="stat-card-title">Failed</div>
+            <div class="stat-card-value">{{ stats.failed }}</div>
+        </div>
+    </div>
+
+    <!-- Upload List -->
+    <div class="upload-table-card">
+        <div class="upload-table-header">
+            All Uploads
+        </div>
+        <div class="upload-table-body">
+            {% if uploads|length > 0 %}
+            <table class="upload-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>File Name</th>
+                        <th>User</th>
+                        <th>Assignment</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Progress</th>
+                        <th>Size</th>
+                        <th>Created At</th>
+                        <th>Last Activity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for upload in uploads %}
+                    <tr>
+                        <td>{{ upload.id }}</td>
+                        <td>{{ upload.file_name }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.student', user_id=upload.user_id) }}">
+                                {{ upload.user_name }}
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('admin.view_assignment_submissions', assignment_id=upload.assignment_id) }}">
+                                {{ upload.assignment_title }}
+                            </a>
+                        </td>
+                        <td>{{ upload.type }}</td>
+                        <td>
+                            {% if upload.status == 'completed' %}
+                                <span class="status-badge completed">{{ upload.status }}</span>
+                            {% elif upload.status == 'pending' %}
+                                <span class="status-badge pending">{{ upload.status }}</span>
+                            {% elif upload.status == 'failed' %}
+                                <span class="status-badge failed">{{ upload.status }}</span>
+                            {% else %}
+                                <span class="status-badge default">{{ upload.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-bar-wrapper">
+                                    <div class="progress-bar-fill" style="width: {{ upload.progress_percentage }}%"></div>
+                                </div>
+                                <div class="progress-text">
+                                    {{ upload.progress_percentage }}% • {{ upload.current_chunk }}/{{ upload.total_chunks }} chunks
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {{ upload.uploaded_size_mb }}/{{ upload.total_size_mb }} MB
+                        </td>
+                        <td>{{ upload.created_at.strftime('%Y-%m-%d %H:%M:%S') if upload.created_at else 'N/A' }}</td>
+                        <td>{{ upload.last_chunk_date.strftime('%Y-%m-%d %H:%M:%S') if upload.last_chunk_date else 'N/A' }}</td>
+                    </tr>
+                    {% if upload.failure_reason %}
+                    <tr class="failure-row">
+                        <td colspan="10">
+                            <span class="failure-label">Failure Reason:</span> <span class="failure-message">{{ upload.failure_reason }}</span>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No uploads found.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

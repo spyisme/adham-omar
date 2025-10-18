@@ -1,0 +1,232 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Assistant Logs{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #1a237e;
+        --primary-hover-color: #141a64;
+        --danger-color: #dc2626;
+        --danger-hover-color: #b91c1c;
+        --surface-bg: #ffffff;
+        --container-bg: #f8f9fa;
+        --text-color: #222222;
+        --subtle-text-color: #6c757d;
+        --border-color: #dee2e6;
+        --border-radius: 6px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    .logs-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+    .logs-container h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+    }
+    .table-wrapper {
+        overflow-x: auto;
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+    }
+    th, td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        vertical-align: top;
+    }
+    thead th {
+        background-color: #f8f9fa;
+        color: var(--subtle-text-color);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    tbody tr:last-child td {
+        border-bottom: none;
+    }
+    tbody tr:hover {
+        background-color: #f1f3f5;
+    }
+    .log-action {
+        font-weight: 600;
+    }
+    .log-action.create { color: #28a745; }
+    .log-action.edit { color: #ffc107; }
+    .log-action.delete { color: #dc3545; }
+
+    .log-timestamp {
+        color: var(--subtle-text-color);
+        font-size: 0.95em;
+        white-space: nowrap;
+    }
+    .log-details {
+        font-family: "Fira Mono", "Consolas", "Menlo", monospace;
+        font-size: 0.95em;
+        background: #f8f9fa;
+        border-radius: 4px;
+        padding: 0.5em 0.8em;
+        color: #333;
+        max-width: 600px;
+        overflow-x: auto;
+        word-break: break-all;
+    }
+    .user-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .user-link:hover {
+        text-decoration: underline;
+    }
+    .diff-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .diff-item {
+        border: 1px solid var(--border-color);
+        padding: 0.75rem;
+        border-radius: 4px;
+    }
+    .diff-label {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .diff-before {
+        color: var(--danger-color);
+        font-style: italic;
+    }
+    .diff-after {
+        color: #28a745;
+        font-weight: 500;
+    }
+    .no-change {
+        color: var(--subtle-text-color);
+        font-style: italic;
+    }
+    .new-item-details {
+        padding: 0.5em;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .new-item-details pre {
+        margin: 0;
+        white-space: pre-wrap;
+    }
+    @media (max-width: 768px) {
+        .logs-container h1 {
+            font-size: 1.5rem;
+        }
+        th, td {
+            padding: 0.7rem;
+        }
+        .log-details {
+            font-size: 0.9em;
+        }
+    }
+</style>
+
+<div class="logs-container">
+    <h1>Assistant Logs</h1>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Assistant</th>
+                    <th>Action</th>
+                    <th>Entity</th>
+                    <th>Details</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log.id }}</td>
+                    <td>
+                        {% if log.user %}
+                            <a href="{{ url_for('admin.edit_assistant', user_id=log.user.id) }}" class="user-link">
+                                {{ log.user.name }} ({{ log.user.email }})
+                            </a>
+                        {% else %}
+                            <span class="user-link" style="color: #888;">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td class="log-action {{ log.log.get('action_name', 'default').lower() }}">
+                        {{ log.log.get('action_name', 'N/A') }}
+                    </td>
+                    <td>
+                        {{ log.log.get('resource_type', 'Unknown') }}
+                        {% if log.log.get('action_details', {}).get('id') %}
+                            <span style="color: #888; font-size: 0.95em;">#{{ log.log.get('action_details', {}).get('id') }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="log-details">
+                            {% set action_name = log.log.get('action_name') %}
+                            {% set action_details = log.log.get('action_details') %}
+                            {% set before_data = log.log.get('before') %}
+                            {% set after_data = log.log.get('after') %}
+
+                            {% if action_name == 'Create' %}
+                                <p><strong>{{ action_details.get('summary', 'New item created.') }}</strong></p>
+                                {% if log.log.get('data') %}
+                                <div class="new-item-details">
+                                    <pre>{{ log.log.get('data') | tojson(indent=2) }}</pre>
+                                </div>
+                                {% endif %}
+                            {% elif action_name == 'Edit' %}
+                                <p><strong>{{ action_details.get('summary', 'Item edited.') }}</strong></p>
+                                <div class="diff-container">
+                                    {% set diff_items = log.diff.items() if log.diff %}
+                                    {% if diff_items %}
+                                        {% for key, change in diff_items %}
+                                        <div class="diff-item">
+                                            <div class="diff-label">{{ key }}</div>
+                                            <div class="diff-before">Before: {{ change.before }}</div>
+                                            <div class="diff-after">After: {{ change.after }}</div>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="no-change">No changes were recorded.</div>
+                                    {% endif %}
+                                </div>
+                            {% elif action_name == 'Delete' %}
+                                <p><strong>{{ action_details.get('summary', 'Item deleted.') }}</strong></p>
+                                {% if before_data %}
+                                <p><strong>Data before deletion:</strong></p>
+                                <div class="new-item-details">
+                                    <pre>{{ before_data | tojson(indent=2) }}</pre>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <pre style="margin:0;white-space:pre-wrap;">{{ log.log | tojson(indent=2) }}</pre>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %I:%M:%S %p').lower() }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center; color: #888;">No logs found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

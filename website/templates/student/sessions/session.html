@@ -1,0 +1,411 @@
+{% extends "student/assignments/assignments.html" %}
+{% block title %}{{ session.title }}{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+        --session-bg: #f8f9fc;
+        --session-card: #fff;
+        --session-text: #1f2937;
+        --session-muted: #6b7280;
+        --session-primary: #4f46e5;
+        --session-radius: 16px;
+        --session-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+        --session-shadow-hover: 0 6px 16px 0 rgb(0 0 0 / 0.10);
+    }
+
+
+
+    .session-wrap {
+        max-width: 72rem;
+        margin: 0 auto;
+        padding: 1.5rem 1rem;
+    }
+
+    .session-header {
+        background: var(--session-card);
+        border: 1px solid #e5e7eb;
+        border-radius: var(--session-radius);
+        box-shadow: var(--session-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .session-header.collapsed {
+        margin-bottom: 1rem;
+    }
+
+    .session-header-toggle {
+        width: 100%;
+        padding: 1.25rem;
+        background: none;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: background-color 0.2s;
+    }
+
+    .session-header-toggle:hover {
+        background: #f9fafb;
+    }
+
+    .session-header-content {
+        flex: 1;
+    }
+
+    .session-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--session-text);
+        margin: 0 0 0.5rem 0;
+        line-height: 1.4;
+    }
+
+    .session-meta {
+        font-size: 0.95rem;
+        color: var(--session-muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .session-date {
+        font-weight: 500;
+        color: var(--session-primary);
+    }
+
+    .session-toggle-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--session-muted);
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .session-toggle-icon.rotated {
+        transform: rotate(180deg);
+    }
+
+    .session-details {
+        padding: 0 1.25rem 1.25rem 1.25rem;
+        border-top: 1px solid #e5e7eb;
+        background: #f9fafb;
+        max-height: 200px;
+        overflow: hidden;
+        transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .session-details.collapsed {
+        max-height: 0;
+        padding: 0 1.25rem;
+    }
+
+    .session-description {
+        font-size: 1rem;
+        color: var(--session-text);
+        line-height: 1.6;
+        margin-top: 1rem;
+    }
+
+    .video-player-container {
+        background: var(--session-card);
+        border: 1px solid #e5e7eb;
+        border-radius: var(--session-radius);
+        box-shadow: var(--session-shadow);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        display: none;
+    }
+
+    .video-player-container.active {
+        display: block;
+    }
+
+    .video-player-wrapper {
+        padding: 1rem;
+    }
+
+    .plyr__video-embed,
+    .plyr__video-wrapper {
+        border-radius: 12px;
+    }
+
+    .video-info {
+        padding: 1.25rem;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .video-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--session-text);
+        margin: 0 0 0.5rem 0;
+    }
+
+    .video-description {
+        font-size: 0.95rem;
+        color: var(--session-muted);
+        line-height: 1.5;
+    }
+
+    .videos-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .video-card {
+        display: flex;
+        background: var(--session-card);
+        border: 1px solid #e5e7eb;
+        border-radius: var(--session-radius);
+        box-shadow: var(--session-shadow);
+        cursor: pointer;
+        transition: box-shadow 0.2s, transform 0.2s;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .video-card:hover {
+        box-shadow: var(--session-shadow-hover);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .video-card.active {
+        border-color: var(--session-primary);
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+    }
+
+    .video-card-content {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .video-card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--session-text);
+        margin: 0 0 0.25rem 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .video-card-description {
+        font-size: 0.875rem;
+        color: var(--session-muted);
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .videos-heading {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--session-text);
+        margin-bottom: 1rem;
+    }
+
+    .no-videos {
+        text-align: center;
+        color: var(--session-muted);
+        padding: 3rem 1rem;
+        background: var(--session-card);
+        border: 1px solid #e5e7eb;
+        border-radius: var(--session-radius);
+    }
+
+    @media (min-width: 640px) {
+        .session-wrap {
+            padding: 2rem 1.5rem;
+        }
+
+        .videos-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .videos-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+
+<div class="session-wrap" role="main">
+    <!-- Session Header (Collapsible) -->
+    <div class="session-header" id="sessionHeader">
+        <button class="session-header-toggle" onclick="toggleSessionDetails()" aria-expanded="true">
+            <div class="session-header-content">
+                <h1 class="session-title">{{ session.title }}</h1>
+                <div class="session-meta">
+                    <svg style="width:1em;height:1em;vertical-align:-0.15em;margin-right:0.2em;" fill="none"
+                        stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M8 7V3m8 4V3m-9 8h10m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
+                    </svg>
+                    <span class="session-date">
+                        {{ session.creation_date.strftime('%b %d, %Y') if session.creation_date else '' }}
+                    </span>
+                </div>
+            </div>
+            <svg class="session-toggle-icon" id="toggleIcon" fill="none" stroke="currentColor" stroke-width="2"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+        <div class="session-details" id="sessionDetails">
+            {% if session.description %}
+            <div class="session-description">{{ session.description }}</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Video Player Container -->
+    <div class="video-player-container" id="videoPlayerContainer">
+        <div class="video-player-wrapper">
+            <div class="plyr__video-embed" id="plyr-video">
+                <iframe id="videoIframe" src="" allowfullscreen allowtransparency allow="autoplay" loading="lazy"
+                    style="width: 100%; aspect-ratio: 16/9; border-radius: 12px; background: black;"></iframe>
+            </div>
+        </div>
+        <div class="video-info">
+            <h2 class="video-title" id="currentVideoTitle"></h2>
+            <p class="video-description" id="currentVideoDescription"></p>
+        </div>
+    </div>
+
+    <!-- Videos List -->
+    <div class="videos-section">
+        <h2 class="videos-heading">Session Videos</h2>
+
+        {% if session.videos %}
+        <div class="videos-grid">
+            {% for video in session.videos %}
+            <div class="video-card"
+                onclick="playVideo({{ video.id }}, '{{ video.title|e }}', '{{ video.description|e if video.description else '' }}', '{{ video.video_url|e }}')"
+                data-video-id="{{ video.id }}">
+
+                <div class="video-card-content">
+                    <h3 class="video-card-title">{{ video.title }}</h3>
+                    {% if video.description %}
+                    <p class="video-card-description">{{ video.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="no-videos">
+            <p>🎥 No videos available in this session yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    let isSessionDetailsCollapsed = false;
+    let player = null;
+
+    function toggleSessionDetails() {
+        const header = document.getElementById('sessionHeader');
+        const details = document.getElementById('sessionDetails');
+        const icon = document.getElementById('toggleIcon');
+        const toggle = document.querySelector('.session-header-toggle');
+
+        isSessionDetailsCollapsed = !isSessionDetailsCollapsed;
+
+        if (isSessionDetailsCollapsed) {
+            header.classList.add('collapsed');
+            details.classList.add('collapsed');
+            icon.classList.add('rotated');
+            toggle.setAttribute('aria-expanded', 'false');
+        } else {
+            header.classList.remove('collapsed');
+            details.classList.remove('collapsed');
+            icon.classList.remove('rotated');
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    function playVideo(videoId, title, description, videoUrl) {
+        // Update video player
+        const videoIframe = document.getElementById('videoIframe');
+        const videoPlayerContainer = document.getElementById('videoPlayerContainer');
+        const currentVideoTitle = document.getElementById('currentVideoTitle');
+        const currentVideoDescription = document.getElementById('currentVideoDescription');
+
+        // Extract YouTube video ID from URL
+        let youtubeId = '';
+        if (videoUrl.includes('youtube.com/watch?v=')) {
+            youtubeId = videoUrl.replace('https://www.youtube.com/watch?v=', '');
+        } else if (videoUrl.includes('youtu.be/')) {
+            youtubeId = videoUrl.replace('https://youtu.be/', '');
+        }
+
+        // Set iframe source with YouTube embed URL
+        const embedUrl = `https://www.youtube.com/embed/${youtubeId}?origin=${window.location.protocol}//${window.location.host}&iv_load_policy=3&modestbranding=1&rel=0&showinfo=0&autohide=1`;
+        videoIframe.src = embedUrl;
+
+        // Update video info
+        currentVideoTitle.textContent = title;
+        currentVideoDescription.textContent = description;
+
+        // Show video player
+        videoPlayerContainer.classList.add('active');
+
+        // Initialize Plyr if not already done
+        if (!player) {
+            player = new Plyr('#plyr-video', {
+                controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
+                settings: ['quality', 'speed', 'loop'],
+                speed: { selected: 1, options: [0.5, 1, 1.5, 1.75, 2] }
+            });
+
+            // Try to lock to landscape on mobile while playing or in fullscreen
+            function isMobile() {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            }
+            if (isMobile() && 'orientation' in screen && typeof screen.orientation.lock === 'function') {
+                function tryLock() { screen.orientation.lock('landscape-primary').catch(() => { }); }
+                player.on('play', tryLock);
+                player.on('enterfullscreen', tryLock);
+            }
+        }
+
+        // Collapse session details when video starts playing
+        if (!isSessionDetailsCollapsed) {
+            toggleSessionDetails();
+        }
+
+        // Update active video card
+        document.querySelectorAll('.video-card').forEach(card => {
+            card.classList.remove('active');
+        });
+        document.querySelector(`[data-video-id="${videoId}"]`).classList.add('active');
+
+        // Scroll to video player
+        videoPlayerContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+</script>
+
+{% endblock %}

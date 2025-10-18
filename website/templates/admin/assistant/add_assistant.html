@@ -1,0 +1,655 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Add Assistant{% endblock %}
+{% block content %}
+<style>
+    /* Main container */
+    .add-admin-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Card-like content styling */
+    .add-admin-modal-content {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+        padding: 36px 28px 28px 28px;
+        max-width: 520px;
+        width: 100%;
+        color: #222;
+        margin: 30px auto 10px auto;
+    }
+
+    .add-admin-title {
+        text-align: center;
+        margin-bottom: 1.5rem;
+        color: #333;
+        /* Darker green for title */
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+    .add-form {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        width: 100%;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #333;
+        /* Darker green for labels */
+        font-size: 1rem;
+        margin-top: 12px;
+    }
+
+    input,
+    select {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #d1d5db;
+        background: #f9fafb;
+        font-size: 1rem;
+        color: #222;
+        margin-bottom: 6px;
+        outline: none;
+        transition: border-color 0.2s, background 0.2s;
+        box-sizing: border-box;
+    }
+
+    input:focus,
+    select:focus {
+        border-color: #28a745;
+        /* Green focus color */
+        background: #fff;
+    }
+
+    .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .btn {
+        width: 100%;
+        font-weight: 600;
+        padding: 12px 0;
+        font-size: 1.1rem;
+        margin-top: 15px;
+        color: #fff;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+        background: #28a745;
+        /* Green */
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+    }
+
+    .btn:hover {
+        background: #218838;
+        box-shadow: 0 4px 16px rgba(40, 167, 69, 0.15);
+    }
+
+    .warning-message {
+        display: none;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        font-size: 1rem;
+    }
+
+    .back-link {
+        display: inline-block;
+        margin-bottom: 18px;
+        color: var(--accent);
+        font-weight: 500;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+
+    .back-link:hover {
+        text-decoration: underline;
+    }
+
+    /* Multi-select dropdown styles */
+    .multi-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: .5rem;
+        min-height: 48px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .4rem;
+        cursor: text;
+        background: #f8fafc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .multi-select input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 120px;
+        font-size: 1rem;
+        background: transparent;
+    }
+
+    .tag {
+        background: #eef2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: .25rem .65rem;
+        font-size: .9em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+    }
+
+    .tag button {
+        border: none;
+        background: none;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #4338ca;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .dropdown {
+        position: relative;
+        width: 100%;
+    }
+
+    .dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+    }
+
+    .dropdown-list div {
+        padding: .5rem .75rem;
+        cursor: pointer;
+    }
+
+    .dropdown-list div:hover {
+        background: #f3f4f6;
+    }
+
+    /* --- Dropdown Multi-select styles --- */
+    .multi {
+        position: relative;
+    }
+
+    .multi-btn {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #d1d5db;
+        background: #f9fafb;
+        font-size: 1rem;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: border-color .2s, background .2s;
+    }
+
+    .multi.open .multi-btn,
+    .multi-btn:focus {
+        border-color: #28a745;
+        background: #fff;
+        outline: none;
+    }
+
+    .multi-list {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1.5px solid #d1d5db;
+        border-radius: 7px;
+        box-shadow: 0 8px 24px rgba(17, 24, 39, .12);
+        max-height: 260px;
+        overflow: auto;
+        padding: 8px 0;
+        display: none;
+        z-index: 1001;
+    }
+
+    .multi.open .multi-list {
+        display: block;
+    }
+
+    .multi-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+    }
+
+    .multi-list label:hover {
+        background: #f1f5fb;
+    }
+
+    .multi-list input[type="checkbox"] {
+        accent-color: #28a745;
+    }
+
+    .multi-all {
+        font-weight: 600;
+        color: #28a745;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 700px) {
+        .add-admin-modal-content {
+            padding: 24px 15px;
+            margin-top: 15px;
+        }
+
+        .add-form {
+            gap: 12px;
+        }
+    }
+</style>
+
+<div class="add-admin-container">
+    <div class="add-admin-modal-content">
+        <h1 class="add-admin-title">Add New Assistant</h1>
+        <a href="{{ url_for('admin.assistants') }}" class="back-link">&lt; Go back to Assistants Page</a>
+        <hr style="border: none; border-top: 1px solid #e3e8f0; margin-bottom: 24px;">
+
+        <div id="role-warning" class="warning-message">
+            <strong>Warning:</strong> Admins can delete other assistants. Grant this role only to trusted users!
+        </div>
+        <form method="POST" class="add-form">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required class="form-control"
+                placeholder="Enter assistant's name" />
+
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required class="form-control"
+                placeholder="Enter assistant's email" />
+
+            <label for="phone">Phone Number:</label>
+            <input type="text" id="phone" name="phone_number" class="form-control" placeholder="Enter phone number" />
+
+            <label for="password">Password:</label>
+            <input type="text" id="password" name="password" required class="form-control"
+                placeholder="Enter password" />
+
+            <label for="role">Role:</label>
+            <select id="role" name="role" required class="form-control">
+                <option value="admin">Assistant</option>
+                <option value="super_admin">Admin</option>
+            </select>
+
+            <label>Schools:</label>
+            <div class="dropdown">
+                <div id="multiSelectSchools" class="multi-select" onclick="toggleSchoolDropdown()">
+                    <input type="text" id="multiInputSchools" placeholder="Type or select schools..."
+                        oninput="filterSchools()">
+                </div>
+                <div id="dropdownListSchools" class="dropdown-list">
+                    {% for school in schools %}
+                    <div data-id="{{ school.id }}">{{ school.name }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <input type="hidden" name="school_ids" id="selectedSchools">
+
+            <label>Stages:</label>
+            <div class="dropdown">
+                <div id="multiSelectStages" class="multi-select" onclick="toggleStageDropdown()">
+                    <input type="text" id="multiInputStages" placeholder="Type or select stages..."
+                        oninput="filterStages()">
+                </div>
+                <div id="dropdownListStages" class="dropdown-list">
+                    {% for stage in stages %}
+                    <div data-id="{{ stage.id }}">{{ stage.name }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <input type="hidden" name="stage_ids" id="selectedStages">
+
+            <label>Classes:</label>
+            <div class="dropdown">
+                <div id="multiSelectGroups" class="multi-select" onclick="toggleGroupDropdown()">
+                    <input type="text" id="multiInputGroups" placeholder="Type or select classes..."
+                        oninput="filterGroups()">
+                </div>
+                <div id="dropdownListGroups" class="dropdown-list">
+                    {% for group in groups %}
+                    <div data-id="{{ group.id }}">{{ group.name }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <input type="hidden" name="group_ids" id="selectedGroups">
+
+            <label>Subjects:</label>
+            <div class="dropdown">
+                <div id="multiSelectSubjects" class="multi-select" onclick="toggleSubjectDropdown()">
+                    <input type="text" id="multiInputSubjects" placeholder="Type or select subjects..."
+                        oninput="filterSubjects()">
+                </div>
+                <div id="dropdownListSubjects" class="dropdown-list">
+                    {% for subject in subjects %}
+                    <div data-id="{{ subject.id }}">{{ subject.name }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            <input type="hidden" name="subject_ids" id="selectedSubjects">
+
+            <button type="submit" class="btn">Add Assistant</button>
+        </form>
+    </div>
+</div>
+<script>
+    // Multi-select functionality for Schools
+    const schoolDropdown = document.getElementById('dropdownListSchools');
+    const schoolMultiSelect = document.getElementById('multiSelectSchools');
+    const schoolInput = document.getElementById('multiInputSchools');
+    const schoolHiddenInput = document.getElementById('selectedSchools');
+    let selectedSchools = [];
+
+    function toggleSchoolDropdown() {
+        schoolDropdown.style.display = schoolDropdown.style.display === 'block' ? 'none' : 'block';
+        if (schoolDropdown.style.display === 'block') {
+            schoolInput.focus();
+        }
+    }
+
+    function filterSchools() {
+        const filter = schoolInput.value.toLowerCase();
+        Array.from(schoolDropdown.children).forEach(option => {
+            const isSelected = selectedSchools.some(s => s.id === option.dataset.id);
+            if (isSelected) {
+                option.style.display = 'none';
+            } else {
+                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            }
+        });
+        schoolDropdown.style.display = 'block';
+    }
+
+    schoolDropdown.addEventListener('click', (e) => {
+        if (e.target.dataset.id) {
+            const id = e.target.dataset.id;
+            const name = e.target.textContent;
+            if (!selectedSchools.find(s => s.id === id)) {
+                selectedSchools.push({ id, name });
+                renderSchoolTags();
+            }
+            schoolInput.value = '';
+            filterSchools();
+            schoolDropdown.style.display = 'none';
+        }
+    });
+
+    function renderSchoolTags() {
+        // Clear current tags, but keep the input
+        while (schoolMultiSelect.firstChild && schoolMultiSelect.firstChild !== schoolInput) {
+            schoolMultiSelect.removeChild(schoolMultiSelect.firstChild);
+        }
+
+        selectedSchools.forEach(s => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `${s.name} <button type="button" onclick="removeSchoolTag('${s.id}')">×</button>`;
+            schoolMultiSelect.insertBefore(tag, schoolInput);
+        });
+        schoolHiddenInput.value = selectedSchools.map(s => s.id).join(',');
+    }
+
+    function removeSchoolTag(id) {
+        selectedSchools = selectedSchools.filter(s => s.id !== id);
+        renderSchoolTags();
+    }
+
+    // Multi-select functionality for Stages
+    const stageDropdown = document.getElementById('dropdownListStages');
+    const stageMultiSelect = document.getElementById('multiSelectStages');
+    const stageInput = document.getElementById('multiInputStages');
+    const stageHiddenInput = document.getElementById('selectedStages');
+    let selectedStages = [];
+
+    function toggleStageDropdown() {
+        stageDropdown.style.display = stageDropdown.style.display === 'block' ? 'none' : 'block';
+        if (stageDropdown.style.display === 'block') {
+            stageInput.focus();
+        }
+    }
+
+    function filterStages() {
+        const filter = stageInput.value.toLowerCase();
+        Array.from(stageDropdown.children).forEach(option => {
+            const isSelected = selectedStages.some(s => s.id === option.dataset.id);
+            if (isSelected) {
+                option.style.display = 'none';
+            } else {
+                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            }
+        });
+        stageDropdown.style.display = 'block';
+    }
+
+    stageDropdown.addEventListener('click', (e) => {
+        if (e.target.dataset.id) {
+            const id = e.target.dataset.id;
+            const name = e.target.textContent;
+            if (!selectedStages.find(s => s.id === id)) {
+                selectedStages.push({ id, name });
+                renderStageTags();
+            }
+            stageInput.value = '';
+            filterStages();
+            stageDropdown.style.display = 'none';
+        }
+    });
+
+    function renderStageTags() {
+        // Clear current tags, but keep the input
+        while (stageMultiSelect.firstChild && stageMultiSelect.firstChild !== stageInput) {
+            stageMultiSelect.removeChild(stageMultiSelect.firstChild);
+        }
+
+        selectedStages.forEach(s => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `${s.name} <button type="button" onclick="removeStageTag('${s.id}')">×</button>`;
+            stageMultiSelect.insertBefore(tag, stageInput);
+        });
+        stageHiddenInput.value = selectedStages.map(s => s.id).join(',');
+    }
+
+    function removeStageTag(id) {
+        selectedStages = selectedStages.filter(s => s.id !== id);
+        renderStageTags();
+    }
+
+    // Multi-select functionality for Groups
+    const groupDropdown = document.getElementById('dropdownListGroups');
+    const groupMultiSelect = document.getElementById('multiSelectGroups');
+    const groupInput = document.getElementById('multiInputGroups');
+    const groupHiddenInput = document.getElementById('selectedGroups');
+    let selectedGroups = [];
+
+    function toggleGroupDropdown() {
+        groupDropdown.style.display = groupDropdown.style.display === 'block' ? 'none' : 'block';
+        if (groupDropdown.style.display === 'block') {
+            groupInput.focus();
+        }
+    }
+
+    function filterGroups() {
+        const filter = groupInput.value.toLowerCase();
+        Array.from(groupDropdown.children).forEach(option => {
+            const isSelected = selectedGroups.some(s => s.id === option.dataset.id);
+            if (isSelected) {
+                option.style.display = 'none';
+            } else {
+                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            }
+        });
+        groupDropdown.style.display = 'block';
+    }
+
+    groupDropdown.addEventListener('click', (e) => {
+        if (e.target.dataset.id) {
+            const id = e.target.dataset.id;
+            const name = e.target.textContent;
+            if (!selectedGroups.find(s => s.id === id)) {
+                selectedGroups.push({ id, name });
+                renderGroupTags();
+            }
+            groupInput.value = '';
+            filterGroups();
+            groupDropdown.style.display = 'none';
+        }
+    });
+
+    function renderGroupTags() {
+        // Clear current tags, but keep the input
+        while (groupMultiSelect.firstChild && groupMultiSelect.firstChild !== groupInput) {
+            groupMultiSelect.removeChild(groupMultiSelect.firstChild);
+        }
+
+        selectedGroups.forEach(s => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `${s.name} <button type="button" onclick="removeGroupTag('${s.id}')">×</button>`;
+            groupMultiSelect.insertBefore(tag, groupInput);
+        });
+        groupHiddenInput.value = selectedGroups.map(s => s.id).join(',');
+    }
+
+    function removeGroupTag(id) {
+        selectedGroups = selectedGroups.filter(s => s.id !== id);
+        renderGroupTags();
+    }
+
+    // Multi-select functionality for Subjects
+    const subjectDropdown = document.getElementById('dropdownListSubjects');
+    const subjectMultiSelect = document.getElementById('multiSelectSubjects');
+    const subjectInput = document.getElementById('multiInputSubjects');
+    const subjectHiddenInput = document.getElementById('selectedSubjects');
+    let selectedSubjects = [];
+
+    function toggleSubjectDropdown() {
+        subjectDropdown.style.display = subjectDropdown.style.display === 'block' ? 'none' : 'block';
+        if (subjectDropdown.style.display === 'block') {
+            subjectInput.focus();
+        }
+    }
+
+    function filterSubjects() {
+        const filter = subjectInput.value.toLowerCase();
+        Array.from(subjectDropdown.children).forEach(option => {
+            const isSelected = selectedSubjects.some(s => s.id === option.dataset.id);
+            if (isSelected) {
+                option.style.display = 'none';
+            } else {
+                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+            }
+        });
+        subjectDropdown.style.display = 'block';
+    }
+
+    subjectDropdown.addEventListener('click', (e) => {
+        if (e.target.dataset.id) {
+            const id = e.target.dataset.id;
+            const name = e.target.textContent;
+            if (!selectedSubjects.find(s => s.id === id)) {
+                selectedSubjects.push({ id, name });
+                renderSubjectTags();
+            }
+            subjectInput.value = '';
+            filterSubjects();
+            subjectDropdown.style.display = 'none';
+        }
+    });
+
+    function renderSubjectTags() {
+        // Clear current tags, but keep the input
+        while (subjectMultiSelect.firstChild && subjectMultiSelect.firstChild !== subjectInput) {
+            subjectMultiSelect.removeChild(subjectMultiSelect.firstChild);
+        }
+
+        selectedSubjects.forEach(s => {
+            const tag = document.createElement('span');
+            tag.className = 'tag';
+            tag.innerHTML = `${s.name} <button type="button" onclick="removeSubjectTag('${s.id}')">×</button>`;
+            subjectMultiSelect.insertBefore(tag, subjectInput);
+        });
+        subjectHiddenInput.value = selectedSubjects.map(s => s.id).join(',');
+    }
+
+    function removeSubjectTag(id) {
+        selectedSubjects = selectedSubjects.filter(s => s.id !== id);
+        renderSubjectTags();
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', (e) => {
+        if (!schoolMultiSelect.parentElement.contains(e.target)) {
+            schoolDropdown.style.display = 'none';
+        }
+        if (!stageMultiSelect.parentElement.contains(e.target)) {
+            stageDropdown.style.display = 'none';
+        }
+        if (!groupMultiSelect.parentElement.contains(e.target)) {
+            groupDropdown.style.display = 'none';
+        }
+        if (!subjectMultiSelect.parentElement.contains(e.target)) {
+            subjectDropdown.style.display = 'none';
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var roleSelect = document.getElementById('role');
+        var warningDiv = document.getElementById('role-warning');
+        function checkRoleWarning() {
+            if (roleSelect.value === 'super_admin') {
+                warningDiv.style.display = 'block';
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        }
+        roleSelect.addEventListener('change', checkRoleWarning);
+        checkRoleWarning();
+    });
+</script>
+{% endblock %}

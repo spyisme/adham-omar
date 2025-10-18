@@ -1,0 +1,168 @@
+{% extends "student/dashboard.html" %}
+{% block title %}My Home{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Hello, {{ current_user.name.split(' ')[0] }}!</h1>
+  <p>Here are your pending tasks and recent updates.</p>
+</div>
+
+{% if not current_user.student_whatsapp %}
+<div class="card" style="background: #e6f9f0; border: 1px solid #b2e5d6; border-radius: 10px; margin-top: 12px;">
+  <div class="card-header">
+    <h3 class="card-title" style="color: #128C7E;">WhatsApp Notifications</h3>
+  </div>
+  <div class="card-body">
+    <a id="wa-activate-link"
+      href="https://wa.me/+201158771567?text=User code : {{ current_user.code }} - (Don't edit this message)"
+      style="color: #128C7E; text-decoration: underline; font-weight: 500;" target="_blank"
+      rel="noopener">
+      Receive WhatsApp Notifications
+    </a>
+    <p style="margin-top: 8px;">You will receive notifications about your assignments, exams, and announcements.</p>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var waLink = document.getElementById('wa-activate-link');
+    if (waLink) {
+      waLink.addEventListener('click', function () {
+        setTimeout(function () {
+          window.location.reload();
+        }, 5000);
+      });
+    }
+  });
+</script>
+{% endif %}
+
+
+
+{% if non_submitted_exams or non_submitted_assignments %}
+<div class="action-grid">
+  {% for exam in non_submitted_exams %}
+  <a href="{{ url_for('student.view_exam', exam_id=exam.id) }}" class="action-card exam">
+    <div class="action-card-icon">📝</div>
+    <div class="action-card-info">
+      <h4>{{ exam.title }}</h4>
+      <p>Due: {{ exam.deadline_date.strftime('%d %b, %I:%M %p') }}</p>
+    </div>
+  </a>
+  {% endfor %}
+
+  {% for assignment in non_submitted_assignments %}
+  <a href="{{ url_for('student.view_assignment', assignment_id=assignment.id) }}" class="action-card assignment">
+    <div class="action-card-icon">⚠️</div>
+    <div class="action-card-info">
+      <h4>{{ assignment.title }}</h4>
+      <p>Due: {{ assignment.deadline_date.strftime('%d %b, %I:%M %p') }}</p>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <nav class="tab-nav">
+    <button class="tab-nav-btn active" data-tab="announcements">📢 Announcements</button>
+    <button class="tab-nav-btn" data-tab="assignments">📚 Assignments</button>
+    <button class="tab-nav-btn" data-tab="exams">📝 Exams</button>
+  </nav>
+
+  <div class="tab-content">
+    <div id="announcements" class="tab-pane active">
+      {% if dashboard_announcements %}
+      <ul class="content-list">
+        {% for a in dashboard_announcements %}
+        <li class="content-card">
+          <div class="card-header">
+            <h3 class="card-title">{{ a.title }}</h3>
+          </div>
+          <p class="card-body">{{ a.content }}</p>
+          <div class="card-footer">
+            <span>{{ a.creation_date.strftime('%d %b %Y') }}</span>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>No announcements right now.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div id="assignments" class="tab-pane">
+      {% if non_submitted_assignments %}
+      <ul class="content-list">
+        {% for assignment in non_submitted_assignments %}
+        <a href="{{ url_for('student.view_assignment', assignment_id=assignment.id) }}" class="content-card">
+          <div class="card-header">
+            <h3 class="card-title">{{ assignment.title }}</h3>
+            <span class="card-tag assignment">{{ assignment.points }} pts</span>
+          </div>
+          <p class="card-body">{{ assignment.description|safe|truncate(100) }}</p>
+          <div class="card-footer">
+            <span>Due: {{ assignment.deadline_date.strftime('%d %b, %I:%M %p') }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🎉</div>
+        <p>No pending assignments. Great job!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div id="exams" class="tab-pane">
+      {% if non_submitted_exams %}
+      <ul class="content-list">
+        {% for exam in non_submitted_exams %}
+        <a href="{{ url_for('student.view_exam', exam_id=exam.id) }}" class="content-card">
+          <div class="card-header">
+            <h3 class="card-title">{{ exam.title }}</h3>
+            <span class="card-tag exam">{{ exam.points }} pts</span>
+          </div>
+          <p class="card-body">{{ exam.description|safe|truncate(100) }}</p>
+          <div class="card-footer">
+            <span>Due: {{ exam.deadline_date.strftime('%d %b, %I:%M %p') }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">✅</div>
+        <p>No pending exams. You're all caught up!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block additional_scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const tabButtons = document.querySelectorAll('.tab-nav-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabPanes.forEach(pane => pane.classList.remove('active'));
+
+        button.classList.add('active');
+        const targetPane = document.getElementById(button.dataset.tab);
+        if (targetPane) {
+          targetPane.classList.add('active');
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

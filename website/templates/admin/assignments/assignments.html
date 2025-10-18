@@ -1,0 +1,1697 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Manage Assignments{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    /* --- Page & Filter Layout --- */
+    .container {
+        padding-top: 1.5rem;
+    }
+
+    .filters-card {
+        margin-bottom: 2rem;
+    }
+
+    .search-row-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    #searchInput {
+        width: 100%;
+        max-width: 800px;
+        font-size: 1rem;
+    }
+
+    .filters-row-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .filters-row-wrapper .filter-dropdown {
+        min-width: 200px;
+        flex-grow: 1;
+    }
+
+    .filter-dropdown.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .multi.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* --- Skeleton Loader --- */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 0.4rem;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    .skeleton-card {
+        background-color: #fff;
+        border: 1px solid var(--color-border, #e0e0e0);
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .skeleton-h3 {
+        height: 1.5rem;
+        width: 60%;
+        margin-bottom: 1rem;
+    }
+
+    .skeleton-p {
+        height: 1rem;
+        width: 80%;
+        margin-bottom: 0.5rem;
+    }
+
+    .skeleton-p.short {
+        width: 40%;
+    }
+
+    .skeleton-footer {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .skeleton-badge {
+        height: 1.5rem;
+        width: 70px;
+    }
+
+    .skeleton-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    /* --- Multi-select dropdown styles for edit modal --- */
+    .multi-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem;
+        min-height: 48px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        cursor: text;
+        background: #f8fafc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .multi-select input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 120px;
+        font-size: 1rem;
+        background: transparent;
+    }
+
+    .tag {
+        background: #eef2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.9em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .tag button {
+        border: none;
+        background: none;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #4338ca;
+        padding: 0;
+        line-height: 1;
+    }
+
+    #edit-ms-schools-container {
+        position: relative;
+    }
+
+    .dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+    }
+
+    .dropdown-list div {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+    }
+
+    .dropdown-list div:hover {
+        background: #f3f4f6;
+    }
+
+    /* --- Settings Modal Styles --- */
+    .settings-info {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .settings-info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .settings-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .settings-info-label {
+        font-weight: 600;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+
+    .settings-info-value {
+        color: #334155;
+        font-size: 0.875rem;
+        text-align: right;
+    }
+
+    .settings-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .settings-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+        font-weight: 500;
+        width: 100%;
+        text-align: left;
+    }
+
+    .settings-action-btn:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        transform: translateX(4px);
+    }
+
+    .settings-action-btn.edit-action:hover {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .settings-action-btn.toggle-action:hover {
+        background: #fef3c7;
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+
+    .settings-action-btn.delete-action:hover {
+        background: #fef2f2;
+        border-color: #ef4444;
+        color: #ef4444;
+    }
+
+    .settings-action-btn svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+
+    /* --- Assignments Grid & Cards --- */
+    .assignments-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .assignment-card {
+        background-color: #fff;
+        border: 1px solid var(--color-border, #e0e0e0);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.2s ease-in-out, transform 0.2s ease-in-out;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    .assignment-card.hidden-assignment {
+        opacity: 0.7;
+        background-color: #fafafa;
+    }
+
+    .assignment-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-main-content {
+        padding: 1.5rem;
+        flex-grow: 1;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .assignment-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--color-primary, #333);
+        margin: 0;
+    }
+
+    .assignment-due {
+        font-size: 0.875rem;
+        color: var(--color-text-secondary, #666);
+        margin-top: 0.25rem;
+    }
+
+    .card-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .detail-item {
+        color: var(--color-text-secondary, #666);
+    }
+
+    .detail-item strong {
+        display: block;
+        color: var(--color-text, #333);
+        margin-bottom: 0.15rem;
+    }
+
+    .card-actions {
+        position: relative;
+    }
+
+    .action-buttons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-footer {
+        border-top: 1px solid var(--color-border, #e0e0e0);
+        background-color: #f9fafb;
+        padding: 1rem 1.5rem;
+        display: flex;
+        justify-content: space-around;
+        text-align: center;
+    }
+
+    .stat-item .stat-value {
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: block;
+    }
+
+    .stat-item .stat-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        color: var(--color-text-secondary, #666);
+    }
+
+    .stat-value.green {
+        color: var(--color-success, #28a745);
+    }
+
+    .stat-value.red {
+        color: var(--color-danger, #dc3545);
+    }
+
+    /* --- No Assignments Message --- */
+    .no-assignments-message {
+        grid-column: 1 / -1;
+        /* Span all columns */
+        text-align: center;
+        padding: 4rem 2rem;
+        background-color: #fff;
+        border: 1px solid var(--color-border, #e0e0e0);
+        border-radius: 8px;
+        color: var(--color-text-secondary, #666);
+    }
+
+    /* --- Responsive Adjustments --- */
+    @media (max-width: 768px) {
+        .page-header-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .filters-row-wrapper .filter-dropdown {
+            min-width: 150px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .filters-row-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+        }
+
+        .assignments-grid {
+            grid-template-columns: 1fr;
+            /* Single column */
+            gap: 1rem;
+        }
+
+        .card-details {
+            grid-template-columns: 1fr;
+            /* Single column details */
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">All Assignments</h1>
+        <button id="openAddAssignmentDesktop" class="btn btn-primary">Create Assignment</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="card filters-card">
+        <div class="card-content">
+            <div class="search-row-wrapper">
+                <input type="text" id="searchInput" class="form-input" placeholder="Search by assignment title..."
+                    disabled>
+            </div>
+            <div class="filters-row-wrapper">
+                <div class="filter-dropdown disabled" id="subjectDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
+                        Subjects ▼</button>
+                    <div class="filter-dropdown-list" id="subjectDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                    </div>
+                </div>
+
+                <div class="filter-dropdown disabled" id="schoolDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="schoolDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                    </div>
+                </div>
+
+                <div class="filter-dropdown disabled" id="stageDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="stageDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Stages</label>
+                    </div>
+                </div>
+
+                <div class="filter-dropdown disabled" id="groupDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Classes
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="groupDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="assignmentsGrid" class="assignments-grid">
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-h3"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p short"></div>
+            <div class="skeleton-footer">
+                <div class="skeleton skeleton-badge"></div>
+                <div class="skeleton skeleton-badge"></div>
+            </div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-h3"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p short"></div>
+            <div class="skeleton-footer">
+                <div class="skeleton skeleton-badge"></div>
+                <div class="skeleton skeleton-badge"></div>
+            </div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-h3"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p short"></div>
+            <div class="skeleton-footer">
+                <div class="skeleton skeleton-badge"></div>
+                <div class="skeleton skeleton-badge"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="assignmentModal" class="modal-overlay">
+    <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Add New Assignment</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" required placeholder="e.g., Chapter 5 Review Questions"
+                        class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Description</label>
+                    <textarea name="description" rows="4" placeholder="Provide instructions, topics, or details here..."
+                        class="form-textarea"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">Subject</label>
+                    <div class="multi" id="ms-subjects">
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                            ▼</button>
+                        <div class="multi-list" id="ms-subjects-list"></div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">School</label>
+                    <div class="multi disabled" id="ms-schools">
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Stage</label>
+                    <div class="multi" id="ms-stages">
+                        <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                        <div class="multi-list" id="ms-stages-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Class</label>
+                    <div class="multi" id="ms-classes">
+                        <button type="button" class="btn form-input multi-btn" id="ms-classes-btn">All Classes
+                            ▼</button>
+                        <div class="multi-list" id="ms-classes-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Deadline Date</label>
+                    <input type="datetime-local" name="deadline_date" required class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Attachments (Files)</label>
+                    <input type="file" name="files[]" multiple class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Attachment (Link)</label>
+                    <input type="url" name="link" placeholder="https://example.com/resource" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Points</label>
+                    <input type="number" name="points" placeholder="0" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Add Assignment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Assignment Modal -->
+<div id="editAssignmentModal" class="modal-overlay">
+    <div class="modal-content">
+        <form id="editAssignmentForm" method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Edit Assignment</h2>
+                <button type="button" class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- Skeleton loader will be shown initially -->
+                <div class="skeleton-form">
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="editModalFooter" style="display: none;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2>Assignment Settings</h2>
+            <button type="button" class="modal-close" id="settingsModalClose">&times;</button>
+        </div>
+        <div class="modal-body" id="settingsModalBody">
+            <!-- Skeleton loader will be shown initially -->
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global state
+    let allAssignments = [];
+    let subjects = [];
+    let stages = [];
+    let groups = [];
+    let subjectSchoolMap = {};
+    let isLoading = true;
+    let currentEditingAssignmentId = null;
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('assignmentModal');
+    const editModal = document.getElementById('editAssignmentModal');
+    const settingsModal = document.getElementById('settingsModal');
+    const openModalBtns = [document.getElementById('openAddAssignmentDesktop')];
+    const closeModalBtn = document.querySelector('.modal-close');
+    const editModalCloseBtn = document.getElementById('editModalClose');
+    const settingsModalCloseBtn = document.getElementById('settingsModalClose');
+
+    openModalBtns.forEach(btn => {
+        if (btn) btn.onclick = () => { modal.classList.add('show'); };
+    });
+    if (closeModalBtn) closeModalBtn.onclick = () => { modal.classList.remove('show'); };
+    if (editModalCloseBtn) editModalCloseBtn.onclick = () => { editModal.classList.remove('show'); };
+    if (settingsModalCloseBtn) settingsModalCloseBtn.onclick = () => { settingsModal.classList.remove('show'); };
+
+    modal.onclick = e => {
+        if (e.target === modal) modal.classList.remove('show');
+    };
+    editModal.onclick = e => {
+        if (e.target === editModal) editModal.classList.remove('show');
+    };
+    settingsModal.onclick = e => {
+        if (e.target === settingsModal) settingsModal.classList.remove('show');
+    };
+
+    // --- Dropdown/Multiselect Logic ---
+    function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+
+        // This needs to be dynamic because list items are added/removed
+        const getCheckboxes = () => Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            if (dropdown.classList.contains('disabled')) return;
+            const isCurrentlyOpen = dropdown.classList.contains('open');
+            document.querySelectorAll('.filter-dropdown, .multi').forEach(d => d.classList.remove('open'));
+            if (!isCurrentlyOpen) {
+                dropdown.classList.add('open');
+            }
+        };
+
+        const updateHandler = function () {
+            const checkboxes = getCheckboxes();
+            if (this.value === "") { // "All" checkbox
+                if (this.checked) {
+                    checkboxes.forEach(cb => cb.checked = false);
+                }
+            } else { // Regular checkbox
+                if (this.checked && allCheckbox) {
+                    allCheckbox.checked = false;
+                }
+                if (allCheckbox && !checkboxes.some(c => c.checked)) {
+                    allCheckbox.checked = true;
+                }
+            }
+            updateBtnLabel();
+            if (updateCallback) updateCallback();
+        };
+
+        list.addEventListener('change', e => {
+            if (e.target.type === 'checkbox') {
+                updateHandler.call(e.target);
+            }
+        });
+
+        function updateBtnLabel() {
+            let selected = getCheckboxes().filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0].substring(0, 15) + (selected[0].length > 15 ? '...' : '') + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
+        }
+        updateBtnLabel();
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.filter-dropdown.open, .multi.open').forEach(d => {
+            if (!d.contains(e.target)) {
+                d.classList.remove('open');
+            }
+        });
+    });
+
+    // --- Toast utility ---
+    function showToast(message, type = 'info', opts = {}) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.style.position = 'fixed';
+            container.style.right = '1rem';
+            container.style.bottom = '1rem';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '0.5rem';
+            container.style.zIndex = '9999';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.minWidth = '260px';
+        toast.style.maxWidth = '92vw';
+        toast.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#7f1d1d' : '#1e3a8a';
+        toast.style.color = '#f9fafb';
+        toast.style.borderRadius = '8px';
+        toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+        toast.style.padding = '0.75rem 1rem';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '0.5rem';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        toast.style.pointerEvents = 'auto';
+        const msg = document.createElement('div');
+        msg.textContent = message;
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = 'inherit';
+        closeBtn.style.fontSize = '1.1rem';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.padding = '0.25rem';
+        closeBtn.style.borderRadius = '0.25rem';
+        const removeToast = () => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 200); };
+        closeBtn.onclick = removeToast;
+        toast.appendChild(msg);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+        void toast.offsetHeight;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        const duration = typeof opts.duration === 'number' ? opts.duration : 3500;
+        const timer = setTimeout(removeToast, duration);
+        toast.addEventListener('mouseenter', () => clearTimeout(timer));
+    }
+
+    // --- GENERAL ACTION CONFIRMATION (Promise-based, no form submit) ---
+    function confirmAction(event, message) {
+        if (event && event.preventDefault) {
+            event.preventDefault();
+        }
+        return Swal.fire({
+            title: "Confirm Action",
+            html: message,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "var(--button-bg, #3085d6)",
+            cancelButtonColor: "var(--flash-danger-bg, #d33)",
+            confirmButtonText: "Yes, proceed",
+            cancelButtonText: "No, cancel",
+            background: "var(--card-bg, #fff)",
+            color: "var(--text-color, #333)",
+        }).then((result) => {
+            return result.isConfirmed;
+        });
+    }
+
+    // --- API Calls ---
+    async function fetchAssignments() {
+        try {
+            const response = await fetch('/admin/api/assignments-data');
+            if (!response.ok) throw new Error('Failed to fetch assignments');
+            const data = await response.json();
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching assignments:', error);
+            return [];
+        }
+    }
+    // --- Intercept form submit to POST without refresh ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('#assignmentModal form');
+        if (!form) return;
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+            try {
+                const formData = new FormData(form);
+                const resp = await fetch('/admin/assignments', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.success && data.assignment) {
+                    allAssignments.unshift(data.assignment);
+                    filterAssignments();
+                    modal.classList.remove('show');
+                    form.reset();
+                    // Reset modal dropdown button labels
+                    document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+                    document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+                    document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
+                    showToast(data.message || 'Assignment created successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to create assignment', 'error');
+                }
+            } catch (err) {
+                console.error('Create assignment failed', err);
+                showToast('Failed to create assignment', 'error');
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Add Assignment'; }
+            }
+        });
+    });
+
+
+    async function fetchFilters() {
+        try {
+            const response = await fetch('/admin/api/filters');
+            if (!response.ok) throw new Error('Failed to fetch filters');
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching filters:', error);
+            return { subjects: [], groups: [], stages: [], subject_school_map: {} };
+        }
+    }
+
+    // --- SETTINGS MODAL FUNCTION ---
+    async function openSettingsModal(assignmentId) {
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsModalBody = document.getElementById('settingsModalBody');
+
+        // Show modal with skeleton loader
+        settingsModalBody.innerHTML = `
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        `;
+        settingsModal.classList.add('show');
+
+        try {
+            const response = await fetch(`/admin/api/assignment/${assignmentId}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Failed to fetch assignment data', 'error');
+                settingsModal.classList.remove('show');
+                return;
+            }
+
+            const assignment = data.assignment;
+            const createdAt = assignment.created_at ? assignment.created_at : 'N/A';
+            const modifiedAt = assignment.last_edited_at ? assignment.last_edited_at : 'N/A';
+            const createdBy = assignment.created_by || 'N/A';
+            const modifiedBy = assignment.last_edited_by || 'N/A';
+            const currentStatus = assignment.status === 'Show' ? 'Visible' : 'Hidden';
+            const toggleAction = assignment.status === 'Show' ? 'Hide' : 'Show';
+
+            settingsModalBody.innerHTML = `
+                <div class="settings-info">
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">Created By:</span>
+                        <span class="settings-info-value">${escapeHtml(String(createdBy))}</span>
+                    </div>
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">Created At:</span>
+                        <span class="settings-info-value">${createdAt}</span>
+                    </div>
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">Last Modified By:</span>
+                        <span class="settings-info-value">${escapeHtml(String(modifiedBy))}</span>
+                    </div>
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">Last Modified At:</span>
+                        <span class="settings-info-value">${modifiedAt}</span>
+                    </div>
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">Status:</span>
+                        <span class="settings-info-value">${currentStatus}</span>
+                    </div>
+                </div>
+
+                <div class="settings-actions">
+                    <button class="settings-action-btn edit-action" data-action="edit" data-id="${assignment.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
+                            <path d="m15 5 4 4"/>
+                        </svg>
+                        <span>Edit Assignment</span>
+                    </button>
+
+                    <button class="settings-action-btn toggle-action" data-action="toggle" data-id="${assignment.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            ${assignment.status === 'Show' ? `
+                                <path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/>
+                                <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/>
+                                <path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/>
+                                <path d="m2 2 20 20"/>
+                            ` : `
+                                <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            `}
+                        </svg>
+                        <span>${toggleAction} Assignment</span>
+                    </button>
+
+                    <button class="settings-action-btn delete-action" data-action="delete" data-id="${assignment.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+                            <path d="M3 6h18"/>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                        <span>Delete Assignment</span>
+                    </button>
+                </div>
+            `;
+
+            // Add event listeners for action buttons
+            settingsModalBody.querySelectorAll('.settings-action-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const action = btn.getAttribute('data-action');
+                    const id = btn.getAttribute('data-id');
+
+                    if (action === 'edit') {
+                        settingsModal.classList.remove('show');
+                        openEditModal(parseInt(id));
+                    } else if (action === 'delete') {
+                        const result = await Swal.fire({
+                            title: 'Are you sure?',
+                            text: 'You want to delete this assignment? This action cannot be undone.',
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Yes, delete it!',
+                            cancelButtonText: 'Cancel'
+                        });
+                        
+                        if (!result.isConfirmed) return;
+
+                        settingsModal.classList.remove('show');
+
+                        try {
+                            const resp = await fetch(`/admin/assignments/delete/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                            const data = await resp.json().catch(() => ({}));
+                            if (resp.ok && data.success) {
+                                allAssignments = allAssignments.filter(a => String(a.id) !== String(id));
+                                filterAssignments();
+                                showToast(data.message || 'Assignment deleted', 'success');
+                            } else {
+                                showToast((data && data.message) || 'Failed to delete assignment', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Delete failed', err);
+                            showToast('Failed to delete assignment', 'error');
+                        }
+                    } else if (action === 'toggle') {
+                        const result = await Swal.fire({
+                            title: 'Are you sure?',
+                            text: 'You want to toggle the visibility of this assignment?',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, toggle it!',
+                            cancelButtonText: 'Cancel'
+                        });
+                        
+                        if (!result.isConfirmed) return;
+
+                        settingsModal.classList.remove('show');
+
+                        try {
+                            const resp = await fetch(`/admin/assignments/visibility/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                            const data = await resp.json().catch(() => ({}));
+                            if (resp.ok && data.success) {
+                                const idx = allAssignments.findIndex(a => String(a.id) === String(id));
+                                if (idx >= 0) { allAssignments[idx].status = data.status; }
+                                filterAssignments();
+                                showToast(data.message || 'Visibility updated', 'success');
+                            } else {
+                                showToast((data && data.message) || 'Failed to update visibility', 'error');
+                            }
+                        } catch (err) {
+                            console.error('Toggle failed', err);
+                            showToast('Failed to update visibility', 'error');
+                        }
+                    }
+                });
+            });
+        } catch (error) {
+            console.error('Error fetching assignment:', error);
+            showToast('Failed to fetch assignment data', 'error');
+            settingsModal.classList.remove('show');
+        }
+    }
+
+    // --- EDIT ASSIGNMENT FUNCTIONS ---
+    async function openEditModal(assignmentId) {
+        currentEditingAssignmentId = assignmentId;
+        const editModal = document.getElementById('editAssignmentModal');
+        const editModalBody = document.getElementById('editModalBody');
+        const editModalFooter = document.getElementById('editModalFooter');
+
+        // Show modal with skeleton loader
+        editModalBody.innerHTML = `
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        `;
+        editModalFooter.style.display = 'none';
+        editModal.classList.add('show');
+
+        try {
+            const response = await fetch(`/admin/api/assignment/${assignmentId}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Failed to fetch assignment data', 'error');
+                editModal.classList.remove('show');
+                return;
+            }
+
+            populateEditForm(data.assignment);
+            editModalFooter.style.display = 'flex';
+        } catch (error) {
+            console.error('Error fetching assignment:', error);
+            showToast('Failed to fetch assignment data', 'error');
+            editModal.classList.remove('show');
+        }
+    }
+
+    function populateEditForm(assignment) {
+        const editModalBody = document.getElementById('editModalBody');
+
+        // Build schools dropdown options
+        const availableSchools = assignment.subject && assignment.subject.id && subjectSchoolMap[assignment.subject.id]
+            ? subjectSchoolMap[assignment.subject.id]
+            : Object.values(subjectSchoolMap).flat();
+
+        editModalBody.innerHTML = `
+            <div>
+                <label class="form-label">Title</label>
+                <input type="text" name="title" required value="${escapeHtml(assignment.title || '')}" class="form-input">
+            </div>
+            <div>
+                <label class="form-label">Description</label>
+                <textarea name="description" rows="4" class="form-textarea">${escapeHtml(assignment.description || '')}</textarea>
+            </div>
+            <div>
+                <label class="form-label">Subject</label>
+                <div class="multi" id="edit-ms-subjects">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-subjects-btn">
+                        ${assignment.subject && assignment.subject.name ? escapeHtml(assignment.subject.name) : 'Choose Subject'} ▼
+                    </button>
+                    <div class="multi-list" id="edit-ms-subjects-list"></div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">School</label>
+                <div id="edit-ms-schools-container" style="position: relative;"></div>
+                <input type="hidden" name="school_ids" id="edit-school-ids">
+            </div>
+            <div>
+                <label class="form-label">Stage</label>
+                <div class="multi" id="edit-ms-stages">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-stages-btn">All Stages ▼</button>
+                    <div class="multi-list" id="edit-ms-stages-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!assignment.stages_mm || assignment.stages_mm.length === 0 ? 'checked' : ''}>All Stages</label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Class</label>
+                <div class="multi" id="edit-ms-classes">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-classes-btn">All Classes ▼</button>
+                    <div class="multi-list" id="edit-ms-classes-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!assignment.groups_mm || assignment.groups_mm.length === 0 ? 'checked' : ''}>All Classes</label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Deadline Date</label>
+                <input type="datetime-local" name="deadline_date" required value="${assignment.deadline_date || ''}" class="form-input">
+            </div>
+            ${assignment.attachments && assignment.attachments.length > 0 ? `
+            <div>
+                <label class="form-label">Current Attachments</label>
+                <ul style="list-style: none; padding: 0; margin: 0.5rem 0; display: flex; flex-direction: column; gap: 0.5rem;">
+                    ${assignment.attachments.map(filename => `
+                        <li style="display: flex; justify-content: space-between; align-items: center; background: var(--color-bg-secondary, #f9fafb); padding: 0.5rem 1rem; border-radius: 0.5rem;">
+                            <a href="/student/assignments/uploads/${filename}" target="_blank" style="word-break: break-all; color: var(--color-primary, #333);">${escapeHtml(filename)}</a>
+                            <a href="/admin/assignments/edit/${assignment.id}?delete_attachment=${filename}" style="color: var(--color-danger); text-decoration: none; font-weight: 500; margin-left: 1rem;">Delete</a>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+            ` : ''}
+            <div>
+                <label class="form-label">Add New Attachments</label>
+                <input type="file" name="attachments" multiple class="form-input">
+            </div>
+        `;
+
+        // Populate subjects
+        const subjectList = document.getElementById('edit-ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject => `
+            <label><input type="radio" name="subject" value="${subject.id}" required ${assignment.subject && assignment.subject.id === subject.id ? 'checked' : ''}>${escapeHtml(subject.name)}</label>
+        `).join('');
+
+        // Populate stages
+        const stageList = document.getElementById('edit-ms-stages-list');
+        const stageCheckboxes = stages.map(stage => {
+            const isChecked = assignment.stages_mm && assignment.stages_mm.some(s => s.id === stage.id);
+            return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
+        }).join('');
+        stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
+
+        // Populate groups
+        const groupList = document.getElementById('edit-ms-classes-list');
+        const groupCheckboxes = groups.map(group => {
+            const isChecked = assignment.groups_mm && assignment.groups_mm.some(g => g.id === group.id);
+            return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
+        }).join('');
+        groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
+
+        // Populate schools and set hidden field
+        if (assignment.schools_mm && assignment.schools_mm.length > 0) {
+            const schoolIds = assignment.schools_mm.map(s => s.id).join(',');
+            document.getElementById('edit-school-ids').value = schoolIds;
+        }
+
+        // Setup school multi-select with tags
+        setupEditSchoolMultiSelect(assignment.schools_mm || [], availableSchools);
+
+        // Setup dropdowns
+        setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
+        setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
+
+        // Setup subject dropdown
+        const subjectDropdown = document.getElementById('edit-ms-subjects');
+        const subjectBtn = document.getElementById('edit-ms-subjects-btn');
+        const subjectListEl = document.getElementById('edit-ms-subjects-list');
+
+        subjectBtn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => { if (d !== subjectDropdown) d.classList.remove('open'); });
+            subjectDropdown.classList.toggle('open');
+        };
+
+        subjectListEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.onchange = function () {
+                const selectedLabel = this.parentElement.textContent.trim();
+                subjectBtn.textContent = selectedLabel + ' ▼';
+                subjectDropdown.classList.remove('open');
+
+                const selectedSubjectId = this.value;
+                const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                updateEditSchoolDropdown(availableSchools);
+            };
+        });
+    }
+
+    function setupEditSchoolMultiSelect(selectedSchools, availableSchools) {
+        let editSelectedSchools = selectedSchools.map(s => ({ id: String(s.id), name: s.name }));
+
+        const multiSelect = document.createElement('div');
+        multiSelect.className = 'multi-select';
+        multiSelect.id = 'edit-multiSelectSchools';
+        multiSelect.onclick = () => toggleEditSchoolDropdown();
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'edit-multiInputSchools';
+        input.placeholder = 'Type or select schools...';
+        input.oninput = () => filterEditSchools();
+
+        multiSelect.appendChild(input);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown-list';
+        dropdown.id = 'edit-dropdownListSchools';
+        dropdown.style.display = 'none';
+
+        availableSchools.forEach(school => {
+            const div = document.createElement('div');
+            div.dataset.id = String(school.id);
+            div.textContent = school.name;
+            dropdown.appendChild(div);
+        });
+
+        dropdown.onclick = (e) => {
+            if (e.target.dataset.id) {
+                const id = e.target.dataset.id;
+                const name = e.target.textContent;
+                if (!editSelectedSchools.find(s => s.id === id)) {
+                    editSelectedSchools.push({ id, name });
+                    renderEditSchoolTags();
+                }
+                input.value = '';
+                filterEditSchools();
+                dropdown.style.display = 'none';
+            }
+        };
+
+        const container = document.getElementById('edit-ms-schools-container');
+        const existingMultiSelect = container.querySelector('.multi-select');
+        const existingDropdown = container.querySelector('.dropdown-list');
+
+        if (existingMultiSelect) existingMultiSelect.remove();
+        if (existingDropdown) existingDropdown.remove();
+
+        container.appendChild(multiSelect);
+        container.appendChild(dropdown);
+
+        function renderEditSchoolTags() {
+            while (multiSelect.firstChild && multiSelect.firstChild !== input) {
+                multiSelect.removeChild(multiSelect.firstChild);
+            }
+            editSelectedSchools.forEach(s => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '×';
+                btn.onclick = () => {
+                    editSelectedSchools = editSelectedSchools.filter(school => school.id !== s.id);
+                    renderEditSchoolTags();
+                };
+                tag.textContent = s.name + ' ';
+                tag.appendChild(btn);
+                multiSelect.insertBefore(tag, input);
+            });
+            document.getElementById('edit-school-ids').value = editSelectedSchools.map(s => s.id).join(',');
+        }
+
+        window.toggleEditSchoolDropdown = () => {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown.style.display === 'block') input.focus();
+        };
+
+        window.filterEditSchools = () => {
+            const filter = input.value.toLowerCase();
+            Array.from(dropdown.children).forEach(option => {
+                const isSelected = editSelectedSchools.some(s => s.id === option.dataset.id);
+                if (isSelected) {
+                    option.style.display = 'none';
+                } else {
+                    option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+                }
+            });
+            dropdown.style.display = 'block';
+        };
+
+        renderEditSchoolTags();
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('edit-ms-schools-container');
+            if (container && !container.contains(e.target) && dropdown) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    function updateEditSchoolDropdown(availableSchools) {
+        // Re-initialize the school multi-select with new schools
+        setupEditSchoolMultiSelect([], availableSchools);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Handle edit form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        const editForm = document.getElementById('editAssignmentForm');
+        if (!editForm) return;
+
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!currentEditingAssignmentId) return;
+
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+            }
+
+            try {
+                const formData = new FormData(editForm);
+                const resp = await fetch(`/admin/assignments/edit/${currentEditingAssignmentId}`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.success && data.assignment) {
+                    // Update the assignment in the list
+                    const idx = allAssignments.findIndex(a => a.id === currentEditingAssignmentId);
+                    if (idx >= 0) {
+                        allAssignments[idx] = data.assignment;
+                    }
+                    filterAssignments();
+                    editModal.classList.remove('show');
+                    editForm.reset();
+                    currentEditingAssignmentId = null;
+                    showToast(data.message || 'Assignment updated successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to update assignment', 'error');
+                }
+            } catch (err) {
+                console.error('Update assignment failed', err);
+                showToast('Failed to update assignment', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText || 'Save Changes';
+                }
+            }
+        });
+    });
+
+    // --- RENDER FUNCTION (FIXED) ---
+    function renderAssignments(assignments) {
+        const grid = document.getElementById('assignmentsGrid');
+        if (!assignments || !assignments.length) {
+            grid.innerHTML = `<div class="no-assignments-message"><h3>No assignments found.</h3><p>Try adjusting your filters or create a new assignment to get started.</p></div>`;
+            return;
+        }
+
+        grid.innerHTML = assignments.map(a => {
+            const schoolStr = (a.schools && a.schools.length) ? a.schools.join(', ') : 'All Schools';
+            const stageStr = (a.stages && a.stages.length) ? a.stages.join(', ') : 'All Stages';
+            const groupStr = (a.groups && a.groups.length) ? a.groups.join(', ') : 'All Classes';
+            const due = a.deadline_date ? a.deadline_date : 'Not set';
+            const hiddenClass = a.status !== 'Show' ? 'hidden-assignment' : '';
+            const viewHref = `/admin/assignments/${a.id}/submissions`;
+            const editHref = `/admin/assignments/edit/${a.id}`;
+            const missing = (a.qualified_students_count || 0) - (a.submitted_students_count || 0);
+
+            return `
+            <div class="assignment-card ${hiddenClass}" 
+                 data-href="${viewHref}"
+                 data-school="${a.schools ? a.schools.join(',') : ''}" 
+                 data-class="${a.groups ? a.groups.join(',') : ''}" 
+                 data-year="${a.stages ? a.stages.join(',') : ''}" 
+                 data-subject="${a.subject_id || ''}"
+                 data-title="${(a.title || '').toLowerCase()}">
+                
+                <div class="card-main-content">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="assignment-title">${a.title}</h3>
+                            <p class="assignment-due">Due: ${due}</p>
+                            <p class="assignment-points">Points: ${a.points || 'N/A'}</p>
+                        </div>
+                        <div class="card-actions">
+                            <div class="action-buttons">
+                                ${a.status !== 'Show' ? '<span class="badge badge-orange">HIDDEN</span>' : ''}
+                                <button data-settings-id="${a.id}" class="btn-action js-settings" title="Settings">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <div class="detail-item"><strong>Subject</strong> ${a.subject || 'N/A'}</div>
+                        <div class="detail-item"><strong>School(s)</strong> ${schoolStr}</div>
+                        <div class="detail-item"><strong>Grade(s)</strong> ${stageStr}</div>
+                        <div class="detail-item"><strong>Class(es)</strong> ${groupStr}</div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <div class="stat-item">
+                        <span class="stat-value green">${a.submitted_students_count || 0}</span>
+                        <span class="stat-label">Submitted</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value red">${missing < 0 ? 0 : missing}</span>
+                        <span class="stat-label">Missing</span>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    // --- FILTERING LOGIC (FIXED) ---
+    function getCheckedValues(listId) {
+        const list = document.getElementById(listId);
+        if (!list) return [];
+        const allCheckbox = list.querySelector('input[type="checkbox"][value=""]');
+        if (!allCheckbox || allCheckbox.checked) return [];
+        return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).filter(Boolean);
+    }
+
+    function filterAssignments() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sSchools = getCheckedValues('schoolDropdownList');
+        const sGroups = getCheckedValues('groupDropdownList');
+        const sStages = getCheckedValues('stageDropdownList');
+        const sSubjects = getCheckedValues('subjectDropdownList');
+
+        const filteredAssignments = allAssignments.filter(assignment => {
+            const title = (assignment.title || '').toLowerCase();
+            const schools = assignment.schools || [];
+            const groups = assignment.groups || [];
+            const stages = assignment.stages || [];
+            const subjectId = String(assignment.subject_id || '');
+
+            const searchMatch = title.includes(search);
+            const subjectMatch = sSubjects.length === 0 || sSubjects.includes(subjectId);
+            const schoolMatch = sSchools.length === 0 || (schools.length > 0 && sSchools.some(val => schools.includes(val)));
+            const groupMatch = sGroups.length === 0 || (groups.length > 0 && sGroups.some(val => groups.includes(val)));
+            const stageMatch = sStages.length === 0 || (stages.length > 0 && sStages.some(val => stages.includes(val)));
+
+            const schoolCatchAll = sSchools.length === 0 && schools.length === 0;
+            const groupCatchAll = sGroups.length === 0 && groups.length === 0;
+            const stageCatchAll = sStages.length === 0 && stages.length === 0;
+
+            return searchMatch && subjectMatch && (schoolMatch || schoolCatchAll) && (groupMatch || groupCatchAll) && (stageMatch || stageCatchAll);
+        });
+
+        renderAssignments(filteredAssignments);
+    }
+
+    // --- Dependent Dropdown Logic & Initialization ---
+    function toggleSchoolFilterDropdown() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const hasSubjectSelected = allSubjectsCheckbox ? !allSubjectsCheckbox.checked : false;
+        const schoolDropdown = document.getElementById('schoolDropdown');
+        if (hasSubjectSelected) {
+            schoolDropdown.classList.remove('disabled');
+        } else {
+            schoolDropdown.classList.add('disabled');
+        }
+    }
+
+    function toggleModalSchoolDropdown() {
+        const subjectRadios = document.querySelectorAll('#ms-subjects-list input[type="radio"]');
+        const hasSubjectSelected = Array.from(subjectRadios).some(radio => radio.checked);
+        const schoolMulti = document.getElementById('ms-schools');
+        if (hasSubjectSelected) {
+            schoolMulti.classList.remove('disabled');
+        } else {
+            schoolMulti.classList.add('disabled');
+        }
+    }
+
+    function populateSchoolDropdowns(subjectSchoolMapParam) {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const selectedSubjects = Array.from(subjectList.querySelectorAll('input[type="checkbox"]:checked'))
+            .filter(cb => cb !== allSubjectsCheckbox)
+            .map(cb => cb.value);
+
+        let availableSchools = new Set();
+        const mapToUse = subjectSchoolMapParam || subjectSchoolMap;
+
+        if (selectedSubjects.length === 0 || (allSubjectsCheckbox && allSubjectsCheckbox.checked)) {
+            Object.values(mapToUse).forEach(schools => schools.forEach(school => availableSchools.add(JSON.stringify(school))));
+        } else {
+            selectedSubjects.forEach(subjectId => {
+                if (mapToUse[subjectId]) {
+                    mapToUse[subjectId].forEach(school => availableSchools.add(JSON.stringify(school)));
+                }
+            });
+        }
+
+        const schools = Array.from(availableSchools).map(schoolStr => JSON.parse(schoolStr)).sort((a, b) => a.name.localeCompare(b.name));
+
+        const schoolDropdownList = document.getElementById('schoolDropdownList');
+        schoolDropdownList.querySelectorAll('label:not(.dropdown-all)').forEach(label => label.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${school.name}"> ${school.name}`;
+            schoolDropdownList.appendChild(label);
+        });
+
+        const msSchoolsList = document.getElementById('ms-schools-list');
+        msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(label => label.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
+            msSchoolsList.appendChild(label);
+        });
+
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterAssignments);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+    }
+
+    function enableFilters() {
+        document.getElementById('searchInput').disabled = false;
+        document.getElementById('subjectDropdown').classList.remove('disabled');
+        document.getElementById('stageDropdown').classList.remove('disabled');
+        document.getElementById('groupDropdown').classList.remove('disabled');
+        isLoading = false;
+    }
+
+    function populateFilterDropdowns() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        subjectList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        subjects.forEach(subject => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${subject.id}"> ${subject.name}`;
+            subjectList.appendChild(label);
+        });
+
+        const stageList = document.getElementById('stageDropdownList');
+        stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        const groupList = document.getElementById('groupDropdownList');
+        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    function populateModalDropdowns() {
+        const subjectList = document.getElementById('ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject => `<label><input type="radio" name="subject_id" value="${subject.id}" required>${subject.name}</label>`).join('');
+
+        const stageList = document.getElementById('ms-stages-list');
+        stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        const groupList = document.getElementById('ms-classes-list');
+        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    async function initializePage() {
+        try {
+            const [assignmentsData, filtersData] = await Promise.all([
+                fetchAssignments(),
+                fetchFilters()
+            ]);
+
+            allAssignments = assignmentsData;
+            subjects = filtersData.subjects || [];
+            stages = filtersData.stages || [];
+            groups = filtersData.groups || [];
+            subjectSchoolMap = filtersData.subject_school_map || {};
+
+            populateFilterDropdowns();
+            populateModalDropdowns();
+
+            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterAssignments);
+            setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterAssignments);
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+                populateSchoolDropdowns();
+                filterAssignments();
+                toggleSchoolFilterDropdown();
+            });
+            setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+            setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
+
+            const subjectDropdown = document.getElementById('ms-subjects');
+            const subjectBtn = document.getElementById('ms-subjects-btn');
+            const subjectList = document.getElementById('ms-subjects-list');
+            subjectBtn.onclick = function (e) {
+                e.stopPropagation();
+                document.querySelectorAll('.multi').forEach(d => { if (d !== subjectDropdown) d.classList.remove('open'); });
+                subjectDropdown.classList.toggle('open');
+            };
+            subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.onchange = function () {
+                    const selectedLabel = this.parentElement.textContent.trim();
+                    subjectBtn.textContent = selectedLabel + ' ▼';
+                    subjectDropdown.classList.remove('open');
+                    const selectedSubjectId = this.value;
+                    const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                    const msSchoolsList = document.getElementById('ms-schools-list');
+                    msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+                    availableSchools.forEach(school => {
+                        const label = document.createElement('label');
+                        label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
+                        msSchoolsList.appendChild(label);
+                    });
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    toggleModalSchoolDropdown();
+                };
+            });
+
+            populateSchoolDropdowns();
+            toggleSchoolFilterDropdown();
+            toggleModalSchoolDropdown();
+            renderAssignments(allAssignments);
+            enableFilters();
+
+            document.getElementById('searchInput').addEventListener('input', filterAssignments);
+
+            const gridEl = document.getElementById('assignmentsGrid');
+            gridEl.addEventListener('click', async function (e) {
+                const card = e.target.closest('.assignment-card');
+
+
+                const settingsBtn = e.target.closest('.js-settings');
+                if (settingsBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const id = settingsBtn.getAttribute('data-settings-id');
+                    openSettingsModal(parseInt(id));
+                    return; // Stop further processing
+                }
+
+                if (card && card.dataset.href) {
+                    window.location.href = card.dataset.href;
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing assignments page:', error);
+            const grid = document.getElementById('assignmentsGrid');
+            grid.innerHTML = `<div class="no-assignments-message"><h3>Error loading assignments.</h3><p>Please refresh the page to try again.</p></div>`;
+            enableFilters();
+        }
+    }
+    document.addEventListener('DOMContentLoaded', initializePage);
+</script>
+{% endblock %}

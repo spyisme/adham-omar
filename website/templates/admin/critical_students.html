@@ -1,0 +1,282 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Critical Students{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #1a237e;
+        --primary-hover-color: #141a64;
+        --danger-color: #dc2626;
+        --danger-hover-color: #b91c1c;
+        --surface-bg: #ffffff;
+        --container-bg: #f8f9fa;
+        --text-color: #222222;
+        --subtle-text-color: #6c757d;
+        --border-color: #dee2e6;
+        --border-radius: 6px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --card-gap: 1rem;
+    }
+
+    .students-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .students-container h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: var(--text-color);
+    }
+
+    .group-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+        margin-top: 2rem;
+    }
+
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: var(--card-gap);
+        margin-top: 1rem;
+    }
+
+    .student-card {
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+        margin-bottom: 0.5rem;
+        cursor: pointer;
+    }
+
+    .student-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    }
+
+    .student-card .card-header {
+        background-color: #f8f9fa;
+        margin: -1rem -1rem 1rem -1rem;
+        padding: 1rem;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px dashed #e9ecef;
+        font-size: 0.95rem;
+    }
+
+    .card-item:last-of-type {
+        border-bottom: none;
+    }
+
+    .card-item .label {
+        font-weight: 600;
+        color: var(--text-color);
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .card-item .value {
+        color: var(--subtle-text-color);
+        text-align: right;
+        flex-grow: 1;
+        word-break: break-word;
+    }
+
+    /* Skeleton styles */
+    .skeleton {
+        background: linear-gradient(90deg, #ececec 0%, #f5f5f5 50%, #ececec 100%);
+        background-size: 200% 100%;
+        animation: skeleton-loading 1.2s infinite linear;
+        border-radius: 6px;
+        min-width: 0;
+    }
+    .skeleton-title {
+        width: 70%;
+        height: 1.75rem;
+        margin-bottom: 1.25rem;
+    }
+    .skeleton-header {
+        height: 2.3rem;
+        width: 95%;
+        margin-bottom: 1rem;
+    }
+    .skeleton-p {
+        width: 100%;
+        height: 1.125rem;
+        margin-bottom: 0.5rem;
+    }
+    .skeleton-card {
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        background-color: var(--surface-bg);
+        margin-bottom: 0.5rem;
+    }
+    @keyframes skeleton-loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    @media (max-width: 768px) {
+        .students-container {
+            padding: 1rem 0.5rem;
+        }
+        .students-container h1 {
+            font-size: 1.5rem;
+        }
+        .cards-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="students-container">
+    <h1>Critical Students</h1>
+
+    <div class="group-title">Students with less than 60% in any Exam</div>
+    <div id="exam-cards" class="cards-container">
+        <!-- Skeletons shown initially, replaced with real data after JS loads -->
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-header"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-header"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+        </div>
+    </div>
+    <p id="exam-empty" style="color: var(--subtle-text-color); margin-bottom:2rem; display:none;">No students found in this category.</p>
+
+    <div class="group-title">Students missing 2 or more Assignments</div>
+    <div id="assign-cards" class="cards-container">
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-header"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+        </div>
+        <div class="skeleton-card">
+            <div class="skeleton skeleton-header"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+            <div class="skeleton skeleton-p"></div>
+        </div>
+    </div>
+    <p id="assign-empty" style="color: var(--subtle-text-color); display:none;">No students found in this category.</p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    // Remove initial skeletons and load real data from /admin/critical/api
+    fetch("/admin/critical/api")
+        .then(resp => resp.json())
+        .then(data => {
+            // --- Exams section ---
+            const examCards = document.getElementById("exam-cards");
+            const examEmpty = document.getElementById("exam-empty");
+            examCards.innerHTML = "";
+            const criticalExams = Array.isArray(data.critical_exam_students) ? data.critical_exam_students : [];
+            if(criticalExams.length) {
+                for(const s of criticalExams) {
+                    const card = document.createElement('div');
+                    card.className = 'student-card';
+                    card.onclick = function() {
+                        window.open('/admin/student/' + s.student_id, '_blank');    
+                    };
+                    card.innerHTML = `
+                        <div class="card-header">
+                            ${(s.student_code ? s.student_code + " | " : "")}${s.student_name || ""}
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Exam</span>
+                            <span class="value">${s.exam_title || ""}</span>
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Mark</span>
+                            <span class="value">${s.student_mark ?? ""} / ${s.full_mark ?? ""}</span>
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Percentage</span>
+                            <span class="value" style="color: var(--danger-color);">${s.percent ?? ""}%</span>
+                        </div>
+                    `;
+                    examCards.appendChild(card);
+                }
+                examEmpty.style.display = "none";
+            } else {
+                examEmpty.style.display = "";
+            }
+
+            // --- Assignments section ---
+            const assignCards = document.getElementById("assign-cards");
+            const assignEmpty = document.getElementById("assign-empty");
+            assignCards.innerHTML = "";
+            const criticalAssigns = Array.isArray(data.critical_assignment_students) ? data.critical_assignment_students : [];
+            if(criticalAssigns.length) {
+                for(const s of criticalAssigns) {
+                    const card = document.createElement('div');
+                    card.className = 'student-card';
+                    card.onclick = function() {
+                        window.open('/admin/student/' + s.student_id, '_blank');
+                    };
+                    card.innerHTML = `
+                        <div class="card-header">
+                            ${(s.student_code ? s.student_code + " | " : "")}${s.student_name || ""}
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Total Assignments</span>
+                            <span class="value">${s.total_assignments ?? ""}</span>
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Completed</span>
+                            <span class="value">${s.completed_assignments ?? ""}</span>
+                        </div>
+                        <div class="card-item">
+                            <span class="label">Missing</span>
+                            <span class="value" style="color: var(--danger-color);">${s.missing_assignments ?? ""}</span>
+                        </div>
+                    `;
+                    assignCards.appendChild(card);
+                }
+                assignEmpty.style.display = "none";
+            } else {
+                assignEmpty.style.display = "";
+            }
+        })
+        .catch(err => {
+            document.getElementById("exam-cards").innerHTML = "";
+            document.getElementById("assign-cards").innerHTML = "";
+            document.getElementById("exam-empty").style.display = "";
+            document.getElementById("assign-empty").style.display = "";
+            // Optionally, you could show a toast or alert here.
+        });
+});
+</script>
+
+{% endblock %}

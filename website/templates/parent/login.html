@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Subjects with Amr - Parent Login</title>
+  <meta name="description" content="Subjects with Amr Parent Login Portal">
+  <meta name="keywords" content="Subjects, Amr, Parent Login, Subjects with Amr">
+  <meta name="author" content="Amr">
+  <style>
+    :root {
+      --bg-light: #f8f9fa;
+      --bg-panel: #ffffff;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-on-accent: #ffffff;
+      --accent-primary: #007bff;
+      /* A professional blue */
+      --accent-primary-dark: #0056b3;
+      --border-color: #dee2e6;
+      --error-bg: #f8d7da;
+      --error-text: #721c24;
+      --error-border: #f5c6cb;
+      --radius-sm: 0.25rem;
+      --radius-md: 0.5rem;
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    /* --- Base & Typography --- */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* --- Main Page Layout --- */
+    .page-container {
+      display: flex;
+      min-height: 100vh;
+      animation: fade-in 0.8s ease-out;
+    }
+
+    .welcome-panel {
+      flex-basis: 40%;
+      background: linear-gradient(45deg, var(--accent-primary), var(--accent-primary-dark));
+      color: var(--text-on-accent);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .welcome-panel .brand-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .welcome-panel .brand-logo svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .welcome-panel p {
+      font-size: 1.1rem;
+      max-width: 350px;
+      opacity: 0.9;
+    }
+
+    .form-panel {
+      flex-basis: 60%;
+      background-color: var(--bg-panel);
+      padding: clamp(1.5rem, 5vw, 3rem);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .form-header h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem;
+    }
+
+    .form-header p {
+      color: var(--text-secondary);
+      margin: 0 0 2.5rem;
+    }
+
+    /* --- Form Elements --- */
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      background-color: #fff;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+    }
+
+    .form-submit {
+      width: 100%;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background-color: var(--accent-primary);
+      color: var(--text-on-accent);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+      margin-top: 1rem;
+    }
+
+    .form-submit:hover {
+      background-color: var(--accent-primary-dark);
+      transform: translateY(-2px);
+    }
+
+    .login-link {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--text-secondary);
+    }
+
+    .login-link a {
+      color: var(--accent-primary);
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .login-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* --- Flash Messages --- */
+    .flash-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: auto;
+      max-width: 350px;
+    }
+
+    .flash-message {
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      border-radius: var(--radius-md);
+      color: #fff;
+      box-shadow: var(--shadow-md);
+      animation: flash-slide-in 0.5s ease-out forwards;
+      opacity: 0;
+    }
+
+    @keyframes flash-slide-in {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .flash-message.fade-out {
+      transition: opacity 0.5s ease;
+      opacity: 0;
+    }
+
+    .flash-success {
+      background: #28a745;
+    }
+
+    .flash-danger,
+    .flash-error {
+      background: #dc3545;
+    }
+
+    .flash-info,
+    .flash-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    /* --- Responsive Design --- */
+    @media (max-width: 992px) {
+      .page-container {
+        flex-direction: column;
+      }
+
+      .welcome-panel {
+        display: none;
+      }
+
+      .form-panel {
+        flex-basis: 100%;
+        min-height: 100vh;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message flash-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
+
+  <div class="page-container">
+    <aside class="welcome-panel">
+      <div class="brand-logo">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+        <span> Amr</span>
+      </div>
+      <p>Welcome! Your window into your child's progress and achievements.</p>
+    </aside>
+
+    <main class="form-panel">
+      <div>
+        <div class="form-header">
+          <h1>Parent Portal</h1>
+          <p>Please enter your assigned parent number to view your child's progress.</p>
+        </div>
+
+        <form action="/parent/login" method="POST" novalidate>
+          <div class="form-group">
+            <label for="parent_number">Parent Number</label>
+            <input type="text" id="parent_number" name="parent_number" required
+              placeholder="Enter your assigned number" />
+          </div>
+          <button type="submit" class="form-submit">Login</button>
+        </form>
+
+        <div class="login-link">
+          Are you a student?
+          <a href="/login">Login Here</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const flashMessages = document.querySelectorAll('.flash-message');
+      flashMessages.forEach(msg => {
+        setTimeout(() => {
+          msg.classList.add('fade-out');
+          msg.addEventListener('transitionend', () => msg.remove());
+        }, 5000);
+      });
+    });
+  </script>
+</body>
+
+</html>

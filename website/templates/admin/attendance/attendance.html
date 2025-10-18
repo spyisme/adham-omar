@@ -1,0 +1,1406 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Attendance{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    /* --- Skeleton Loader --- */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 0.4rem;
+    }
+
+    @keyframes loading {
+        0% {
+            background-position: 200% 0;
+        }
+
+        100% {
+            background-position: -200% 0;
+        }
+    }
+
+    .skeleton-card {
+        background-color: #fff;
+        border: 1px solid var(--color-border, #e0e0e0);
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .skeleton-h3 {
+        height: 1.5rem;
+        width: 60%;
+        margin-bottom: 1rem;
+    }
+
+    .skeleton-p {
+        height: 1rem;
+        width: 80%;
+        margin-bottom: 0.5rem;
+    }
+
+    .skeleton-p.short {
+        width: 40%;
+    }
+
+    .skeleton-footer {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .skeleton-badge {
+        height: 1.5rem;
+        width: 70px;
+    }
+
+    .skeleton-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1rem 0;
+    }
+
+    .attendance-cards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+        align-items: stretch;
+    }
+
+    .attendance-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: box-shadow 0.15s;
+        cursor: pointer;
+    }
+
+    .attendance-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .attendance-card .card-title {
+        font-size: 1.18rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+    }
+
+    .attendance-card .card-content {
+        font-size: 1rem;
+        color: #374151;
+        margin-bottom: 1rem;
+        word-break: break-word;
+    }
+
+    .attendance-card .card-meta {
+        font-size: 0.97rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+    }
+
+    .attendance-card .card-meta span {
+        display: inline-block;
+        background: #f3f4f6;
+        border-radius: 0.4em;
+        padding: 0.15em 0.7em;
+        font-size: 0.93em;
+        color: #374151;
+    }
+
+    .attendance-card .session-stats {
+        font-size: 0.97rem;
+        color: #334155;
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+    }
+
+    .attendance-card .session-stats span {
+        display: inline-block;
+        background: #e0f2fe;
+        border-radius: 0.4em;
+        padding: 0.15em 0.7em;
+        font-size: 0.93em;
+        color: #0369a1;
+    }
+
+    .attendance-card .action-buttons {
+        margin-top: auto;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        z-index: 2;
+        position: relative;
+    }
+
+    .attendance-card .btn-action {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.2em 0.5em;
+        border-radius: 0.3em;
+        transition: background 0.15s;
+        font-size: 1rem;
+    }
+
+    .attendance-card .btn-action.edit {
+        background: #3b82f6;
+        color: white;
+        padding: 0.4em 0.8em;
+        font-size: 0.9rem;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .attendance-card .btn-action.edit:hover {
+        background: #2563eb;
+    }
+
+    .attendance-card .btn-action.delete {
+        color: #dc2626;
+        font-size: 1.2rem;
+    }
+
+    .attendance-card .btn-action.delete:hover {
+        background: #fee2e2;
+    }
+
+    .filter-dropdown.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .multi.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* --- Multi-select dropdown styles for edit modal --- */
+    .multi-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem;
+        min-height: 48px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        cursor: text;
+        background: #f8fafc;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .multi-select input {
+        border: none;
+        outline: none;
+        flex: 1;
+        min-width: 120px;
+        font-size: 1rem;
+        background: transparent;
+    }
+
+    .tag {
+        background: #eef2ff;
+        color: #4338ca;
+        border-radius: 999px;
+        padding: 0.25rem 0.65rem;
+        font-size: 0.9em;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .tag button {
+        border: none;
+        background: none;
+        font-size: 1rem;
+        cursor: pointer;
+        color: #4338ca;
+        padding: 0;
+        line-height: 1;
+    }
+
+    #edit-ms-schools-container {
+        position: relative;
+    }
+
+    .dropdown-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        margin-top: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+    }
+
+    .dropdown-list div {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+    }
+
+    .dropdown-list div:hover {
+        background: #f3f4f6;
+    }
+
+    .no-sessions-message {
+        text-align: center;
+        padding: 4rem 2rem;
+        background-color: #fff;
+        border: 1px solid var(--color-border, #e0e0e0);
+        border-radius: 8px;
+        color: var(--color-text-secondary, #666);
+    }
+
+    @media (max-width: 900px) {
+        .attendance-cards-list {
+            gap: 1rem;
+        }
+
+        .attendance-card {
+            min-width: 220px;
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .attendance-cards-list {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .attendance-card {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+
+    .search-row-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    #searchInput {
+        width: 70vw;
+        max-width: 800px;
+        min-width: 300px;
+        margin: 0 auto;
+        display: block;
+        font-size: 1rem;
+    }
+
+    .filters-row-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .filters-row-wrapper .filter-dropdown {
+        min-width: 180px;
+    }
+
+    @media (max-width: 900px) {
+        #searchInput {
+            width: 95vw;
+            max-width: 100%;
+        }
+
+        .filters-row-wrapper .filter-dropdown {
+            min-width: 120px;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .filters-row-wrapper {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.5rem;
+        }
+
+        .filters-row-wrapper .filter-dropdown {
+            width: 100%;
+            min-width: unset;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<header class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">Attendance Sessions</h1>
+        <button id="openAddAttendance" class="btn btn-primary">Add Session</button>
+    </div>
+</header>
+
+<main class="container">
+    <div class="card">
+        <div class="card-content">
+            <div class="search-row-wrapper">
+                <input type="text" id="searchInput" class="form-input" placeholder="Search by title, date, subject..."
+                    disabled>
+            </div>
+            <div class="filters-row-wrapper">
+                <div class="filter-dropdown disabled" id="subjectDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
+                        Subjects ▼</button>
+                    <div class="filter-dropdown-list" id="subjectDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                    </div>
+                </div>
+                <div class="filter-dropdown disabled" id="schoolDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="schoolDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                    </div>
+                </div>
+                <div class="filter-dropdown disabled" id="stageDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="stageDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Stages</label>
+                    </div>
+                </div>
+                <div class="filter-dropdown disabled" id="groupDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Classes
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="groupDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Attendance Overview</h2>
+            <p>Manage and track all attendance sessions across different schools and classes.</p>
+        </div>
+        <div class="card-content no-padding" id="attendanceContainer">
+            <!-- Skeleton loaders -->
+            <div id="skeletonLoader" class="attendance-cards-list" style="padding: 1rem;">
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-h3"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p short"></div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton skeleton-badge"></div>
+                        <div class="skeleton skeleton-badge"></div>
+                    </div>
+                </div>
+                <div class="skeleton-card">
+                    <div class="skeleton skeleton-h3"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p short"></div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton skeleton-badge"></div>
+                        <div class="skeleton skeleton-badge"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="attendanceModal" class="modal-overlay">
+    <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Add Attendance Session</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Session Title</label>
+                    <input type="text" name="title" required class="form-input">
+                </div>
+
+                <div>
+                    <label class="form-label">Session Date</label>
+                    <input type="datetime-local" name="session_date" required class="form-input">
+                </div>
+
+                <div>
+                    <label class="form-label">Subject</label>
+                    <div class="multi" id="ms-subjects">
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                            ▼</button>
+                        <div class="multi-list" id="ms-subjects-list"></div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">School</label>
+                    <div class="multi disabled" id="ms-schools">
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Stage</label>
+                    <div class="multi" id="ms-stages">
+                        <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                        <div class="multi-list" id="ms-stages-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Class</label>
+                    <div class="multi" id="ms-groups">
+                        <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Classes ▼</button>
+                        <div class="multi-list" id="ms-groups-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Points</label>
+                    <input type="number" name="points" placeholder="0" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Create Session</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Attendance Modal -->
+<div id="editAttendanceModal" class="modal-overlay">
+    <div class="modal-content">
+        <form id="editAttendanceForm" method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Edit Attendance Session</h2>
+                <button type="button" class="modal-close" id="editModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- Skeleton loader will be shown initially -->
+                <div class="skeleton-form">
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="editModalFooter" style="display: none;">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Global state
+    let allSessions = [];
+    let subjects = [];
+    let stages = [];
+    let groups = [];
+    let subjectSchoolMap = {};
+    let isLoading = true;
+    let currentEditingSessionId = null;
+
+    // --- Modal Logic ---
+    const modal = document.getElementById('attendanceModal');
+    const editModal = document.getElementById('editAttendanceModal');
+    const openModalBtn = document.getElementById('openAddAttendance');
+    const closeModalBtn = document.querySelector('#attendanceModal .modal-close');
+    const editModalCloseBtn = document.getElementById('editModalClose');
+
+    if (openModalBtn) openModalBtn.onclick = () => { modal.classList.add('show'); };
+    if (closeModalBtn) closeModalBtn.onclick = () => { modal.classList.remove('show'); };
+    if (editModalCloseBtn) editModalCloseBtn.onclick = () => { editModal.classList.remove('show'); };
+
+    if (modal) {
+        modal.onclick = e => {
+            if (e.target === modal) modal.classList.remove('show');
+        };
+    }
+    if (editModal) {
+        editModal.onclick = e => {
+            if (e.target === editModal) editModal.classList.remove('show');
+        };
+    }
+
+    // --- Dropdown/Multiselect Logic ---
+    function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+
+        const getCheckboxes = () => Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            if (dropdown.classList.contains('disabled')) return;
+            const isCurrentlyOpen = dropdown.classList.contains('open');
+            document.querySelectorAll('.filter-dropdown, .multi').forEach(d => d.classList.remove('open'));
+            if (!isCurrentlyOpen) {
+                dropdown.classList.add('open');
+            }
+        };
+
+        const updateHandler = function () {
+            const checkboxes = getCheckboxes();
+            if (this.value === "") {
+                if (this.checked) {
+                    checkboxes.forEach(cb => cb.checked = false);
+                }
+            } else {
+                if (this.checked && allCheckbox) {
+                    allCheckbox.checked = false;
+                }
+                if (allCheckbox && !checkboxes.some(c => c.checked)) {
+                    allCheckbox.checked = true;
+                }
+            }
+            updateBtnLabel();
+            if (updateCallback) updateCallback();
+        };
+
+        list.addEventListener('change', e => {
+            if (e.target.type === 'checkbox') {
+                updateHandler.call(e.target);
+            }
+        });
+
+        function updateBtnLabel() {
+            let selected = getCheckboxes().filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0].substring(0, 15) + (selected[0].length > 15 ? '...' : '') + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
+        }
+        updateBtnLabel();
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.filter-dropdown.open, .multi.open').forEach(d => {
+            if (!d.contains(e.target)) {
+                d.classList.remove('open');
+            }
+        });
+    });
+
+    // --- Toast utility ---
+    function showToast(message, type = 'info', opts = {}) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.style.position = 'fixed';
+            container.style.right = '1rem';
+            container.style.bottom = '1rem';
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.gap = '0.5rem';
+            container.style.zIndex = '9999';
+            container.style.pointerEvents = 'none';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.style.minWidth = '260px';
+        toast.style.maxWidth = '92vw';
+        toast.style.background = type === 'success' ? '#065f46' : type === 'error' ? '#7f1d1d' : '#1e3a8a';
+        toast.style.color = '#f9fafb';
+        toast.style.borderRadius = '8px';
+        toast.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+        toast.style.padding = '0.75rem 1rem';
+        toast.style.display = 'flex';
+        toast.style.alignItems = 'center';
+        toast.style.gap = '0.5rem';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        toast.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+        toast.style.pointerEvents = 'auto';
+        const msg = document.createElement('div');
+        msg.textContent = message;
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '✕';
+        closeBtn.style.background = 'transparent';
+        closeBtn.style.border = 'none';
+        closeBtn.style.color = 'inherit';
+        closeBtn.style.fontSize = '1.1rem';
+        closeBtn.style.lineHeight = '1';
+        closeBtn.style.cursor = 'pointer';
+        closeBtn.style.padding = '0.25rem';
+        closeBtn.style.borderRadius = '0.25rem';
+        const removeToast = () => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 200); };
+        closeBtn.onclick = removeToast;
+        toast.appendChild(msg);
+        toast.appendChild(closeBtn);
+        container.appendChild(toast);
+        void toast.offsetHeight;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+        const duration = typeof opts.duration === 'number' ? opts.duration : 3500;
+        const timer = setTimeout(removeToast, duration);
+        toast.addEventListener('mouseenter', () => clearTimeout(timer));
+    }
+
+    // --- API Calls ---
+    async function fetchAttendance() {
+        try {
+            const response = await fetch('/admin/api/attendance-data');
+            if (!response.ok) throw new Error('Failed to fetch attendance');
+            const data = await response.json();
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching attendance:', error);
+            return [];
+        }
+    }
+
+    async function fetchFilters() {
+        try {
+            const response = await fetch('/admin/api/filters');
+            if (!response.ok) throw new Error('Failed to fetch filters');
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching filters:', error);
+            return { subjects: [], groups: [], stages: [], subject_school_map: {} };
+        }
+    }
+
+    // --- Intercept form submit to POST without refresh ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('#attendanceModal form');
+        if (!form) return;
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Creating...'; }
+            try {
+                const formData = new FormData(form);
+                const resp = await fetch('/admin/attendance', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.success && data.session) {
+                    allSessions.unshift(data.session);
+                    filterSessions();
+                    modal.classList.remove('show');
+                    form.reset();
+                    // Reset modal dropdown button labels
+                    document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+                    document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+                    document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
+                    showToast(data.message || 'Attendance session created successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to create attendance session', 'error');
+                }
+            } catch (err) {
+                console.error('Create attendance failed', err);
+                showToast('Failed to create attendance session', 'error');
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Create Session'; }
+            }
+        });
+    });
+
+    // --- EDIT FUNCTIONS ---
+    async function openEditModal(sessionId) {
+        currentEditingSessionId = sessionId;
+        const editModal = document.getElementById('editAttendanceModal');
+        const editModalBody = document.getElementById('editModalBody');
+        const editModalFooter = document.getElementById('editModalFooter');
+
+        // Show modal with skeleton loader
+        editModalBody.innerHTML = `
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        `;
+        editModalFooter.style.display = 'none';
+        editModal.classList.add('show');
+
+        try {
+            const response = await fetch(`/admin/api/attendance/${sessionId}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Failed to fetch attendance session data', 'error');
+                editModal.classList.remove('show');
+                return;
+            }
+
+            populateEditForm(data.session);
+            editModalFooter.style.display = 'flex';
+        } catch (error) {
+            console.error('Error fetching attendance session:', error);
+            showToast('Failed to fetch attendance session data', 'error');
+            editModal.classList.remove('show');
+        }
+    }
+
+    function populateEditForm(session) {
+        const editModalBody = document.getElementById('editModalBody');
+
+        // Build schools dropdown options
+        const availableSchools = session.subject && session.subject.id && subjectSchoolMap[session.subject.id]
+            ? subjectSchoolMap[session.subject.id]
+            : Object.values(subjectSchoolMap).flat();
+
+        editModalBody.innerHTML = `
+            <div>
+                <label class="form-label">Session Title</label>
+                <input type="text" name="title" required value="${escapeHtml(session.title || '')}" class="form-input">
+            </div>
+            
+            <div>
+                <label class="form-label">Session Date</label>
+                <input type="datetime-local" name="session_date" required value="${session.session_date_iso || ''}" class="form-input">
+            </div>
+            <div>
+                <label class="form-label">Subject</label>
+                <div class="multi" id="edit-ms-subjects">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-subjects-btn">
+                        ${session.subject && session.subject.name ? escapeHtml(session.subject.name) : 'Choose Subject'} ▼
+                    </button>
+                    <div class="multi-list" id="edit-ms-subjects-list"></div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">School</label>
+                <div id="edit-ms-schools-container" style="position: relative;"></div>
+                <input type="hidden" name="school_ids" id="edit-school-ids">
+            </div>
+            <div>
+                <label class="form-label">Stage</label>
+                <div class="multi" id="edit-ms-stages">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-stages-btn">All Stages ▼</button>
+                    <div class="multi-list" id="edit-ms-stages-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!session.stages_mm || session.stages_mm.length === 0 ? 'checked' : ''}>All Stages</label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Class</label>
+                <div class="multi" id="edit-ms-classes">
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-classes-btn">All Classes ▼</button>
+                    <div class="multi-list" id="edit-ms-classes-list">
+                        <label class="multi-all"><input type="checkbox" value="" ${!session.groups_mm || session.groups_mm.length === 0 ? 'checked' : ''}>All Classes</label>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Populate subjects
+        const subjectList = document.getElementById('edit-ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject => `
+            <label><input type="radio" name="subject_id" value="${subject.id}" required ${session.subject && session.subject.id === subject.id ? 'checked' : ''}>${escapeHtml(subject.name)}</label>
+        `).join('');
+
+        // Populate stages
+        const stageList = document.getElementById('edit-ms-stages-list');
+        const stageCheckboxes = stages.map(stage => {
+            const isChecked = session.stages_mm && session.stages_mm.some(s => s.id === stage.id);
+            return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
+        }).join('');
+        stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
+
+        // Populate groups
+        const groupList = document.getElementById('edit-ms-classes-list');
+        const groupCheckboxes = groups.map(group => {
+            const isChecked = session.groups_mm && session.groups_mm.some(g => g.id === group.id);
+            return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
+        }).join('');
+        groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
+
+        // Populate schools and set hidden field
+        if (session.schools_mm && session.schools_mm.length > 0) {
+            const schoolIds = session.schools_mm.map(s => s.id).join(',');
+            document.getElementById('edit-school-ids').value = schoolIds;
+        }
+
+        // Setup school multi-select with tags
+        setupEditSchoolMultiSelect(session.schools_mm || [], availableSchools);
+
+        // Setup dropdowns
+        setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
+        setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
+
+        // Setup subject dropdown
+        const subjectDropdown = document.getElementById('edit-ms-subjects');
+        const subjectBtn = document.getElementById('edit-ms-subjects-btn');
+        const subjectListEl = document.getElementById('edit-ms-subjects-list');
+
+        subjectBtn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => { if (d !== subjectDropdown) d.classList.remove('open'); });
+            subjectDropdown.classList.toggle('open');
+        };
+
+        subjectListEl.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.onchange = function () {
+                const selectedLabel = this.parentElement.textContent.trim();
+                subjectBtn.textContent = selectedLabel + ' ▼';
+                subjectDropdown.classList.remove('open');
+
+                const selectedSubjectId = this.value;
+                const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                updateEditSchoolDropdown(availableSchools);
+            };
+        });
+    }
+
+    function setupEditSchoolMultiSelect(selectedSchools, availableSchools) {
+        let editSelectedSchools = selectedSchools.map(s => ({ id: String(s.id), name: s.name }));
+
+        const multiSelect = document.createElement('div');
+        multiSelect.className = 'multi-select';
+        multiSelect.id = 'edit-multiSelectSchools';
+        multiSelect.onclick = () => toggleEditSchoolDropdown();
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'edit-multiInputSchools';
+        input.placeholder = 'Type or select schools...';
+        input.oninput = () => filterEditSchools();
+
+        multiSelect.appendChild(input);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown-list';
+        dropdown.id = 'edit-dropdownListSchools';
+        dropdown.style.display = 'none';
+
+        availableSchools.forEach(school => {
+            const div = document.createElement('div');
+            div.dataset.id = String(school.id);
+            div.textContent = school.name;
+            dropdown.appendChild(div);
+        });
+
+        dropdown.onclick = (e) => {
+            if (e.target.dataset.id) {
+                const id = e.target.dataset.id;
+                const name = e.target.textContent;
+                if (!editSelectedSchools.find(s => s.id === id)) {
+                    editSelectedSchools.push({ id, name });
+                    renderEditSchoolTags();
+                }
+                input.value = '';
+                filterEditSchools();
+                dropdown.style.display = 'none';
+            }
+        };
+
+        const container = document.getElementById('edit-ms-schools-container');
+        const existingMultiSelect = container.querySelector('.multi-select');
+        const existingDropdown = container.querySelector('.dropdown-list');
+
+        if (existingMultiSelect) existingMultiSelect.remove();
+        if (existingDropdown) existingDropdown.remove();
+
+        container.appendChild(multiSelect);
+        container.appendChild(dropdown);
+
+        function renderEditSchoolTags() {
+            while (multiSelect.firstChild && multiSelect.firstChild !== input) {
+                multiSelect.removeChild(multiSelect.firstChild);
+            }
+            editSelectedSchools.forEach(s => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '×';
+                btn.onclick = () => {
+                    editSelectedSchools = editSelectedSchools.filter(school => school.id !== s.id);
+                    renderEditSchoolTags();
+                };
+                tag.textContent = s.name + ' ';
+                tag.appendChild(btn);
+                multiSelect.insertBefore(tag, input);
+            });
+            document.getElementById('edit-school-ids').value = editSelectedSchools.map(s => s.id).join(',');
+        }
+
+        window.toggleEditSchoolDropdown = () => {
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            if (dropdown.style.display === 'block') input.focus();
+        };
+
+        window.filterEditSchools = () => {
+            const filter = input.value.toLowerCase();
+            Array.from(dropdown.children).forEach(option => {
+                const isSelected = editSelectedSchools.some(s => s.id === option.dataset.id);
+                if (isSelected) {
+                    option.style.display = 'none';
+                } else {
+                    option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
+                }
+            });
+            dropdown.style.display = 'block';
+        };
+
+        renderEditSchoolTags();
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('edit-ms-schools-container');
+            if (container && !container.contains(e.target) && dropdown) {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    function updateEditSchoolDropdown(availableSchools) {
+        // Re-initialize the school multi-select with new schools
+        setupEditSchoolMultiSelect([], availableSchools);
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Handle edit form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        const editForm = document.getElementById('editAttendanceForm');
+        if (!editForm) return;
+
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            if (!currentEditingSessionId) return;
+
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Saving...';
+            }
+
+            try {
+                const formData = new FormData(editForm);
+                const resp = await fetch(`/admin/attendance/edit/${currentEditingSessionId}`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.success && data.session) {
+                    // Update the session in the list
+                    const idx = allSessions.findIndex(s => s.id === currentEditingSessionId);
+                    if (idx >= 0) {
+                        allSessions[idx] = data.session;
+                    }
+                    filterSessions();
+                    editModal.classList.remove('show');
+                    editForm.reset();
+                    currentEditingSessionId = null;
+                    showToast(data.message || 'Attendance session updated successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to update attendance session', 'error');
+                }
+            } catch (err) {
+                console.error('Update attendance failed', err);
+                showToast('Failed to update attendance session', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText || 'Save Changes';
+                }
+            }
+        });
+    });
+
+    // --- RENDER FUNCTION ---
+    function renderSessions(sessions) {
+        const container = document.getElementById('attendanceContainer');
+        const skeletonLoader = document.getElementById('skeletonLoader');
+
+        if (skeletonLoader) {
+            skeletonLoader.remove();
+        }
+
+        if (!sessions || !sessions.length) {
+            container.innerHTML = `<div class="no-sessions-message"><h3>No attendance sessions found.</h3><p>Try adjusting your filters or create a new session to get started.</p></div>`;
+            return;
+        }
+
+        const sessionsHTML = sessions.map(s => {
+            const schoolStr = s.schools || 'All Schools';
+            const stageStr = s.stages || 'All Stages';
+            const groupStr = s.groups || 'All Classes';
+            const viewHref = `/admin/attendance/${s.id}`;
+
+            return `
+            <div class="attendance-card attendance-row"
+                data-href="${viewHref}"
+                data-school="${schoolStr.toLowerCase()}"
+                data-class="${groupStr.toLowerCase()}"
+                data-year="${stageStr.toLowerCase()}"
+                data-subject="${s.subject_id || ''}"
+                data-title="${(s.title || '').toLowerCase()}">
+                <div class="card-title">
+                    Title: <strong>${escapeHtml(s.title)}</strong>
+                </div>
+                <div class="card-title">
+                    Points: <strong>${s.points || 'N/A'}</strong>
+                </div>
+                <div class="card-content">${s.session_date || 'No date'}</div>
+                <div class="card-meta">
+                    <span><strong>Subject:</strong> ${s.subject || 'N/A'}</span>
+                    <span><strong>🏫</strong> ${schoolStr}</span>
+                    <span><strong>🎓</strong> ${stageStr}</span>
+                    <span><strong>🏷️</strong> ${groupStr}</span>
+                </div>
+                ${s.stats ? `
+                    <br>
+                    <div class="session-stats">
+                        <span><strong>Present:</strong> ${s.stats.present || 0}</span>
+                        <span><strong>Absent:</strong> ${s.stats.absent || 0}</span>
+                        <span><strong>Total:</strong> ${s.stats.total || 0}</span>
+                    </div>
+                ` : ''}
+                <div class="action-buttons">
+                    <button type="button" data-edit-id="${s.id}" class="btn-action edit js-edit" title="Edit">Edit</button>
+                    <button type="button" data-delete-id="${s.id}" class="btn-action delete js-delete" title="Delete">🗑️</button>
+                </div>
+            </div>
+            `;
+        }).join('');
+
+        container.innerHTML = `<div class="attendance-cards-list">${sessionsHTML}</div>`;
+    }
+
+    // --- FILTERING LOGIC ---
+    function getCheckedValues(listId) {
+        const list = document.getElementById(listId);
+        if (!list) return [];
+        const allCheckbox = list.querySelector('input[type="checkbox"][value=""]');
+        if (!allCheckbox || allCheckbox.checked) return [];
+        return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value).filter(Boolean);
+    }
+
+    function filterSessions() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sSchools = getCheckedValues('schoolDropdownList').map(val => val.toLowerCase());
+        const sGroups = getCheckedValues('groupDropdownList').map(val => val.toLowerCase());
+        const sStages = getCheckedValues('stageDropdownList').map(val => val.toLowerCase());
+        const sSubjects = getCheckedValues('subjectDropdownList');
+
+        const filteredSessions = allSessions.filter(session => {
+            const title = (session.title || '').toLowerCase();
+            const date = (session.session_date || '').toLowerCase();
+            const subject = (session.subject || '').toLowerCase();
+            const schools = (session.schools || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const groups = (session.groups || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const stages = (session.stages || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const subjectId = String(session.subject_id || '');
+
+            const searchMatch = title.includes(search) || date.includes(search) || subject.includes(search);
+            const subjectMatch = sSubjects.length === 0 || sSubjects.includes(subjectId);
+            const schoolMatch = sSchools.length === 0 || sSchools.some(val => schools.some(s => s.includes(val)));
+            const groupMatch = sGroups.length === 0 || sGroups.some(val => groups.some(g => g.includes(val)));
+            const stageMatch = sStages.length === 0 || sStages.some(val => stages.some(st => st.includes(val)));
+
+            return searchMatch && subjectMatch && schoolMatch && groupMatch && stageMatch;
+        });
+
+        renderSessions(filteredSessions);
+    }
+
+    // --- Dependent Dropdown Logic & Initialization ---
+    function toggleSchoolFilterDropdown() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const hasSubjectSelected = allSubjectsCheckbox ? !allSubjectsCheckbox.checked : false;
+        const schoolDropdown = document.getElementById('schoolDropdown');
+        if (hasSubjectSelected) {
+            schoolDropdown.classList.remove('disabled');
+        } else {
+            schoolDropdown.classList.add('disabled');
+        }
+    }
+
+    function toggleModalSchoolDropdown() {
+        const subjectRadios = document.querySelectorAll('#ms-subjects-list input[type="radio"]');
+        const hasSubjectSelected = Array.from(subjectRadios).some(radio => radio.checked);
+        const schoolMulti = document.getElementById('ms-schools');
+        if (hasSubjectSelected) {
+            schoolMulti.classList.remove('disabled');
+        } else {
+            schoolMulti.classList.add('disabled');
+        }
+    }
+
+    function populateSchoolDropdowns(subjectSchoolMapParam) {
+        const subjectList = document.getElementById('subjectDropdownList');
+        const allSubjectsCheckbox = subjectList.querySelector('input[type="checkbox"][value=""]');
+        const selectedSubjects = Array.from(subjectList.querySelectorAll('input[type="checkbox"]:checked'))
+            .filter(cb => cb !== allSubjectsCheckbox)
+            .map(cb => cb.value);
+
+        let availableSchools = new Set();
+        const mapToUse = subjectSchoolMapParam || subjectSchoolMap;
+
+        if (selectedSubjects.length === 0 || (allSubjectsCheckbox && allSubjectsCheckbox.checked)) {
+            Object.values(mapToUse).forEach(schools => schools.forEach(school => availableSchools.add(JSON.stringify(school))));
+        } else {
+            selectedSubjects.forEach(subjectId => {
+                if (mapToUse[subjectId]) {
+                    mapToUse[subjectId].forEach(school => availableSchools.add(JSON.stringify(school)));
+                }
+            });
+        }
+
+        const schools = Array.from(availableSchools).map(schoolStr => JSON.parse(schoolStr)).sort((a, b) => a.name.localeCompare(b.name));
+
+        const schoolDropdownList = document.getElementById('schoolDropdownList');
+        schoolDropdownList.querySelectorAll('label:not(.dropdown-all)').forEach(label => label.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${school.name}"> ${school.name}`;
+            schoolDropdownList.appendChild(label);
+        });
+
+        const msSchoolsList = document.getElementById('ms-schools-list');
+        msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(label => label.remove());
+        schools.forEach(school => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
+            msSchoolsList.appendChild(label);
+        });
+
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterSessions);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+    }
+
+    function enableFilters() {
+        document.getElementById('searchInput').disabled = false;
+        document.getElementById('subjectDropdown').classList.remove('disabled');
+        document.getElementById('stageDropdown').classList.remove('disabled');
+        document.getElementById('groupDropdown').classList.remove('disabled');
+        isLoading = false;
+    }
+
+    function populateFilterDropdowns() {
+        const subjectList = document.getElementById('subjectDropdownList');
+        subjectList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        subjects.forEach(subject => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${subject.id}"> ${subject.name}`;
+            subjectList.appendChild(label);
+        });
+
+        const stageList = document.getElementById('stageDropdownList');
+        stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        const groupList = document.getElementById('groupDropdownList');
+        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    function populateModalDropdowns() {
+        const subjectList = document.getElementById('ms-subjects-list');
+        subjectList.innerHTML = subjects.map(subject => `<label><input type="radio" name="subject_id" value="${subject.id}" required>${subject.name}</label>`).join('');
+
+        const stageList = document.getElementById('ms-stages-list');
+        stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        stages.forEach(stage => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
+            stageList.appendChild(label);
+        });
+
+        const groupList = document.getElementById('ms-groups-list');
+        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        groups.forEach(group => {
+            const label = document.createElement('label');
+            label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
+            groupList.appendChild(label);
+        });
+    }
+
+    async function initializePage() {
+        try {
+            const [sessionsData, filtersData] = await Promise.all([
+                fetchAttendance(),
+                fetchFilters()
+            ]);
+
+            allSessions = sessionsData;
+            subjects = filtersData.subjects || [];
+            stages = filtersData.stages || [];
+            groups = filtersData.groups || [];
+            subjectSchoolMap = filtersData.subject_school_map || {};
+
+            populateFilterDropdowns();
+            populateModalDropdowns();
+
+            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterSessions);
+            setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterSessions);
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+                populateSchoolDropdowns();
+                filterSessions();
+                toggleSchoolFilterDropdown();
+            });
+            setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+            setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+
+            const subjectDropdown = document.getElementById('ms-subjects');
+            const subjectBtn = document.getElementById('ms-subjects-btn');
+            const subjectList = document.getElementById('ms-subjects-list');
+            subjectBtn.onclick = function (e) {
+                e.stopPropagation();
+                document.querySelectorAll('.multi').forEach(d => { if (d !== subjectDropdown) d.classList.remove('open'); });
+                subjectDropdown.classList.toggle('open');
+            };
+            subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.onchange = function () {
+                    const selectedLabel = this.parentElement.textContent.trim();
+                    subjectBtn.textContent = selectedLabel + ' ▼';
+                    subjectDropdown.classList.remove('open');
+                    const selectedSubjectId = this.value;
+                    const availableSchools = subjectSchoolMap[selectedSubjectId] || [];
+                    const msSchoolsList = document.getElementById('ms-schools-list');
+                    msSchoolsList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+                    availableSchools.forEach(school => {
+                        const label = document.createElement('label');
+                        label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
+                        msSchoolsList.appendChild(label);
+                    });
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    toggleModalSchoolDropdown();
+                };
+            });
+
+            populateSchoolDropdowns();
+            toggleSchoolFilterDropdown();
+            toggleModalSchoolDropdown();
+            renderSessions(allSessions);
+            enableFilters();
+
+            document.getElementById('searchInput').addEventListener('input', filterSessions);
+
+            // Event delegation for action buttons
+            const container = document.getElementById('attendanceContainer');
+            container.addEventListener('click', async function (e) {
+                const editBtn = e.target.closest('.js-edit');
+                if (editBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const id = editBtn.getAttribute('data-edit-id');
+                    openEditModal(parseInt(id));
+                    return;
+                }
+                const delBtn = e.target.closest('.js-delete');
+                if (delBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const id = delBtn.getAttribute('data-delete-id');
+                    const session = allSessions.find(s => s.id === parseInt(id));
+                    // Use SweetAlert2 directly for confirmation
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        html: `Delete attendance session: <b>${session ? session.title : 'this session'}</b>?`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, delete it',
+                        cancelButtonText: 'Cancel',
+                        background: "var(--card-bg)",
+                        color: "var(--text-color)",
+                    }).then(async (result) => {
+                        if (result.isConfirmed) {
+                            try {
+                                const resp = await fetch(`/admin/attendance/delete/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                                const data = await resp.json().catch(() => ({}));
+                                if (resp.ok && data.success) {
+                                    allSessions = allSessions.filter(s => String(s.id) !== String(id));
+                                    filterSessions();
+                                    showToast(data.message || 'Attendance session deleted', 'success');
+                                } else {
+                                    showToast((data && data.message) || 'Failed to delete attendance session', 'error');
+                                }
+                            } catch (err) {
+                                console.error('Delete failed', err);
+                                showToast('Failed to delete attendance session', 'error');
+                            }
+                        }
+                    });
+                    return;
+                }
+
+                const card = e.target.closest('.attendance-row');
+                if (card && card.dataset.href && !e.target.closest('.action-buttons')) {
+                    window.location.href = card.dataset.href;
+                }
+            });
+
+        } catch (error) {
+            console.error('Error initializing attendance page:', error);
+            const container = document.getElementById('attendanceContainer');
+            container.innerHTML = `<div class="no-sessions-message"><h3>Error loading attendance sessions.</h3><p>Please refresh the page to try again.</p></div>`;
+            enableFilters();
+        }
+    }
+    document.addEventListener('DOMContentLoaded', initializePage);
+</script>
+
+{% endblock %}

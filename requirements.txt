@@ -1,0 +1,12 @@
+flask
+flask-login
+flask_sqlalchemy
+pytz
+requests
+boto3<1.36.0
+psycopg2-binary
+flask-migrate
+psycopg2-binary
+botocore
+python-dotenv
+pillow

@@ -1,0 +1,146 @@
+{% extends "admin/dashboard.html" %} 
+
+{% block title %}
+{{video.title}}
+{% endblock %} 
+
+{% block content %}
+
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+<style>
+    .video-title {
+        text-align: center;
+        color: var(--heading-color, #1e90ff);
+        font-size: 2rem;
+        font-weight: bold;
+        margin-top: 32px;
+        margin-bottom: 0.5em;
+    }
+    .video-description {
+        color: var(--text-color, #181c24);
+        text-align: center;
+        margin-bottom: 1.5em;
+        font-size: 1.1rem;
+    }
+    .plyr__video-embed,
+    .plyr__video-embed iframe,
+    .plyr__video-wrapper {
+        border-radius: 12px;
+        height: 100%;
+        min-height: 500px;
+        width: 100%;
+        box-shadow: 0 4px 16px rgba(24, 28, 36, 0.10);
+        background: var(--card-bg, #23283a);
+    }
+    @media (max-width: 600px) {
+        .plyr__video-embed,
+        .plyr__video-embed iframe,
+        .plyr__video-wrapper {
+            min-height: unset;
+            max-height: unset;
+            height: auto;
+            width: 100vw;
+            margin-left: -2vw;
+            border-radius: 0;
+            background: #000;
+            border: 2.5px solid #000;
+            box-sizing: border-box;
+        }
+        .plyr__video-embed iframe {
+            aspect-ratio: 16/9;
+            width: 100vw;
+            height: auto;
+            min-height: 180px;
+            max-height: 220px;
+            background: #000;
+            border: 2.5px solid #000;
+            box-sizing: border-box;
+        }
+    }
+
+    .video-container {
+        max-width: 800px;
+        width: 95%;
+        margin: 0 auto 2em auto;
+        background: var(--card-bg, #23283a);
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(24, 28, 36, 0.10);
+        padding: 1em 1em 2em 1em;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    @media (max-width: 900px) {
+        .video-container {
+            max-width: 100%;
+            padding: 0.5em 0.2em 1em 0.2em;
+        }
+        .video-title {
+            font-size: 1.5rem;
+        }
+    }
+    @media (max-width: 600px) {
+        .video-container {
+            width: 100%;
+            padding: 0.2em 0.1em 0.5em 0.1em;
+        }
+        .video-title {
+            font-size: 1.2rem;
+        }
+        .video-description {
+            font-size: 1rem;
+        }
+    }
+</style>
+
+<h1 class="video-title">{{video.title}}</h1>
+<p class="video-description">{{video.description}}</p>
+
+<div class="video-container">
+    <div class="plyr__video-embed" id="plyr-video">
+        <iframe
+            src="https://www.youtube.com/embed/{{ video.video_url | replace('https://www.youtube.com/watch?v=', '') | replace('https://youtu.be/', '') }}?origin={{ request.host_url | trim('/') }}&iv_load_policy=3&modestbranding=1&rel=0&showinfo=0&autohide=1"
+            allowfullscreen
+            allowtransparency
+            allow="autoplay"
+            loading="lazy"
+            style="width:100%;aspect-ratio:16/9;border-radius:12px;background:#000;"
+        ></iframe>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const player = new Plyr('#plyr-video', {
+            controls: [
+                'play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'
+            ],
+            settings: ['quality', 'speed', 'loop'],
+            speed: { selected: 1, options: [0.5, 1, 1.5, 1.75, 2] }
+        });
+
+        // Attempt to lock orientation to landscape on mobile devices
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        if (isMobile() && 'orientation' in screen && typeof screen.orientation.lock === 'function') {
+            // Try to lock orientation when the video is played or fullscreen is entered
+            function tryLockLandscape() {
+                screen.orientation.lock('landscape-primary').catch(function(err) {
+                    // Ignore errors (e.g., not allowed, not supported)
+                });
+            }
+
+            // Lock on play
+            player.on('play', tryLockLandscape);
+
+            // Lock on fullscreen enter
+            player.on('enterfullscreen', tryLockLandscape);
+        }
+    });
+</script>
+
+{% endblock %}

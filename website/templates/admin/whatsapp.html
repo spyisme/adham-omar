@@ -1,0 +1,360 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}WhatsApp Broadcast - Amr{% endblock %}
+
+{% block content %}
+<style>
+    .whatsapp-broadcast-container {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin: 2rem auto;
+        max-width: 700px;
+        padding: 2rem;
+    }
+
+    .whatsapp-header {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .whatsapp-icon {
+        font-size: 4rem;
+        color: #25d366;
+    }
+
+    .whatsapp-title {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #075e54;
+        margin: 0;
+    }
+
+    .whatsapp-stats {
+        font-size: 1.1rem;
+        color: #343a40;
+        margin-bottom: 1.5rem;
+    }
+
+    .whatsapp-stats span {
+        display: block;
+        margin: 0.5rem 0;
+    }
+
+    .logs-btn {
+        display: inline-block;
+        background: #2563eb;
+        color: #fff;
+        padding: 0.5rem 1.1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 1rem;
+        text-decoration: none;
+        margin-bottom: 1.5rem;
+        transition: background 0.2s;
+        border: none;
+        margin-left: 0.5rem;
+    }
+
+    .logs-btn:hover {
+        background: #1d4ed8;
+        color: #fff;
+    }
+
+    .broadcast-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 180px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #374151;
+    }
+
+    .form-group select,
+    .form-group textarea {
+        padding: 0.625rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        background: #fff;
+        font-family: inherit;
+    }
+
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .btn-primary {
+        background: #10b981;
+        color: #fff;
+        padding: 0.625rem 1.25rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+        align-self: flex-start;
+    }
+
+    .btn-primary:hover {
+        background: #059669;
+    }
+
+    .recipient-count {
+        font-size: 1.1rem;
+        color: #256029;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+
+    @media (max-width: 700px) {
+        .whatsapp-broadcast-container {
+            padding: 1rem;
+        }
+
+        .form-row {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="whatsapp-broadcast-container">
+    <div class="whatsapp-header">
+        <span class="whatsapp-icon"><i class="fab fa-whatsapp"></i></span>
+        <div>
+            <h1 class="whatsapp-title">WhatsApp Broadcast</h1>
+            <div class="whatsapp-stats">
+                <span><strong>Students with WhatsApp:</strong> {{ student_with_whatsapp_count }}</span>
+                <span><strong>Parents with WhatsApp:</strong> {{ parent_with_whatsapp_count }}</span>
+            </div>
+        </div>
+    </div>
+    <a href="{{ url_for('admin.whatsapp_messages') }}" class="logs-btn">Logs</a>
+    <form method="POST" action="{{ url_for('admin.whatsapp') }}" class="broadcast-form" id="broadcastForm">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="subjectSelect">Subject</label>
+                <select id="subjectSelect" name="subject_id" required>
+                    <option value="">Select Subject</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="schoolSelect">School</label>
+                <select id="schoolSelect" name="school_id" required disabled>
+                    <option value="">Select School</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="stageSelect">Grade</label>
+                <select id="stageSelect" name="stage_id" required disabled>
+                    <option value="">Select Grade</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="classSelect">Class</label>
+                <select id="classSelect" name="group_id" required disabled>
+                    <option value="">Select Class</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="message">Message</label>
+            <textarea name="message" id="message" rows="5" placeholder="Enter your message here..." required></textarea>
+        </div>
+        <div class="recipient-count" id="recipientCount">
+            <!-- Will be filled by JS -->
+        </div>
+        <button type="submit" class="btn-primary" id="sendBtn" disabled>Send Message</button>
+    </form>
+    <div id="broadcastResult" style="margin-top:1rem;"></div>
+</div>
+
+<script>
+    // Helper to fetch and populate select options
+    function populateSelect(select, items, valueKey, labelKey, placeholder) {
+        select.innerHTML = `<option value="">${placeholder}</option>`;
+        items.forEach(item => {
+            const option = document.createElement('option');
+            option.value = item[valueKey];
+            option.textContent = item[labelKey];
+            select.appendChild(option);
+        });
+        select.disabled = false;
+    }
+
+    // DOM elements
+    const subjectSelect = document.getElementById('subjectSelect');
+    const schoolSelect = document.getElementById('schoolSelect');
+    const stageSelect = document.getElementById('stageSelect');
+    const classSelect = document.getElementById('classSelect');
+    const recipientCountDiv = document.getElementById('recipientCount');
+    const sendBtn = document.getElementById('sendBtn');
+    const broadcastForm = document.getElementById('broadcastForm');
+    const broadcastResult = document.getElementById('broadcastResult');
+
+    // Initial load: fetch all filter data in one request
+    fetch('/admin/api/filters')
+        .then(res => res.json())
+        .then(data => {
+            // Store filter data for later use
+            window.filterData = data;
+            populateSelect(subjectSelect, data.subjects, 'id', 'name', 'Select Subject');
+        });
+
+    // On subject change, populate schools
+    subjectSelect.addEventListener('change', function () {
+        schoolSelect.disabled = true;
+        stageSelect.disabled = true;
+        classSelect.disabled = true;
+        schoolSelect.innerHTML = '<option value="">Select School</option>';
+        stageSelect.innerHTML = '<option value="">Select Grade</option>';
+        classSelect.innerHTML = '<option value="">Select Class</option>';
+        recipientCountDiv.textContent = '';
+        sendBtn.disabled = true;
+
+        if (this.value && window.filterData) {
+            const schools = window.filterData.subject_school_map[this.value] || [];
+            populateSelect(schoolSelect, schools, 'id', 'name', 'Select School');
+        }
+    });
+
+    // On school change, populate grades (stages)
+    schoolSelect.addEventListener('change', function () {
+        stageSelect.disabled = true;
+        classSelect.disabled = true;
+        stageSelect.innerHTML = '<option value="">Select Grade</option>';
+        classSelect.innerHTML = '<option value="">Select Class</option>';
+        recipientCountDiv.textContent = '';
+        sendBtn.disabled = true;
+
+        if (this.value && window.filterData) {
+            // Only show stages that are in filterData.stages
+            populateSelect(stageSelect, window.filterData.stages, 'id', 'name', 'Select Grade');
+        }
+    });
+
+    // On grade change, populate classes (groups)
+    stageSelect.addEventListener('change', function () {
+        classSelect.disabled = true;
+        classSelect.innerHTML = '<option value="">Select Class</option>';
+        recipientCountDiv.textContent = '';
+        sendBtn.disabled = true;
+
+        if (this.value && window.filterData) {
+            // Only show groups that are in filterData.groups
+            populateSelect(classSelect, window.filterData.groups, 'id', 'name', 'Select Class');
+        }
+    });
+
+    // On class change, fetch recipient count
+    classSelect.addEventListener('change', function () {
+        recipientCountDiv.textContent = '';
+        sendBtn.disabled = true;
+        if (
+            this.value &&
+            subjectSelect.value &&
+            schoolSelect.value &&
+            stageSelect.value
+        ) {
+            fetch(`/admin/api/filters/recipients_count?subject_id=${subjectSelect.value}&school_id=${schoolSelect.value}&stage_id=${stageSelect.value}&group_id=${this.value}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.count !== undefined && data.should_receive_count !== undefined) {
+                        // should_receive_count is the total number of students with WhatsApp, data.count is the number who should receive
+                        const notReceiving = data.should_receive_count - data.count;
+                        recipientCountDiv.textContent = `This message will be sent to ${data.count} student${data.count === 1 ? '' : 's'}. ${notReceiving} student${notReceiving === 1 ? '' : 's'} will not receive the message because they do not have whatsapp notifications enabled.`;
+                        sendBtn.disabled = data.count === 0;
+                    } else {
+                        recipientCountDiv.textContent = '';
+                        sendBtn.disabled = true;
+                    }
+                });
+        }
+    });
+
+    // Prevent form submission if no recipients
+    broadcastForm.addEventListener('submit', function (e) {
+        if (sendBtn.disabled) {
+            e.preventDefault();
+            return;
+        }
+        e.preventDefault();
+
+        // Gather form data
+        const formData = new FormData(broadcastForm);
+
+        // Clear previous result
+        broadcastResult.textContent = '';
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+
+        fetch("{{ url_for('admin.whatsapp') }}", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-Requested-With": "XMLHttpRequest"
+            }
+        })
+            .then(response => response.json().catch(() => null))
+            .then(data => {
+                if (data && data.success) {
+                    broadcastResult.style.color = "#256029";
+                    broadcastResult.textContent = data.message || "Message sent successfully!";
+                    broadcastForm.reset();
+                    // Reset selects to initial state
+                    schoolSelect.disabled = true;
+                    stageSelect.disabled = true;
+                    classSelect.disabled = true;
+                    schoolSelect.innerHTML = '<option value="">Select School</option>';
+                    stageSelect.innerHTML = '<option value="">Select Grade</option>';
+                    classSelect.innerHTML = '<option value="">Select Class</option>';
+                    recipientCountDiv.textContent = '';
+                } else if (data && data.error) {
+                    broadcastResult.style.color = "#b91c1c";
+                    broadcastResult.textContent = data.error;
+                } else {
+                    broadcastResult.style.color = "#b91c1c";
+                    broadcastResult.textContent = "An error occurred. Please try again.";
+                }
+            })
+            .catch(() => {
+                broadcastResult.style.color = "#b91c1c";
+                broadcastResult.textContent = "An error occurred. Please try again.";
+            })
+            .finally(() => {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Message';
+            });
+    });
+</script>
+{% endblock %}

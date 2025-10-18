@@ -1,0 +1,538 @@
+{% extends "admin/dashboard.html" %}
+
+{% block title %}Attendance - {{ session.title or "Session" }}{% endblock %}
+
+{% block content %}
+<style>
+    .container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 24px;
+        background: var(--card-bg);
+        border-radius: 10px;
+        color: var(--card-text);
+    }
+
+    h1,
+    h2 {
+        color: var(--heading-color);
+    }
+
+    h2 {
+        font-size: 1.3rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .btn {
+        padding: 8px 20px;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 5px;
+        border: none;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-update {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-present {
+        background-color: #28a745;
+        color: white;
+        margin-right: 8px;
+    }
+
+    .btn-absent {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn:hover {
+        opacity: 0.8;
+        transform: translateY(-1px);
+        transition: all 0.2s ease;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    hr {
+        border-color: var(--border-color);
+        margin: 2rem 0;
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+
+    .attendance-table th,
+    .attendance-table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-color);
+        text-align: left;
+    }
+
+    .attendance-table th {
+        background: var(--table-header-bg, #f8f9fa);
+        color: var(--heading-color);
+        font-weight: 600;
+    }
+
+    .attendance-table tr:nth-child(even) {
+        background: var(--table-row-hover, #f6f6f6);
+    }
+
+    .attendance-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        font-weight: 500;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .status-present {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .status-absent {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+        border: 1px solid rgba(220, 53, 69, 0.3);
+    }
+
+    .section-title {
+        color: var(--heading-color);
+        font-size: 1.2rem;
+        margin: 20px 0 10px 0;
+        padding: 8px 0;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .success-flash {
+        background-color: rgba(40, 167, 69, 0.1);
+        border: 1px solid #28a745;
+        color: #28a745;
+        animation: flash 0.5s ease-in-out;
+    }
+
+    @keyframes flash {
+        0% {
+            background-color: rgba(40, 167, 69, 0.3);
+        }
+
+        100% {
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+    }
+
+    .empty-state {
+        color: var(--muted);
+        padding: 20px;
+        text-align: center;
+        border: 1px dashed var(--border-color);
+        border-radius: 5px;
+        margin-top: 15px;
+    }
+</style>
+
+<div class="container">
+    <h1>Attendance for {{ session.title or "Session" }}</h1>
+    <div>
+        <strong>Date:</strong> {{ session.session_date.strftime('%Y-%m-%d %I:%M %p') }}
+        {% if session.title %}
+        <br><strong>Title:</strong> {{ session.title }}
+        {% endif %}
+    </div>
+
+    <hr>
+
+    <!-- Students without attendance records (top priority) -->
+    {% if students_without_records %}
+    <h2 class="section-title">Students Pending Attendance ({{ students_without_records|length }})</h2>
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students_without_records %}
+            <tr id="student-row-{{ student.id }}">
+                <td>
+                    <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                        {{ student.code }}
+                    </a>
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                        {{ student.name }}
+                    </a>
+                </td>
+                <td>
+                    <div class="attendance-actions">
+                        <button type="button" class="btn btn-present" data-student-id="{{ student.id }}"
+                            data-status="present">
+                            Present
+                        </button>
+                        <button type="button" class="btn btn-absent" data-student-id="{{ student.id }}"
+                            data-status="absent">
+                            Absent
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Students with attendance records (bottom section) -->
+    {% if students_with_records %}
+    <h2 class="section-title">Students with Recorded Attendance ({{ students_with_records|length }})</h2>
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Current Status</th>
+                <th>Change Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students_with_records %}
+            <tr id="student-row-{{ student.id }}">
+                <td>
+                    <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                        {{ student.code }}
+                    </a>
+                </td>
+                <td>
+                    <a href="{{ url_for('admin.student', user_id=student.id) }}">
+                        {{ student.name }}
+                    </a>
+                </td>
+                <td>
+                    <span class="status-indicator status-{{ attendance_map.get(student.id, 'absent') }}"
+                        id="status-indicator-{{ student.id }}">
+                        {{ attendance_map.get(student.id, 'absent').title() }}
+                    </span>
+                </td>
+                <td>
+                    <div class="attendance-actions">
+                        <button type="button" class="btn btn-present" data-student-id="{{ student.id }}"
+                            data-status="present" {% if attendance_map.get(student.id)=='present' %}disabled{% endif %}>
+                            Present
+                        </button>
+                        <button type="button" class="btn btn-absent" data-student-id="{{ student.id }}"
+                            data-status="absent" {% if attendance_map.get(student.id)=='absent' %}disabled{% endif %}>
+                            Absent
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    {% if not students_without_records and not students_with_records %}
+    <div class="empty-state">No students found for this session.</div>
+    {% endif %}
+</div>
+
+<script>
+    // Event delegation for attendance buttons
+    document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('click', function (e) {
+            if (e.target.classList.contains('btn-present') || e.target.classList.contains('btn-absent')) {
+                const studentId = parseInt(e.target.getAttribute('data-student-id'));
+                const status = e.target.getAttribute('data-status');
+                updateAttendance(studentId, status, e.target);
+            }
+        });
+    });
+
+    function updateAttendance(studentId, status, buttonElement) {
+        // Disable all buttons for this student during the request
+        const row = document.getElementById(`student-row-${studentId}`);
+        const buttons = row.querySelectorAll('button');
+        const originalText = buttonElement.textContent;
+
+        // Add loading state
+        buttons.forEach(btn => btn.disabled = true);
+        buttonElement.textContent = 'Updating...';
+        row.classList.add('loading');
+
+        // Make AJAX request
+        fetch(`{{ url_for('admin.update_student_attendance', session_id=session.id) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken() // if you use CSRF protection
+            },
+            body: JSON.stringify({
+                student_id: studentId,
+                status: status
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Success - update the UI
+                    handleAttendanceUpdate(studentId, status);
+
+                    // Flash success animation
+                    row.classList.add('success-flash');
+                    setTimeout(() => row.classList.remove('success-flash'), 500);
+                } else {
+                    // Error - show message
+                    alert('Error updating attendance: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error occurred while updating attendance.');
+            })
+            .finally(() => {
+                // Remove loading state
+                buttonElement.textContent = originalText;
+                row.classList.remove('loading');
+                updateButtonStates(studentId, status);
+            });
+    }
+
+    function handleAttendanceUpdate(studentId, newStatus) {
+        const row = document.getElementById(`student-row-${studentId}`);
+        const statusIndicator = document.getElementById(`status-indicator-${studentId}`);
+
+        // If this student was in the pending section, move them to the recorded section
+        const isPendingStudent = !statusIndicator;
+
+        if (isPendingStudent) {
+            // Move student from pending to recorded section
+            moveStudentToRecordedSection(studentId, newStatus);
+        } else {
+            // Update existing status indicator
+            statusIndicator.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+            statusIndicator.className = `status-indicator status-${newStatus}`;
+        }
+    }
+
+    function moveStudentToRecordedSection(studentId, status) {
+        const pendingRow = document.getElementById(`student-row-${studentId}`);
+        if (!pendingRow) {
+            console.error('Pending row not found for student:', studentId);
+            return;
+        }
+
+        const pendingTable = pendingRow.closest('table');
+
+        // Get student data before removing the row
+        const studentCode = pendingRow.cells[0].querySelector('a').textContent.trim();
+        const studentName = pendingRow.cells[1].querySelector('a').textContent.trim();
+        const studentUrl = pendingRow.cells[1].querySelector('a').href;
+
+        // Find or create recorded section
+        let recordedTitle = null;
+        document.querySelectorAll('.section-title').forEach(title => {
+            if (title.textContent.includes('Students with Recorded Attendance')) {
+                recordedTitle = title;
+            }
+        });
+        let recordedTable = recordedTitle?.nextElementSibling;
+
+        if (!recordedTable) {
+            // Create recorded section if it doesn't exist
+            const container = document.querySelector('.container');
+            const recordedSectionHTML = `
+            <h2 class="section-title">Students with Recorded Attendance (0)</h2>
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Current Status</th>
+                        <th>Change Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        `;
+
+            // Find the best insertion point - after the last pending table or empty state
+            let insertionPoint = container.lastElementChild;
+
+            // Look for the empty state message or pending table
+            const emptyState = container.querySelector('.empty-state');
+            if (emptyState) {
+                insertionPoint = emptyState;
+            } else if (pendingTable) {
+                insertionPoint = pendingTable;
+            }
+
+            insertionPoint.insertAdjacentHTML('afterend', recordedSectionHTML);
+
+            // Find the newly created elements
+            recordedTitle = container.querySelector('.section-title:last-of-type');
+            recordedTable = recordedTitle.nextElementSibling;
+        }
+
+        // Create new row for recorded section
+        const newRow = document.createElement('tr');
+        newRow.id = `student-row-${studentId}`;
+        newRow.innerHTML = `
+        <td>
+            <a href="${studentUrl}">
+                ${studentCode}
+            </a>
+        </td>
+        <td>
+            <a href="${studentUrl}">
+                ${studentName}
+            </a>
+        </td>
+        <td>
+            <span class="status-indicator status-${status}" id="status-indicator-${studentId}">
+                ${status.charAt(0).toUpperCase() + status.slice(1)}
+            </span>
+        </td>
+        <td>
+            <div class="attendance-actions">
+                <button type="button" class="btn btn-present" 
+                        data-student-id="${studentId}" data-status="present"
+                        ${status === 'present' ? 'disabled' : ''}>
+                    Present
+                </button>
+                <button type="button" class="btn btn-absent" 
+                        data-student-id="${studentId}" data-status="absent"
+                        ${status === 'absent' ? 'disabled' : ''}>
+                    Absent
+                </button>
+            </div>
+        </td>
+    `;
+
+        // Add new row to recorded section
+        recordedTable.querySelector('tbody').appendChild(newRow);
+
+        // Remove from pending section
+        pendingRow.remove();
+
+        // Update counters
+        updateSectionCounters();
+
+        // Make sure the recorded section is visible
+        if (recordedTitle) {
+            recordedTitle.style.display = 'block';
+            recordedTable.style.display = 'table';
+        }
+    }
+
+    function updateButtonStates(studentId, currentStatus) {
+        const row = document.getElementById(`student-row-${studentId}`);
+        if (!row) return;
+
+        const buttons = row.querySelectorAll('button');
+
+        buttons.forEach(btn => {
+            btn.disabled = false;
+            // Disable the button for current status
+            if ((btn.textContent.toLowerCase().includes('present') && currentStatus === 'present') ||
+                (btn.textContent.toLowerCase().includes('absent') && currentStatus === 'absent')) {
+                btn.disabled = true;
+            }
+        });
+    }
+
+    function updateSectionCounters() {
+        // Update pending counter
+        let pendingTitle = null;
+        document.querySelectorAll('.section-title').forEach(title => {
+            if (title.textContent.includes('Students Pending Attendance')) {
+                pendingTitle = title;
+            }
+        });
+
+        if (pendingTitle) {
+            const pendingTable = pendingTitle.nextElementSibling;
+            const pendingCount = pendingTable ? pendingTable.querySelectorAll('tbody tr').length : 0;
+            pendingTitle.textContent = `Students Pending Attendance (${pendingCount})`;
+
+            if (pendingCount === 0) {
+                pendingTitle.style.display = 'none';
+                if (pendingTable) pendingTable.style.display = 'none';
+            }
+        }
+
+        // Update recorded counter
+        document.querySelectorAll('.section-title').forEach(row => {
+            if (row.textContent.includes('Students with Recorded Attendance')) {
+                const recordedTable = row.nextElementSibling;
+                const recordedCount = recordedTable ? recordedTable.querySelectorAll('tbody tr').length : 0;
+                row.textContent = `Students with Recorded Attendance (${recordedCount})`;
+
+                // Make sure recorded section is visible if it has students
+                if (recordedCount > 0) {
+                    row.style.display = 'block';
+                    if (recordedTable) recordedTable.style.display = 'table';
+                }
+            }
+        });
+    }
+
+    function getCsrfToken() {
+        // Simple CSRF token getter - adjust based on your CSRF implementation
+        const token = document.querySelector('meta[name=csrf-token]');
+        return token ? token.getAttribute('content') : '';
+    }
+
+    // Extend String prototype for contains check (for older browsers)
+    if (!String.prototype.includes) {
+        String.prototype.includes = function (search, start) {
+            if (typeof start !== 'number') {
+                start = 0;
+            }
+            if (start + search.length > this.length) {
+                return false;
+            } else {
+                return this.indexOf(search, start) !== -1;
+            }
+        };
+    }
+</script>
+
+{% endblock %}

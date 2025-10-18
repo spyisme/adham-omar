@@ -1,0 +1,428 @@
+{% extends "student/dashboard.html" %}
+{% block title %}Course Materials{% endblock %}
+{% block content %}
+
+<!— Pure CSS, no Tailwind —>
+
+  <style>
+    :root {
+      --bg: #f8f9fc;
+      --card: #ffffff;
+      --muted: #6b7280;
+      --text: #1f2937;
+      --border: #e5e7eb;
+      --elev: #f3f4f6;
+      --primary: #4f46e5;
+      --primary-weak: rgba(99, 102, 241, .12);
+      --primary-brd: rgba(99, 102, 241, .35);
+      --radius: 20px;
+      --shadow-sm: 0 1px 4px rgba(0, 0, 0, .04);
+      --shadow-lg: 0 14px 30px -10px rgba(0, 0, 0, .18);
+    }
+
+    .wrap {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .heading {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text);
+      margin: 0 0 .75rem;
+      text-align: center;
+    }
+
+    /* Card shell (matches assignments) */
+    .shell {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Lift on hover (same feel as assignments cards) */
+    .lift {
+      transition: transform .25s ease, box-shadow .25s ease;
+      transform: translateY(0);
+    }
+
+    .lift:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    /* Section padding / dividers */
+    .pad {
+      padding: 1.25rem;
+    }
+
+    .pad-lg {
+      padding: 2rem;
+    }
+
+    .divider {
+      border-top: 1px solid var(--border);
+    }
+
+    /* Progress (optional: reuse from assignments if needed) */
+    .progress-bar {
+      width: 100%;
+      height: .75rem;
+      background: #e5e7eb;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: .75rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: linear-gradient(90deg, #6366f1 0%, #a78bfa 100%);
+      width: 0%;
+    }
+
+    /* Grid (pure CSS; responsive like assignments) */
+    .grid {
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    @media (min-width:640px) {
+      .grid.cols-2 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (min-width:1024px) {
+      .grid.cols-3 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    /* Badges (style parity with assignments) */
+    .badge {
+      display: inline-block;
+      font-weight: 600;
+      font-size: .85rem;
+      padding: .25rem .65rem;
+      border-radius: 9999px;
+      border: 1px solid var(--primary-brd);
+      background: var(--primary-weak);
+      color: var(--primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Breadcrumbs (clean + accessible) */
+    nav.breadcrumb {
+      margin: 0 0 2rem;
+    }
+
+    .crumbs {
+      display: flex;
+      gap: .5rem;
+      align-items: center;
+      flex-wrap: wrap;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .5rem .75rem;
+    }
+
+    .crumb {
+      padding: .35rem .65rem;
+      border-radius: 10px;
+      color: #374151;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .crumb:hover {
+      background: #f9fafb;
+    }
+
+    .crumb-primary {
+      color: var(--primary);
+    }
+
+    .crumb-current {
+      background: #f9fafb;
+      color: #374151;
+    }
+
+    /* Cards (folders/categories/files) */
+    .card {
+      display: block;
+      text-decoration: none;
+      color: inherit;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.25rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card:focus-visible {
+      outline: 3px solid rgba(79, 70, 229, .35);
+      outline-offset: 2px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: .75rem;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+      /* two-line clamp with ellipsis to prevent breaking */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    .sub {
+      margin: .35rem 0 0;
+      font-size: .95rem;
+      color: #4b5563;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    /* File row */
+    .file {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--card);
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .file:hover {
+      transform: translateX(4px);
+      background: #f9fafb;
+    }
+
+    .file-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .file-name {
+      margin: 0;
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .file-meta {
+      font-size: .9rem;
+      color: #6b7280;
+      margin-top: .15rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      font-weight: 600;
+      font-size: .9rem;
+      background: #fff;
+      color: #4338ca;
+      border: 1px solid rgba(99, 102, 241, .25);
+      border-radius: 12px;
+      padding: .45rem .8rem;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      border-color: rgba(99, 102, 241, .45);
+      color: #312e81;
+    }
+
+    /* Utilities */
+    .center {
+      text-align: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .mb-12 {
+      margin-bottom: 3rem;
+    }
+  </style>
+
+  <div class="wrap">
+    <div class="heading">Course Materials</div>
+
+    {# Optional stats/progress (use like assignments) #}
+    {% if total_folders is defined or quizzes_count is defined or assignments_count is defined or resources_count is
+    defined %}
+    <div class="shell pad lift mb-12">
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem;">
+        <div class="shell pad" style="box-shadow:none;">
+          <div class="muted" style="font-size:.9rem;">Total Folders</div>
+          <div class="title" style="-webkit-line-clamp:1;">{{ total_folders or (folders|length) }}</div>
+        </div>
+        <div class="shell pad" style="box-shadow:none;">
+          <div class="muted" style="font-size:.9rem;">Quizzes</div>
+          <div class="title" style="-webkit-line-clamp:1;">{{ quizzes_count or 0 }}</div>
+        </div>
+        <div class="shell pad" style="box-shadow:none;">
+          <div class="muted" style="font-size:.9rem;">Assignments</div>
+          <div class="title" style="-webkit-line-clamp:1;">{{ assignments_count or 0 }}</div>
+        </div>
+        <div class="shell pad" style="box-shadow:none;">
+          <div class="muted" style="font-size:.9rem;">Resources</div>
+          <div class="title" style="-webkit-line-clamp:1;">{{ resources_count or 0 }}</div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# Breadcrumbs #}
+    {% set show_crumbs = selected_category or selected_folder %}
+    <nav class="breadcrumb {{ show_crumbs and '' or 'hidden' }}" aria-label="Breadcrumb">
+      <ol class="crumbs">
+        <li><a class="crumb crumb-primary" href="{{ url_for('student.view_folder') }}">All Materials</a></li>
+        {% if selected_category %}
+        <li aria-hidden="true" class="muted">›</li>
+        <li><a class="crumb crumb-primary" href="{{ url_for('student.view_folder', category=selected_category) }}">#{{
+            selected_category }}</a></li>
+        {% endif %}
+        {% if selected_folder %}
+        <li aria-hidden="true" class="muted">›</li>
+        <li class="crumb crumb-current">{{ selected_folder.title }}</li>
+        {% endif %}
+      </ol>
+    </nav>
+
+    {# 1) Categories #}
+    {% set categories = folders | map(attribute='category') | select | unique | list %}
+    {% if not selected_category and categories %}
+    <div class="shell">
+      <div class="pad-lg divider" style="border-top:0;">
+        <h2 class="title" style="font-size:1.35rem;-webkit-line-clamp:1;">Categories</h2>
+      </div>
+      <div class="pad-lg">
+        <div class="grid cols-3">
+          {% for cat in categories %}
+          {% set count = (folders | selectattr('category', 'equalto', cat) | list) | length %}
+          <a class="card lift" href="{{ url_for('student.view_folder', category=cat) }}">
+            <div class="card-top">
+              <h3 class="title" title="#{{ cat }}">#{{ cat }}</h3>
+              <span class="badge" title="{{ count }} folders">{{ count }} folders</span>
+            </div>
+            <div class="sub">Browse folders in {{ cat }}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    {# 2) Folders in selected category (or all) #}
+    {% if (selected_category or not categories) and not selected_folder %}
+    {% set visible = selected_category and (folders | selectattr('category','equalto', selected_category) | list) or
+    folders %}
+    <div class="shell" style="margin-top:1.25rem;">
+      <div class="pad-lg divider" style="border-top:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <h2 class="title" style="font-size:1.35rem;-webkit-line-clamp:1;">Folders in {{ selected_category or 'All' }}
+          </h2>
+          <a class="btn" href="{{ url_for('student.view_folder') }}">← Back to All Materials</a>
+        </div>
+      </div>
+
+      {% if visible %}
+      <div class="pad-lg">
+        <div class="grid cols-3">
+          {% for f in visible %}
+          <a class="card lift"
+            href="{{ url_for('student.view_folder', category=selected_category or f.category, folder_id=f.id) }}">
+            <div class="card-top">
+              <h3 class="title" title="{{ f.title }}">{{ f.title }}</h3>
+              <span class="badge">{{ materials_counts.get(f.id, 0) }} files</span>
+            </div>
+            {% if f.description %}
+            <div class="sub"
+              style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+              {{ f.description }}
+            </div>
+            {% endif %}
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="pad center muted">No folders found.</div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# 3) Files inside selected folder #}
+    {% if selected_folder %}
+    <div class="shell" style="margin-top:1.25rem;">
+      <div class="pad-lg divider" style="border-top:0;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <h2 class="title" style="font-size:1.35rem;-webkit-line-clamp:1;">Files in {{ selected_folder.title }}</h2>
+          <a class="btn" href="{{ url_for('student.view_folder', category=selected_category) }}">← Back to {{
+            selected_category and ('#' ~ selected_category) or 'All Materials' }}</a>
+        </div>
+      </div>
+
+      <div class="pad-lg" style="display:flex;flex-direction:column;gap:.75rem;">
+        {% if files and files|length > 0 %}
+        {% for file in files %}
+        {% set name = file.name or file.title or file.filename or ('File #' ~ file.id) %}
+        {% set size = file.size or '' %}
+        {% set date = (file.created_at or file.uploaded_at or file.date) %}
+        <div class="file">
+          <div class="file-left">
+            <div style="font-size:1.4rem;">📄</div>
+            <div>
+              <h5 class="file-name" title="{{ name }}">{{ name }}</h5>
+              <div class="file-meta">{{ size }} {% if date %}• {{ date }}{% endif %}</div>
+            </div>
+          </div>
+
+          <div>
+
+            <a class="btn" target="_blank"
+              href="{{ url_for('student.material_media', material_id=file.id) }}">Download</a>
+
+          </div>
+
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="center" style="padding:4rem 1rem;">
+          <div style="font-size:3rem;opacity:.85;">📁</div>
+          <p class="sub" style="margin-top:.5rem;">This folder is empty</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% endblock %}

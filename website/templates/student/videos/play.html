@@ -1,0 +1,82 @@
+{% extends "student/dashboard.html" %}
+{% block title %}{{ video.title }}{% endblock %}
+{% block content %}
+
+<!-- Tailwind + Inter to match the unified theme -->
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+<script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  .card { transition: all .3s ease; transform: translateY(0); }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(0,0,0,.08), 0 10px 10px -5px rgba(0,0,0,.04); }
+  /* Plyr wrapper tweaks */
+  .plyr__video-embed, .plyr__video-wrapper { border-radius: 12px; }
+  /* Mobile: edge-to-edge video */
+  @media (max-width: 640px) {
+    .edge-video { margin-left: calc(-1 * 1rem); margin-right: calc(-1 * 1rem); border-radius: 0 !important; }
+  }
+</style>
+
+<div >
+  <div class="container mx-auto px-4 py-8 max-w-4xl">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl sm:text-5xl font-bold text-gray-800 mb-3">{{ video.title }}</h1>
+      {% if video.description %}
+        <p class="text-gray-600 max-w-3xl mx-auto">{{ video.description }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Player Card -->
+    <div class="card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="p-4 sm:p-6">
+        <div class="plyr__video-embed edge-video" id="plyr-video">
+          <iframe
+            src="https://www.youtube.com/embed/{{ video.video_url | replace('https://www.youtube.com/watch?v=', '') | replace('https://youtu.be/', '') }}?origin={{ request.host_url | trim('/') }}&iv_load_policy=3&modestbranding=1&rel=0&showinfo=0&autohide=1"
+            allowfullscreen
+            allowtransparency
+            allow="autoplay"
+            loading="lazy"
+            class="w-full aspect-video rounded-xl bg-black"
+          ></iframe>
+        </div>
+      </div>
+
+      <!-- Meta footer (optional) -->
+      <div class="px-6 pb-6 flex items-center justify-between flex-wrap gap-3">
+        <div class="text-sm text-gray-500 flex items-center gap-2">
+          {% if video.creation_date %} <span>📅 {{ video.creation_date.strftime('%Y-%m-%d') }}</span>{% endif %}
+          {% if video.category %} <span class="hidden sm:inline">•</span> <span>📂 {{ video.category|capitalize }}</span>{% endif %}
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const player = new Plyr('#plyr-video', {
+    controls: ['play-large','play','progress','current-time','duration','mute','volume','settings','fullscreen'],
+    settings: ['quality','speed','loop'],
+    speed: { selected: 1, options: [0.5, 1, 1.5, 1.75, 2] }
+  });
+
+  // Try to lock to landscape on mobile while playing or in fullscreen
+  function isMobile(){
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }
+  if (isMobile() && 'orientation' in screen && typeof screen.orientation.lock === 'function') {
+    function tryLock() { screen.orientation.lock('landscape-primary').catch(()=>{}); }
+    player.on('play', tryLock);
+    player.on('enterfullscreen', tryLock);
+  }
+});
+</script>
+
+{% endblock %}

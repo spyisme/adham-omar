@@ -1,0 +1,153 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Assistants page{% endblock %}
+{% block content %}
+
+
+<style>
+/* Mobile friendly table styles */
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+    table {
+        font-size: 14px;
+    }
+    .filter-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 10px;
+}
+.filter-section {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+.filter-input {
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--input-border, #ccc);
+    font-size: 16px;
+    background: var(--input-bg, #fff);
+    color: var(--input-text, #222);
+    min-width: 180px;
+}
+@media (max-width: 600px) {
+    .filter-input {
+        min-width: 120px;
+        font-size: 14px;
+    }
+    .container h1 {
+        font-size: 1.2rem;
+    }
+}
+</style>
+
+<div class="container">
+    <h1>Assistant Management</h1>
+
+    <div class="filter-section">
+        <input type="text" id="searchInput" class="filter-input" placeholder="Search by name, code, or phone..." />
+        <button id="sortNameBtn" class="btn btn-secondary" type="button" style="min-width: 90px;">Sort Name</button>
+        <button id="sortIdBtn" class="btn btn-secondary" type="button" style="min-width: 90px;">Sort ID</button>
+    </div>
+    {% if current_user.role == "super_admin" %}
+    <button class="btn btn-primary" onclick="window.location.href=`{{ url_for('admin.add_assistant') }}`">Add Assistant</button>
+    {% endif %}
+    <br>
+    <br>
+
+    <div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th> Name</th>
+                <th>Phone</th>
+                {%if current_user.role == 'super_admin'%}
+
+                <th>Edit</th>
+                <th>Password</th>
+                {%endif%}
+
+            </tr>
+        </thead>
+        <tbody id="userTable">
+            {% for user in users %}
+            <tr>
+                <td>
+                    <span > {{ user.name }}</span>
+                </td>
+                <td>{{ user.phone_number }}</td>
+                {%if current_user.role == 'super_admin'%}
+
+                <td>
+                    <button class="btn btn-primary" onclick="window.location.href=`{{ url_for('admin.edit_assistant', user_id=user.id) }}`">Edit</button>
+                </td>
+                <td>
+                    <form action="{{ url_for('admin.reset_password', user_id=user.id) }}">
+                        <button class="btn btn-danger" onclick="confirmAction(event, 'Are you sure you want to reset this user password?<br>({{ user.id }} | {{ user.name }})')">Reset Password</button>
+                    </form>
+                </td>
+                {%endif%}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+// Filtering
+$(document).ready(function () {
+    function filterTable() {
+        let searchValue = $("#searchInput").val().toLowerCase();
+
+        $("#userTable tr").each(function () {
+            let row = $(this);
+            let codeName = row.find("td:first").text().toLowerCase();
+            let phone = row.find("td:nth-child(2)").text().toLowerCase();
+            let textMatch = codeName.indexOf(searchValue) > -1 || phone.indexOf(searchValue) > -1;
+            row.toggle(textMatch);
+        });
+    }
+
+    $("#searchInput").on("keyup", filterTable);
+
+    // Sorting
+    function sortTable(colIndex, isNumeric) {
+        let rows = $("#userTable tr").get();
+        rows.sort(function(a, b) {
+            let A = $(a).children("td").eq(colIndex).text().trim();
+            let B = $(b).children("td").eq(colIndex).text().trim();
+            if (isNumeric) {
+                A = parseInt(A.split('|')[0]) || 0;
+                B = parseInt(B.split('|')[0]) || 0;
+                return A - B;
+            } else {
+                // For name, sort by name part after '|'
+                A = A.split('|')[1] ? A.split('|')[1].trim().toLowerCase() : '';
+                B = B.split('|')[1] ? B.split('|')[1].trim().toLowerCase() : '';
+                return A.localeCompare(B);
+            }
+        });
+        $.each(rows, function(index, row) {
+            $("#userTable").append(row);
+        });
+    }
+
+    $("#sortNameBtn").on("click", function() {
+        sortTable(0, false);
+    });
+    $("#sortIdBtn").on("click", function() {
+        sortTable(0, true);
+    });
+});
+</script>
+
+{% endblock %}

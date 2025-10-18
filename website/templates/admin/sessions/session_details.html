@@ -1,0 +1,319 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}{{ session.title }} - Session Details{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    .session-header {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .session-header .title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+    }
+
+    .session-header .description {
+        color: #374151;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+    }
+
+    .session-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .session-meta .meta-item {
+        background: #f3f4f6;
+        border-radius: 0.4em;
+        padding: 0.25em 0.8em;
+        font-size: 0.9em;
+        color: #374151;
+    }
+
+    .videos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .video-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: box-shadow 0.15s;
+        cursor: pointer;
+    }
+
+    .video-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .video-card .video-thumbnail {
+        width: 100%;
+        height: 180px;
+        background: #f3f4f6;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .video-card .video-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .video-card .video-thumbnail .play-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .video-card .video-content {
+        padding: 1rem;
+    }
+
+    .video-card .video-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .video-card .video-description {
+        color: #6b7280;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        margin-bottom: 0.75rem;
+    }
+
+    .video-card .video-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .video-card .btn-action {
+        background: none;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.3rem;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .video-card .btn-action.edit {
+        color: #059669;
+    }
+
+    .video-card .btn-action.edit:hover {
+        background: #d1fae5;
+    }
+
+    .video-card .btn-action.delete {
+        color: #dc2626;
+    }
+
+    .video-card .btn-action.delete:hover {
+        background: #fee2e2;
+    }
+
+    .add-video-form {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .videos-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .session-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div class="page-header-content">
+        <a href="{{ url_for('admin.manage_sessions') }}" class="back-button">← Back to Sessions</a>
+        <h1 class="page-title">Session Details</h1>
+        <a href="{{ url_for('admin.edit_session', session_id=session.id) }}" class="btn btn-secondary">Edit Session</a>
+    </div>
+</header>
+
+<main class="container">
+    <div class="session-header">
+        <div class="title">{{ session.title }}</div>
+        <div class="description">{{ session.description | safe }}</div>
+        <div class="session-meta">
+            <span class="meta-item"><strong>Subject:</strong> {{ session.subject.name if session.subject else '—'
+                }}</span>
+            <span class="meta-item"><strong>🏫</strong>
+                {% if session.schools_mm %}
+                {{ session.schools_mm|map(attribute='name')|join(', ') }}
+                {% elif session.school %}
+                {{ session.school.name }}
+                {% else %}
+                All Schools
+                {% endif %}
+            </span>
+            <span class="meta-item"><strong>🎓</strong>
+                {% if session.stages_mm %}
+                {{ session.stages_mm|map(attribute='name')|join(', ') }}
+                {% elif session.stage %}
+                {{ session.stage.name }}
+                {% else %}
+                All Stages
+                {% endif %}
+            </span>
+            <span class="meta-item"><strong>🏷️</strong>
+                {% if session.groups_mm %}
+                {{ session.groups_mm|map(attribute='name')|join(', ') }}
+                {% elif session.group %}
+                {{ session.group.name }}
+                {% else %}
+                All Classes
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Add New Video</h2>
+        </div>
+        <div class="card-content">
+            <form method="POST" class="add-video-form" style="margin: 0; padding: 0; background: none; border: none;">
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label for="title" class="form-label">Video Title</label>
+                        <input type="text" id="title" name="title" required placeholder="e.g., Introduction to Algebra"
+                            class="form-input">
+                    </div>
+
+                    <div>
+                        <label for="description" class="form-label">Description</label>
+                        <textarea id="description" name="description" rows="3"
+                            placeholder="Brief description of the video content..." class="form-textarea"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="video_url" class="form-label">YouTube URL</label>
+                        <input type="url" id="video_url" name="video_url" required
+                            placeholder="https://www.youtube.com/watch?v=..." class="form-input">
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="submit" class="btn btn-primary">Add Video</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Session Videos</h2>
+            <p>
+                {% set video_count = session.videos.count() if session.videos and session.videos.count is not none else
+                (session.videos|length if session.videos is iterable else 0) %}
+                {{ video_count }} video{{ 's' if video_count != 1 else '' }} in this session
+            </p>
+        </div>
+        <div class="card-content no-padding">
+            {% if session.videos %}
+            <div class="videos-grid">
+                {% for video in session.videos %}
+                <div class="video-card" data-video-id="{{ video.id }}">
+                    <div class="video-card-content">
+                        <div class="video-thumbnail">
+
+                            {% set video_id = None %}
+                            {% if 'youtube.com/watch?v=' in video.video_url %}
+                            {% set video_id = video.video_url.split('v=')[1].split('&')[0] %}
+                            {% elif 'youtu.be/' in video.video_url %}
+                            {% set video_id = video.video_url.split('youtu.be/')[1].split('?')[0] %}
+                            {% elif 'youtube.com/embed/' in video.video_url %}
+                            {% set video_id = video.video_url.split('embed/')[1].split('?')[0] %}
+                            {% endif %}
+                            <img src="https://img.youtube.com/vi/{{ video_id }}/maxresdefault.jpg"
+                                alt="{{ video.title }}"
+                                onerror="this.src='https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg'"
+                                loading="lazy">
+
+                            <div class="play-icon">▶</div>
+                        </div>
+                        <div class="video-content">
+                            <div class="video-title">{{ video.title }}</div>
+                            {% if video.description %}
+                            <div class="video-description">{{ video.description }}</div>
+                            {% endif %}
+                            <div class="video-actions">
+                                <a href="{{ url_for('admin.manage_videos', video_id=video.id) }}"
+                                    class="btn-action edit" title="Edit Video">✏️</a>
+                                <form method="POST" action="{{ url_for('admin.delete_video', video_id=video.id) }}"
+                                    style="display: inline;"
+                                    onsubmit="return confirmAction(event , 'Delete video: {{ video.title }}?');">
+                                    <button type="submit" class="btn-action delete" title="Delete Video">🗑️</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--color-text-secondary);">
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">No videos yet</p>
+                <p style="font-size: 0.9rem;">Add your first video to get started!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<script>
+    // Make video cards clickable to play video using the Python video id
+    document.querySelectorAll('.video-card').forEach(card => {
+        card.addEventListener('click', function (e) {
+            // Don't trigger if clicking on action buttons
+            if (e.target.closest('.video-actions')) return;
+            // Get the video id from the data attribute set in Python
+            const videoId = card.getAttribute('data-video-id');
+            if (videoId) {
+                window.open(`/admin/videos/play/${videoId}`, '_blank');
+            }
+        });
+    });
+</script>
+{% endblock %}

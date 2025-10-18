@@ -1,0 +1,587 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Manage Quizzes{% endblock %}
+
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    .quizzes-cards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+        align-items: stretch;
+    }
+
+    .quiz-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.75rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 1.5rem 1.25rem 1.25rem 1.25rem;
+        width: 100%;
+        max-width: 700px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        transition: box-shadow 0.15s;
+    }
+
+    .quiz-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .quiz-card .card-title {
+        font-size: 1.18rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #1e293b;
+    }
+
+    .quiz-card .card-content {
+        font-size: 1rem;
+        color: #374151;
+        margin-bottom: 1rem;
+        word-break: break-word;
+    }
+
+    .quiz-card .card-meta {
+        font-size: 0.97rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+    }
+
+    .quiz-card .card-meta span {
+        display: inline-block;
+        background: #f3f4f6;
+        border-radius: 0.4em;
+        padding: 0.15em 0.7em;
+        font-size: 0.93em;
+        color: #374151;
+    }
+
+    .quiz-card .action-buttons {
+        margin-top: auto;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+    }
+
+    .quiz-card .btn-action.delete {
+        background: none;
+        border: none;
+        color: #dc2626;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.2em 0.5em;
+        border-radius: 0.3em;
+        transition: background 0.15s;
+    }
+
+    .quiz-card .btn-action.delete:hover {
+        background: #fee2e2;
+    }
+
+    .quiz-card .btn-action.edit {
+        background: #3b82f6;
+        color: white;
+        border: none;
+        padding: 0.4em 0.8em;
+        border-radius: 0.3em;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.15s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .quiz-card .btn-action.edit:hover {
+        background: #2563eb;
+    }
+
+    @media (max-width: 900px) {
+        .quizzes-cards-list {
+            gap: 1rem;
+        }
+
+        .quiz-card {
+            min-width: 220px;
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .quizzes-cards-list {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .quiz-card {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<header class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">All Quizzes</h1>
+        <button id="openAddQuiz" class="btn btn-primary">Add Quiz</button>
+    </div>
+</header>
+
+<main class="container">
+    <style>
+        .search-row-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        #searchInput {
+            width: 70vw;
+            max-width: 800px;
+            min-width: 300px;
+            margin: 0 auto;
+            display: block;
+            font-size: 1rem;
+        }
+
+        .filters-row-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .filters-row-wrapper .filter-dropdown {
+            min-width: 180px;
+        }
+
+        @media (max-width: 900px) {
+            #searchInput {
+                width: 95vw;
+                max-width: 100%;
+            }
+
+            .filters-row-wrapper .filter-dropdown {
+                min-width: 120px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .filters-row-wrapper {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .filters-row-wrapper .filter-dropdown {
+                width: 100%;
+                min-width: unset;
+            }
+        }
+    </style>
+    <div class="card">
+        <div class="card-content">
+            <div class="search-row-wrapper">
+                <input type="text" id="searchInput" class="form-input" placeholder="Search by title...">
+            </div>
+            <div class="filters-row-wrapper">
+
+                <div class="filter-dropdown" id="subjectDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
+                        Subjects ▼</button>
+                    <div class="filter-dropdown-list" id="subjectDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        {% for subject in subjects %}
+                        <label><input type="checkbox" value="{{ subject.name|e }}"> {{ subject.name }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="filter-dropdown" id="schoolDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="schoolDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        {% for school in schools %}
+                        <label><input type="checkbox" value="{{ school.name|e }}"> {{ school.name }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="filter-dropdown" id="stageDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="stageDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Stages</label>
+                        {% for stage in stages %}
+                        <label><input type="checkbox" value="{{ stage.name|e }}"> {{ stage.name }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="filter-dropdown" id="groupDropdown">
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Classes
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="groupDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
+                        {% for group in groups %}
+                        <label><input type="checkbox" value="{{ group.name|e }}"> {{ group.name }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Quiz Overview</h2>
+            <p>Manage and track all quizzes across different schools and classes.</p>
+        </div>
+        <div class="card-content no-padding">
+            {% if quizzes %}
+            <div class="quizzes-cards-list">
+                {% for quiz in quizzes %}
+                <div class="quiz-card clickable-quiz-card"
+                    data-href="{{ url_for('admin.quiz_details', quiz_id=quiz.id) }}"
+                    data-school="{% if quiz.schools_mm %}{{ quiz.schools_mm|map(attribute='name')|join(',') }}{% elif quiz.school %}{{ quiz.school.name }}{% else %}{% endif %}"
+                    data-class="{% if quiz.groups_mm %}{{ quiz.groups_mm|map(attribute='name')|join(',') }}{% elif quiz.group %}{{ quiz.group.name }}{% else %}{% endif %}"
+                    data-year="{% if quiz.stages_mm %}{{ quiz.stages_mm|map(attribute='name')|join(',') }}{% elif quiz.stage %}{{ quiz.stage.name }}{% else %}{% endif %}"
+                    data-subject="{% if quiz.subject %}{{ quiz.subject.name }}{% else %}{% endif %}">
+                    <div class="card-title">
+                        <a href="{{ url_for('admin.quiz_details', quiz_id=quiz.id) }}"
+                            style="text-decoration: none; color: inherit;" onclick="event.stopPropagation();">
+                            {{ quiz.name }}
+                        </a>
+                    </div>
+                    <div class="card-content">
+                        Full Mark: {{ quiz.full_mark }} | Points: {{ quiz.points }} | Students: {{ quiz.numberofstudents
+                        }}/{{ quiz.qualified_students_count }}
+                    </div>
+                    <div class="card-meta">
+                        <span><strong>Subject:</strong> {{ quiz.subject.name if quiz.subject else '—' }}</span>
+                        <span><strong>🏫</strong>
+                            {% if quiz.schools_mm %}
+                            {{ quiz.schools_mm|map(attribute='name')|join(', ') }}
+                            {% elif quiz.school %}
+                            {{ quiz.school.name }}
+                            {% else %}
+                            All
+                            {% endif %}
+                        </span>
+                        <span><strong>🎓</strong>
+                            {% if quiz.stages_mm %}
+                            {{ quiz.stages_mm|map(attribute='name')|join(', ') }}
+                            {% elif quiz.stage %}
+                            {{ quiz.stage.name }}
+                            {% else %}
+                            All
+                            {% endif %}
+                        </span>
+                        <span><strong>🏷️</strong>
+                            {% if quiz.groups_mm %}
+                            {{ quiz.groups_mm|map(attribute='name')|join(', ') }}
+                            {% elif quiz.group %}
+                            {{ quiz.group.name }}
+                            {% else %}
+                            All
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="action-buttons" onclick="event.stopPropagation();">
+                        <a href="{{ url_for('admin.edit_quiz', quiz_id=quiz.id) }}" class="btn-action edit">Edit</a>
+                        <form method="POST" action="{{ url_for('admin.delete_quiz', quiz_id=quiz.id) }}"
+                            onsubmit="return confirmAction(event , 'Delete quiz: {{ quiz.name }}?');"
+                            style="display: inline;">
+                            <button class="btn-action delete" type="submit" title="Delete">🗑️</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+                <script>
+                    document.addEventListener('DOMContentLoaded', function () {
+                        document.querySelectorAll('.clickable-quiz-card').forEach(function (card) {
+                            card.addEventListener('click', function (e) {
+                                // Prevent navigation if clicking on a link or button inside the card
+                                if (
+                                    e.target.closest('.action-buttons') ||
+                                    e.target.tagName === 'A' ||
+                                    e.target.tagName === 'BUTTON' ||
+                                    e.target.tagName === 'INPUT' ||
+                                    e.target.tagName === 'FORM'
+                                ) {
+                                    return;
+                                }
+                                var href = this.getAttribute('data-href');
+                                if (href) {
+                                    window.location.href = href;
+                                }
+                            });
+                            // Optionally, add a pointer cursor
+                            card.style.cursor = 'pointer';
+                        });
+                    });
+                </script>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 2rem; color: var(--color-text-secondary);">
+                <p>No quizzes found. Try creating one!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+
+<div id="quizModal" class="modal-overlay">
+    <div class="modal-content">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Add Quiz</h2>
+                <button type="button" class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Quiz Name</label>
+                    <input type="text" name="quiz_name" required placeholder="e.g., Math Quiz 1" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Full Mark</label>
+                    <input type="number" name="full_mark" required placeholder="100" class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Points</label>
+                    <input type="number" name="points" placeholder="For the website leaderboard (optional)"
+                        class="form-input">
+                </div>
+                <div>
+                    <label class="form-label">Subject</label>
+                    <div class="multi" id="ms-subjects">
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                            ▼</button>
+                        <div class="multi-list" id="ms-subjects-list">
+                            {% for subject in subjects %}
+                            <label><input type="radio" name="subject_id" value="{{ subject.id }}" required>{{
+                                subject.name }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">School</label>
+                    <div class="multi" id="ms-schools">
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            {% for school in schools %}
+                            <label>
+                                <input type="checkbox" name="schools_mm[]" value="{{ school.id }}">
+                                {{ school.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Stage</label>
+                    <div class="multi" id="ms-stages">
+                        <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                        <div class="multi-list" id="ms-stages-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                            {% for stage in stages %}
+                            <label>
+                                <input type="checkbox" name="stages_mm[]" value="{{ stage.id }}">
+                                {{ stage.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label">Class</label>
+                    <div class="multi" id="ms-groups">
+                        <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Classes ▼</button>
+                        <div class="multi-list" id="ms-groups-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                            {% for group in groups %}
+                            <label>
+                                <input type="checkbox" name="groups_mm[]" value="{{ group.id }}">
+                                {{ group.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Create Quiz</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+    // --- Modal Logic ---
+    const modal = document.getElementById('quizModal');
+    const openModalBtn = document.getElementById('openAddQuiz');
+    const closeModalBtn = document.querySelector('#quizModal .modal-close');
+
+    if (openModalBtn) openModalBtn.onclick = () => { modal.classList.add('show'); };
+    if (closeModalBtn) closeModalBtn.onclick = () => { modal.classList.remove('show'); };
+    modal.onclick = e => {
+        if (e.target === modal) modal.classList.remove('show');
+    };
+
+    function confirmAction(e, msg) {
+        if (!confirm(msg)) { e.preventDefault(); return false; }
+        return true;
+    }
+
+    // --- Dropdown/Multiselect Logic ---
+    function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+        const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            const isCurrentlyOpen = dropdown.classList.contains('open');
+            document.querySelectorAll('.filter-dropdown, .multi').forEach(d => d.classList.remove('open'));
+            if (!isCurrentlyOpen) {
+                dropdown.classList.add('open');
+            }
+        };
+
+        if (allCheckbox) {
+            allCheckbox.onchange = function () {
+                if (allCheckbox.checked) {
+                    checkboxes.forEach(cb => cb.checked = false);
+                }
+                updateBtnLabel();
+                if (updateCallback) updateCallback();
+            };
+        }
+
+        checkboxes.forEach(cb => {
+            cb.onchange = function () {
+                if (cb.checked && allCheckbox) {
+                    allCheckbox.checked = false;
+                }
+                if (allCheckbox && !checkboxes.some(c => c.checked)) {
+                    allCheckbox.checked = true;
+                }
+                updateBtnLabel();
+                if (updateCallback) updateCallback();
+            };
+        });
+
+        function updateBtnLabel() {
+            let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (!allCheckbox || allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0].substring(0, 15) + (selected[0].length > 15 ? '...' : '') + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
+        }
+        updateBtnLabel();
+    }
+
+    // Close dropdowns on outside click
+    document.addEventListener('click', function (e) {
+        document.querySelectorAll('.filter-dropdown.open, .multi.open').forEach(d => {
+            if (!d.contains(e.target)) {
+                d.classList.remove('open');
+            }
+        });
+    });
+
+    // --- Filtering Logic ---
+    function getCheckedValues(listId) {
+        const list = document.getElementById(listId);
+        if (!list) return [];
+        const allCheckbox = list.querySelector('input[type="checkbox"][value=""]');
+        if (allCheckbox.checked) return [];
+        return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value.toLowerCase()).filter(Boolean);
+    }
+
+    function filterQuizzes() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sSchools = getCheckedValues('schoolDropdownList');
+        const sGroups = getCheckedValues('groupDropdownList');
+        const sStages = getCheckedValues('stageDropdownList');
+        const sSubjects = getCheckedValues('subjectDropdownList');
+
+        document.querySelectorAll('.quiz-card').forEach(card => {
+            let title = (card.querySelector('.card-title')?.textContent || '').toLowerCase();
+            const schools = (card.dataset.school || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const groups = (card.dataset.class || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const years = (card.dataset.year || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+            const subjects = (card.dataset.subject || '').toLowerCase().split(',').map(s => s.trim()).filter(Boolean);
+
+            const schoolMatch = !sSchools.length || sSchools.some(val => schools.includes(val));
+            const groupMatch = !sGroups.length || sGroups.some(val => groups.includes(val));
+            const stageMatch = !sStages.length || sStages.some(val => years.includes(val));
+            const subjectMatch = !sSubjects.length || sSubjects.some(val => subjects.includes(val));
+            const searchMatch = !search || title.includes(search);
+
+            if (searchMatch && schoolMatch && groupMatch && stageMatch && subjectMatch) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    // --- Initialize All ---
+    document.addEventListener('DOMContentLoaded', function () {
+        // Filter dropdowns
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterQuizzes);
+        setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterQuizzes);
+        setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterQuizzes);
+        setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', filterQuizzes);
+
+        // Modal multiselects
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+        setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+
+        // Simple logic for the single-select subject dropdown
+        const subjectDropdown = document.getElementById('ms-subjects');
+        const subjectBtn = document.getElementById('ms-subjects-btn');
+        const subjectList = document.getElementById('ms-subjects-list');
+
+        subjectBtn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.multi').forEach(d => {
+                if (d !== subjectDropdown) d.classList.remove('open');
+            });
+            subjectDropdown.classList.toggle('open');
+        };
+
+        subjectList.querySelectorAll('input[type="radio"]').forEach(radio => {
+            radio.onchange = function () {
+                const selectedLabel = this.parentElement.textContent.trim();
+                subjectBtn.textContent = selectedLabel + " ▼";
+                subjectDropdown.classList.remove('open');
+            };
+        });
+
+        // Search input listener
+        document.getElementById('searchInput').addEventListener('input', filterQuizzes);
+    });
+</script>
+
+{% endblock %}

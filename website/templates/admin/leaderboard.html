@@ -1,0 +1,262 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+
+<style>
+    .leaderboard-container {
+        max-width: 1100px;
+        margin: 40px auto 0 auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+        padding: 32px 24px 24px 24px;
+    }
+    .leaderboard-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #222;
+        margin-bottom: 18px;
+        text-align: center;
+    }
+    .leaderboard-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: center;
+        margin-bottom: 28px;
+    }
+    .leaderboard-filters select {
+        padding: 7px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 1rem;
+        background: #f8fafc;
+        color: #222;
+        min-width: 140px;
+        outline: none;
+        transition: border 0.2s;
+    }
+    .leaderboard-filters button {
+        padding: 7px 22px;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .leaderboard-filters button:hover {
+        background: #1d4ed8;
+    }
+    .leaderboard-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        background: #fff;
+    }
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #e5e7eb;
+        text-align: left;
+        font-size: 1rem;
+    }
+    .leaderboard-table th {
+        background: #f1f5f9;
+        font-weight: 600;
+        color: #374151;
+    }
+    .leaderboard-table tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    .leaderboard-table tr:hover {
+        background: #e0e7ef;
+    }
+    .leaderboard-rank {
+        font-weight: bold;
+        color: #2563eb;
+        text-align: center;
+    }
+    .leaderboard-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 10px;
+        border: 2px solid #e5e7eb;
+        background: #f3f4f6;
+    }
+    .leaderboard-user {
+        display: flex;
+        align-items: center;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 28px;
+        gap: 8px;
+    }
+    .pagination button, .pagination a {
+        padding: 6px 14px;
+        border: 1px solid #d1d5db;
+        background: #f8fafc;
+        color: #222;
+        border-radius: 5px;
+        font-size: 1rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .pagination .active-page {
+        background: #2563eb;
+
+        border-color: #2563eb;
+
+
+        padding: 6px 14px;
+        border: 1px solid #d1d5db;
+
+        color: #222;
+        border-radius: 5px;
+        font-size: 1rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.2s, color 0.2s;
+    }
+    .pagination button:disabled, .pagination .disabled {
+        background: #e5e7eb;
+        color: #a1a1aa;
+        cursor: not-allowed;
+    }
+    @media (max-width: 800px) {
+        .leaderboard-container {
+            padding: 16px 4px 16px 4px;
+        }
+        .leaderboard-title {
+            font-size: 1.4rem;
+        }
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 8px 4px;
+            font-size: 0.95rem;
+        }
+        .leaderboard-filters {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+</style>
+
+<div class="leaderboard-container">
+    <div class="leaderboard-title">Leaderboard</div>
+    <form method="get" class="leaderboard-filters">
+        <select name="school">
+            <option value="">All Schools</option>
+            {% for school in schools %}
+                <option value="{{ school.id }}" {% if selected_school == school.id %}selected{% endif %}>{{ school.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="grade">
+            <option value="">All Grades</option>
+            {% for stage in stages %}
+                <option value="{{ stage.id }}" {% if selected_stage == stage.id %}selected{% endif %}>{{ stage.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="class">
+            <option value="">All Classes</option>
+            {% for group in groups %}
+                <option value="{{ group.id }}" {% if selected_group == group.id %}selected{% endif %}>{{ group.name }}</option>
+            {% endfor %}
+        </select>
+        <select name="subject">
+            <option value="">All Subjects</option>
+            {% for subject in subjects %}
+                <option value="{{ subject.id }}" {% if selected_subject == subject.id %}selected{% endif %}>{{ subject.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+    </form>
+
+    <div style="overflow-x:auto;">
+        <table class="leaderboard-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px; text-align: center;">Rank</th>
+                    <th style="min-width: 180px;">Student</th>
+                    <th>School</th>
+                    <th>Grade</th>
+                    <th>Class</th>
+                    <th>Subject</th>
+                    <th style="width: 90px;">Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if users|length == 0 %}
+                    <tr>
+                        <td colspan="7" style="text-align:center; color:#888;">No students found.</td>
+                    </tr>
+                {% else %}
+                    {% for user in users %}
+                        <tr>
+                            <td class="leaderboard-rank">
+                                {{ (page-1)*per_page + loop.index }}
+                            </td>
+                            <td>
+                                <div class="leaderboard-user">
+
+                                        <img src="{{ url_for('website.profile_picture', user_id=user.id) }}" alt="Avatar" class="leaderboard-avatar" loading="lazy">
+          
+                                    <span>{{ user.name }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                {{ user.school.name if user.school else '-' }}
+                            </td>
+                            <td>
+                                {{ user.stage.name if user.stage else '-' }}
+                            </td>
+                            <td>
+                                {{ user.group.name if user.group else '-' }}
+                            </td>
+                            <td>
+                                {{ user.subject.name if user.subject else '-' }}
+                            </td>
+                            <td style="font-weight:600; color:#2563eb;">
+                                {{ user.points|int }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% set base_url = request.path + '?' %}
+        {% for key, value in request.args.items() %}
+            {% if key != 'page' and value %}
+                {% set base_url = base_url + key + '=' + value|string + '&' %}
+            {% endif %}
+        {% endfor %}
+        <a href="{{ base_url }}page=1" class="{% if page == 1 %}disabled{% endif %}">&laquo; First</a>
+        <a href="{{ base_url }}page={{ page-1 }}" class="{% if page == 1 %}disabled{% endif %}">Prev</a>
+        {% for p in range(1, total_pages+1) %}
+            {% if p == page %}
+                <span class="active-page">{{ p }}</span>
+            {% elif p <= 2 or p > total_pages-2 or (p >= page-2 and p <= page+2) %}
+                <a href="{{ base_url }}page={{ p }}">{{ p }}</a>
+            {% elif p == 3 and page > 5 %}
+                <span style="padding:0 6px;">...</span>
+            {% elif p == total_pages-2 and page < total_pages-4 %}
+                <span style="padding:0 6px;">...</span>
+            {% endif %}
+        {% endfor %}
+        <a href="{{ base_url }}page={{ page+1 }}" class="{% if page == total_pages %}disabled{% endif %}">Next</a>
+        <a href="{{ base_url }}page={{ total_pages }}" class="{% if page == total_pages %}disabled{% endif %}">Last &raquo;</a>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

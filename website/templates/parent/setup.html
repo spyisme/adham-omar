@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Subjects with  Amr Parent Account Setup">
+  <meta name="keywords" content="Subjects,  Amr, Parent Setup, Subjects with  Amr">
+  <meta name="author" content=" Amr">
+  <title>Subjects with Amr - Parent Account Setup</title>
+  <link rel="stylesheet" href="/static/css/auth_pages.css" />
+</head>
+
+<body>
+
+  <div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message flash-{{ category }}">
+      {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+  </div>
+  <style>
+    .flash-message {
+      transition: opacity 0.5s ease;
+      opacity: 1;
+    }
+
+    .flash-message.fade-out {
+      opacity: 0;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var flashMessages = document.querySelectorAll('.flash-message');
+      var fadeTimeouts = new Map();
+      var removeTimeouts = new Map();
+
+      flashMessages.forEach(function (msg) {
+        var isHovered = false;
+        var fadeTimeout, removeTimeout;
+
+        function scheduleFadeOut(delay) {
+          clearTimeout(fadeTimeout);
+          fadeTimeout = setTimeout(function () {
+            if (!isHovered) {
+              msg.classList.add('fade-out');
+              scheduleRemove(500); // Remove after fade
+            }
+          }, delay);
+          fadeTimeouts.set(msg, fadeTimeout);
+        }
+
+        function scheduleRemove(delay) {
+          clearTimeout(removeTimeout);
+          removeTimeout = setTimeout(function () {
+            if (!isHovered && msg.parentNode) {
+              msg.parentNode.removeChild(msg);
+            }
+          }, delay);
+          removeTimeouts.set(msg, removeTimeout);
+        }
+
+        // Initial fade out after 3s if not hovered
+        scheduleFadeOut(3000);
+
+        msg.addEventListener('mouseenter', function () {
+          isHovered = true;
+          clearTimeout(fadeTimeout);
+          clearTimeout(removeTimeout);
+          msg.classList.remove('fade-out');
+        });
+
+        msg.addEventListener('mouseleave', function () {
+          isHovered = false;
+          // Fade out after 2s if mouse leaves after initial 3s
+          scheduleFadeOut(2000);
+        });
+      });
+    });
+  </script>
+
+  <div class="container">
+    <header class="main-header">
+      <a href="/" class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+          aria-hidden="true" focusable="false" role="img" aria-label="Medical icon logo">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span> Amr</span>
+      </a>
+    </header>
+  </div>
+  <div class="nav-overlay" id="nav-overlay"></div>
+
+  <!-- Main container -->
+  <main class="main-flex">
+    <!-- Anatomy Image Container -->
+    <section class="anatomy-container">
+      <img src="/static/landing/boy.webp" />
+    </section>
+
+    <!-- Setup Form -->
+    <section class="login-section">
+      <h1>Account Setup<br />First Time!</h1>
+      <p>Setup your account using {{ phone_number }}</p>
+      <form class="login-form" action="/parent/setup" method="POST" novalidate>
+        <div>
+          <label for="student_phone">Your Student's Phone Number</label>
+          <input type="tel" id="student_phone" name="student_phone" autocomplete="tel" required
+            placeholder="01012345678" pattern="^01[0-2,5][0-9]{8}$" title="Please enter a valid Egyptian mobile number"
+            style="
+              width: 100%;
+              border-radius: var(--input-radius);
+              border: 1.5px solid var(--input-border);
+              background: var(--input-bg);
+              color: var(--main-color);
+              font-size: 1rem;
+              padding: 14px 20px;
+              margin-bottom: 0;
+              box-shadow: var(--shadow-lg);
+              transition: box-shadow 0.2s, border-color 0.2s;
+              outline: none;
+              box-sizing: border-box;
+            " />
+        </div>
+        <div>
+          <label for="password">Create a Password</label>
+          <input type="password" id="password" name="password" autocomplete="new-password" required
+            placeholder="Create a password (min. 6 characters)" minlength="6" />
+        </div>
+        <div>
+          <label for="confirm_password">Confirm Password</label>
+          <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required
+            placeholder="Confirm your password" minlength="6" />
+        </div>
+        <button type="submit">
+          Setup Account
+        </button>
+      </form>
+      <div class="register-link">
+        Already have an account?
+        <a href="/parent/login">Login here</a>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <script>
+    // Form validation
+    document.addEventListener('DOMContentLoaded', function () {
+      const form = document.querySelector('.login-form');
+
+      form.addEventListener('submit', function (e) {
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+
+        if (password !== confirmPassword) {
+          e.preventDefault();
+          alert('Passwords do not match!');
+          return;
+        }
+
+        if (password.length < 6) {
+          e.preventDefault();
+          alert('Password must be at least 6 characters long!');
+          return;
+        }
+      });
+    });
+  </script>
+</body>
+
+</html>
