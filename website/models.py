@@ -168,7 +168,9 @@ class Users(db.Model, UserMixin):
     name = db.Column(db.String(120), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone_number = db.Column(db.String(15), unique=True, nullable=True)
+    phone_number_country_code = db.Column(db.String(5), nullable=True , default="2")
     parent_phone_number = db.Column(db.String(15), unique=True, nullable=True)
+    parent_phone_number_country_code = db.Column(db.String(5), nullable=True , default="2")
     password = db.Column(db.String(240), nullable=False)
     
     zoom_id = db.Column(db.String(120), nullable=True) 
