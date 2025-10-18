@@ -1,39 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Platform Landing Page</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <meta name="description" content="Landing page template">
-    <meta name="keywords" content="platform, template, demo">
-    <meta name="author" content="Platform">
-
+    <title>Dr. Adham Omar | IGCSE English Expert</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-light: #f8f9fa;
-            --bg-panel: #ffffff;
-            --text-primary: #2c3e50;
-            /* A dark, professional blue-gray */
-            --text-secondary: #5f6c7b;
-            --accent-primary: #00796b;
-            /* A sophisticated teal */
-            --accent-primary-dark: #004d40;
-            --accent-secondary: #f9a825;
-            /* A warm gold for highlights */
-            --border-color: #dee2e6;
-            --radius-md: 0.5rem;
-            --radius-lg: 1rem;
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.1);
-            --transition-speed: 600ms;
+            --primary-color: #0A2647; /* Deeper Blue */
+            --secondary-color: #144272; /* Mid Blue */
+            --accent-color: #205295; /* Lighter Blue */
+            --highlight-color: #FFB100; /* Gold/Yellow Highlight */
+            --text-color: #333;
+            --bg-color: #F8F9FA;
+            --white-color: #FFFFFF;
         }
 
-        /* --- Base & Typography --- */
-        *,
-        *::before,
-        *::after {
+        /* --- Basic Reset & Setup --- */
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
 
@@ -42,709 +30,514 @@
         }
 
         body {
-            background-color: var(--bg-light);
-            color: var(--text-primary);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        .container {
-            max-width: 1140px;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-        }
-
-        /* --- Header --- */
-        .main-header {
-            padding: 1rem 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-bottom: 1px solid var(--border-color);
-            transition: box-shadow 0.3s ease;
-        }
-
-        .header-content {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .brand {
-            font-weight: 700;
-            font-size: 1.3rem;
-            color: var(--text-primary);
-            text-decoration: none;
-        }
-
-        .brand span {
-            color: var(--accent-primary);
-        }
-
-        /* --- Buttons & Auth --- */
-        .auth-btns {
-            display: flex;
-            gap: 0.75rem;
-        }
-
-        .btn {
-            padding: 0.6rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            text-decoration: none;
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            display: inline-block;
-        }
-
-        .btn.login {
-            color: var(--accent-primary);
-            background: transparent;
-            border-color: var(--accent-primary);
-        }
-
-        .btn.login:hover {
-            background: var(--accent-primary);
-            color: white;
-        }
-
-        .btn.register {
-            background-color: var(--accent-primary);
-            color: white;
-        }
-
-        .btn.register:hover {
-            background-color: var(--accent-primary-dark);
-            transform: translateY(-3px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn.cta {
-            /* Class for larger call-to-action buttons */
-            padding: 0.8rem 2rem;
-            font-size: 1.1rem;
-        }
-
-        /* --- Hero Section --- */
-        .hero-section {
-            padding: 6rem 0;
-            display: flex;
-            align-items: center;
-        }
-
-        .hero-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            align-items: center;
-            gap: 4rem;
-        }
-
-        .hero-text h1 {
-            font-size: clamp(2.5rem, 5vw, 3.5rem);
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-        }
-
-        .hero-text .highlight {
-            color: var(--accent-primary);
-        }
-
-        .hero-text p {
-            font-size: 1.15rem;
-            color: var(--text-secondary);
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
             line-height: 1.7;
-            margin-bottom: 2rem;
+            overflow-x: hidden;
         }
 
-        .hero-image-container {
-            position: relative;
-            animation: float 4s ease-in-out infinite;
+        /* --- Animations --- */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
-        @keyframes float {
-            0% {
-                transform: translateY(0px);
-            }
-
-            50% {
-                transform: translateY(-15px);
-            }
-
-            100% {
-                transform: translateY(0px);
-            }
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(60px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-
-        .hero-image-container .placeholder {
-            width: 100%;
-            max-width: 400px;
-            height: 400px;
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            border: 5px solid white;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            font-weight: 600;
+        
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 177, 0, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 177, 0, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 177, 0, 0); }
         }
-
-        /* --- General Section Styling --- */
-        .content-section {
-            padding: 6rem 0;
-        }
-
-        .section-header {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .section-header h2 {
-            font-size: clamp(2.2rem, 5vw, 2.8rem);
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .section-header .subtitle {
-            font-size: 1.1rem;
-            color: var(--accent-primary);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .section-header p {
-            font-size: 1.15rem;
-            color: var(--text-secondary);
-            margin: 0 auto;
-            max-width: 700px;
-        }
-
-        /* --- Subjects Section --- */
-        .subjects-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .subject-card {
-            background: var(--bg-panel);
-            border-radius: var(--radius-lg);
-            padding: 2.5rem 2rem;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .subject-card:hover {
-            transform: translateY(-10px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--accent-primary);
-        }
-
-        .subject-icon {
-            font-size: 2.5rem;
-            line-height: 1;
-            margin-bottom: 1.5rem;
-            color: var(--accent-primary);
-        }
-
-        .subject-card h3 {
-            font-size: 1.3rem;
-            margin: 0 0 0.5rem;
-        }
-
-        .subject-card p {
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        /* --- Experience & Photos Section --- */
-        .experience-section {
-            background: var(--bg-panel);
-        }
-
-        .experience-content {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            align-items: center;
-            gap: 4rem;
-        }
-
-        .experience-text ul {
-            list-style: none;
-            padding: 0;
-            margin-top: 2rem;
-        }
-
-        .experience-text li {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
-        }
-
-        .experience-text li svg {
-            color: var(--accent-secondary);
-            flex-shrink: 0;
-            width: 24px;
-            height: 24px;
-            margin-right: 1rem;
-            margin-top: 4px;
-        }
-
-        .photo-gallery {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            position: relative;
-        }
-
-        .photo-gallery .placeholder {
-            width: 100%;
-            height: auto;
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-md);
-            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .photo-gallery .placeholder:hover {
-            transform: scale(1.05) rotate(2deg);
-        }
-
-        .photo-gallery .img1 {
-            grid-column: 1 / 3;
-            height: 250px;
-        }
-
-        .photo-gallery .img2 {
-            height: 200px;
-            align-self: start;
-        }
-
-        .photo-gallery .img3 {
-            height: 200px;
-            align-self: end;
+        
+        /* Helper classes for JS observer */
+        .hidden {
+            opacity: 0;
+            filter: blur(5px);
             transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .hidden:nth-child(2) { transition-delay: 150ms; }
+        .hidden:nth-child(3) { transition-delay: 300ms; }
 
-        /* --- Success Stories Section --- */
-        .success-section {
-            background: var(--accent-primary-dark);
-            color: white;
-        }
 
-        .success-section h2,
-        .success-section p {
-            color: white;
-        }
-
-        .achievements-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .achievement-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(5px);
-        }
-
-        .achievement-card .award {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--accent-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .achievement-card .student-name {
-            font-size: 1.3rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .achievement-card .subject {
-            font-size: 1rem;
-            opacity: 0.8;
-        }
-
-        /* --- Affiliations Section --- */
-        .affiliations-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 2.5rem;
-            filter: grayscale(100%);
-            opacity: 0.7;
-            transition: all 0.4s ease;
-        }
-
-        .affiliations-container:hover {
-            filter: grayscale(0%);
+        .show {
             opacity: 1;
-        }
-
-        .affiliation-name {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: var(--text-secondary);
-        }
-
-        /* --- Footer --- */
-        .main-footer {
-            background: var(--text-primary);
-            color: var(--text-secondary);
-            text-align: center;
-            padding: 3rem 1rem;
-        }
-
-        .main-footer .footer-brand {
-            color: white;
-            font-weight: 700;
-            font-size: 1.25rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .main-footer .copyright {
-            font-size: 0.9rem;
-            margin-top: 1rem;
-        }
-
-        /* --- Flash Messages --- */
-        .flash-container {
-            position: fixed;
-            top: 90px;
-            right: 20px;
-            z-index: 1001;
-            width: auto;
-            max-width: 350px;
-        }
-
-        .flash-message {
-            padding: 1rem 1.25rem;
-            margin-bottom: 1rem;
-            border-radius: var(--radius-md);
-            color: #fff;
-            box-shadow: var(--shadow-md);
-            animation: slide-in 0.5s ease-out forwards;
-            opacity: 0;
-            transform: translateX(100%);
-        }
-
-        @keyframes slide-in {
-            from {
-                opacity: 0;
-                transform: translateX(100%);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .flash-message.fade-out {
-            transition: opacity 0.5s ease;
-            opacity: 0;
-        }
-
-        .flash-success {
-            background: #00796b;
-        }
-
-        /* Teal */
-        .flash-danger,
-        .flash-error {
-            background: #d32f2f;
-        }
-
-        /* Red */
-
-        /* --- Animation --- */
-        .animate-on-scroll {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: opacity var(--transition-speed) ease-out, transform var(--transition-speed) ease-out;
-        }
-
-        .animate-on-scroll.is-visible {
-            opacity: 1;
+            filter: blur(0);
             transform: translateY(0);
         }
 
-        .subject-card,
-        .achievement-card,
-        .affiliation-name,
-        .photo-gallery .placeholder {
-            transition-delay: calc(var(--delay) * 100ms);
+        /* --- General Styling --- */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
         }
 
-        /* --- Mobile Responsiveness --- */
+        section {
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .section-title {
+            text-align: center;
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            margin-bottom: 50px;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        /* --- Header & Navigation --- */
+        .header {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+            padding: 15px 0;
+        }
+        
+        .header.scrolled {
+            background-color: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 600;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--highlight-color);
+            transition: width 0.3s ease;
+        }
+        .nav-link:hover { color: var(--primary-color); }
+        .nav-link:hover::after { width: 100%; }
+
+        /* --- Hero Section --- */
+        #hero {
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+        
+        .hero-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 50px;
+            z-index: 1;
+        }
+
+        .hero-text {
+            color: var(--white-color);
+            max-width: 600px;
+            animation: slideInUp 1s ease-out;
+        }
+
+        .hero-text h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        
+        .hero-text h1 span {
+            color: var(--highlight-color);
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+
+        .hero-image {
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        .hero-image img {
+            width: 320px;
+            height: 320px;
+            border-radius: 50%;
+            border: 8px solid var(--white-color);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            object-fit: cover;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 35px;
+            background-color: var(--highlight-color);
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 50px;
+            transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            background-color: #fff;
+        }
+
+        .btn.pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* --- About Section --- */
+        #about .container {
+            display: flex;
+            align-items: center;
+            gap: 80px;
+        }
+
+        .about-text {
+            flex: 1;
+        }
+        
+        .about-image {
+            flex-basis: 400px;
+            position: relative;
+        }
+
+        .about-image::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 5px solid var(--accent-color);
+            border-radius: 15px;
+            top: 20px;
+            left: -20px;
+            z-index: 0;
+            transition: all 0.3s ease;
+        }
+        .about-image:hover::before {
+             transform: translate(10px, -10px);
+        }
+
+        .about-image img {
+            width: 100%;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* --- Why Choose Me Section (NEW DESIGN) --- */
+        #why {
+            background: var(--white-color);
+        }
+        
+        .method-flow {
+            display: flex;
+            justify-content: space-around;
+            gap: 40px;
+            margin-top: 50px;
+            position: relative;
+        }
+
+        /* Connecting Line */
+        .method-flow::before {
+            content: '';
+            position: absolute;
+            top: 45px;
+            left: 10%;
+            width: 80%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-color), var(--highlight-color));
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        .method-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .step-icon {
+            width: 90px;
+            height: 90px;
+            background-color: var(--white-color);
+            border: 4px solid var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 25px;
+            transition: transform 0.3s, background-color 0.3s, color 0.3s;
+        }
+
+        .method-step:hover .step-icon {
+            transform: scale(1.1) rotate(10deg);
+            background-color: var(--primary-color);
+            color: var(--white-color);
+        }
+        
+        .method-step h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+        }
+
+        /* --- Testimonials Section --- */
+        #testimonials {
+            background-color: var(--primary-color);
+        }
+        #testimonials .section-title {
+            color: var(--white-color);
+        }
+
+        .testimonial-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        .testimonial {
+            background: var(--secondary-color);
+            color: var(--white-color);
+            padding: 35px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border-left: 5px solid var(--highlight-color);
+            position: relative;
+        }
+        
+        .testimonial::before {
+            content: '“';
+            position: absolute;
+            top: 5px;
+            left: 15px;
+            font-family: 'Playfair Display', serif;
+            font-size: 6rem;
+            color: var(--accent-color);
+            opacity: 0.5;
+            line-height: 1;
+        }
+
+        .testimonial p {
+            font-style: italic;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .testimonial-author {
+            font-weight: 700;
+            color: var(--highlight-color);
+            font-size: 1.1rem;
+        }
+
+        /* --- Footer --- */
+        .footer {
+            background-color: var(--text-color);
+            color: var(--white-color);
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        /* --- Responsive Design --- */
         @media (max-width: 992px) {
-
-            .hero-content,
-            .experience-content {
-                grid-template-columns: 1fr;
-                text-align: center;
+            .method-flow {
+                flex-direction: column;
+                align-items: center;
             }
-
-            .hero-image-container {
-                /* The 'order: -1;' property that caused the issue has been removed. */
-                margin-top: 2rem;
-                /* Added margin to create space above the image */
-            }
-
-            .hero-image-container .placeholder {
-                margin: 0 auto;
-                display: block;
-            }
-
-            .experience-text {
-                text-align: left;
-            }
+            .method-flow::before { display: none; }
         }
 
         @media (max-width: 768px) {
-            body {
-                font-size: 15px;
+            .hero-content, #about .container {
+                flex-direction: column;
+                text-align: center;
+            }
+            #about .container {
+                gap: 50px;
             }
 
-            .hero-section {
-                padding: 4rem 0;
-            }
+            .hero-text h1 { font-size: 2.8rem; }
+            .section-title { font-size: 2.2rem; }
 
-            .content-section {
-                padding: 4rem 0;
-            }
+            .nav-menu { display: none; }
 
-            .photo-gallery {
-                grid-template-columns: 1fr;
-            }
+            .testimonial-grid { grid-template-columns: 1fr; }
 
-            .photo-gallery .img3 {
-                transform: translateY(0);
+            .about-image::before {
+                left: -10px;
+                top: 10px;
             }
         }
-
-        @media (max-width: 480px) {
-            .auth-btns {
-                display: none;
-            }
-
-            /* On very small screens, hide auth buttons to prevent overflow */
-        }
+        
     </style>
 </head>
-
 <body>
-    <header class="main-header">
-        <div class="container header-content">
-            <a href="/" class="brand">Demo <span>Platform</span></a>
-            <div class="auth-btns">
-                <a href="/login" class="btn login">Login</a>
-                <a href="/register" class="btn register">Register</a>
-            </div>
-        </div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar container">
+            <a href="#" class="nav-logo">Dr. Adham Omar</a>
+            <ul class="nav-menu">
+                <li><a href="#hero" class="nav-link">Home</a></li>
+                <li><a href="#about" class="nav-link">About Me</a></li>
+                <li><a href="#why" class="nav-link">My Method</a></li>
+                <li><a href="#testimonials" class="nav-link">Success Stories</a></li>
+            </ul>
+        </nav>
     </header>
 
-    <div class="flash-container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="flash-message flash-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-    </div>
-
-    <main>
-        <section class="hero-section">
-            <div class="container hero-content">
-                <div class="hero-text animate-on-scroll">
-                    <h1>Lorem Ipsum <span class="highlight">Dolor Sit</span> Amet Consectetur</h1>
-                    <p>
-                        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation.
-                    </p>
-                    <a href="/login" class="btn register cta">Get Started Now</a>
-                </div>
-                <div class="hero-image-container animate-on-scroll" style="--delay: 1;">
-                    <div class="placeholder">Image Placeholder</div>
-                </div>
+    <!-- Hero Section -->
+    <section id="hero">
+        <div class="container hero-content">
+            <div class="hero-text">
+                <h1>Unlock Your <span>A*</span> Potential in IGCSE English</h1>
+                <p>Learn the strategic methods to master the exam and achieve the highest grades with Egypt's trusted IGCSE English expert.</p>
+                <a href="#about" class="btn pulse">Discover My Method</a>
             </div>
-        </section>
-
-        <section id="subjects" class="content-section">
-            <div class="container">
-                <div class="section-header animate-on-scroll">
-                    <span class="subtitle">Lorem Ipsum</span>
-                    <h2>Dolor Sit Amet Consectetur</h2>
-                </div>
-                <div class="subjects-grid">
-                    <div class="subject-card animate-on-scroll" style="--delay: 1;">
-                        <div class="subject-icon">📈</div>
-                        <h3>Lorem Ipsum</h3>
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>
-                    </div>
-                    <div class="subject-card animate-on-scroll" style="--delay: 2;">
-                        <div class="subject-icon">🏦</div>
-                        <h3>Dolor Sit</h3>
-                        <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.</p>
-                    </div>
-                    <div class="subject-card animate-on-scroll" style="--delay: 3;">
-                        <div class="subject-icon">🌍</div>
-                        <h3>Consectetur</h3>
-                        <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                    </div>
-                    <div class="subject-card animate-on-scroll" style="--delay: 4;">
-                        <div class="subject-icon">👥</div>
-                        <h3>Adipiscing</h3>
-                        <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim.</p>
-                    </div>
-                </div>
+            <div class="hero-image">
+                <img src="https://placehold.co/400x400/144272/FFB100?text=Dr.+Omar" alt="Dr. Adham Omar">
             </div>
-        </section>
+        </div>
+    </section>
 
-        <section id="experience" class="content-section experience-section">
-            <div class="container">
-                <div class="experience-content">
-                    <div class="experience-text animate-on-scroll">
-                        <span class="subtitle">Lorem Ipsum</span>
-                        <h2>Dolor Sit Amet Consectetur</h2>
-                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida.</p>
-                        <ul>
-                            <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.627 48.627 0 0112 20.904a48.627 48.627 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a50.57 50.57 0 00-2.658-.813A59.905 59.905 0 0112 3.493a59.902 59.902 0 0110.399 5.84c-.896.248-1.783.52-2.658.814m-15.482 0l-.07.002z" />
-                                </svg>
-                                <div><strong>Lorem Ipsum Dolor</strong> sit amet consectetur adipiscing elit sed do eiusmod.</div>
-                            </li>
-                            <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                                </svg>
-                                <div><strong>Tempor Incididunt</strong> ut labore et dolore magna aliqua quis ipsum suspendisse.</div>
-                            </li>
-                            <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                    stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M10.125 2.25h-4.5c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125v-9M10.125 2.25h.375a9 9 0 019 9v.375M10.125 2.25A3.375 3.375 0 0113.5 5.625v1.5c0 .621.504 1.125 1.125 1.125h1.5a3.375 3.375 0 013.375 3.375M9 15l2.25 2.25L15 12" />
-                                </svg>
-                                <div><strong>Ullamco Laboris</strong> nisi ut aliquip ex ea commodo consequat duis aute irure.</div>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="photo-gallery animate-on-scroll" style="--delay: 1;">
-                        <div class="placeholder img1" style="--delay: 2;">Image Placeholder</div>
-                        <div class="placeholder img2" style="--delay: 3;">Image Placeholder</div>
-                        <div class="placeholder img3" style="--delay: 4;">Image Placeholder</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="success" class="content-section success-section">
-            <div class="container">
-                <div class="section-header animate-on-scroll">
-                    <h2>Lorem Ipsum Dolor Sit Amet</h2>
-                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                </div>
-                <div class="achievements-grid">
-                    <div class="achievement-card animate-on-scroll" style="--delay: 1;">
-                        <div class="award">🏆 Lorem Ipsum Dolor</div>
-                        <div class="student-name">Consectetur Adipiscing</div>
-                        <div class="subject">Elit Sed Do Eiusmod</div>
-                    </div>
-                    <div class="achievement-card animate-on-scroll" style="--delay: 2;">
-                        <div class="award">🏆 Tempor Incididunt</div>
-                        <div class="student-name">Ut Labore Et Dolore</div>
-                        <div class="subject">Magna Aliqua</div>
-                    </div>
-                    <div class="achievement-card animate-on-scroll" style="--delay: 3;">
-                        <div class="award">⭐ Quis Ipsum Suspendisse</div>
-                        <div class="student-name">Ultrices Gravida</div>
-                        <div class="subject">Dictum Volutpat</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="affiliations" class="content-section">
-            <div class="container">
-                <div class="section-header animate-on-scroll">
-                    <span class="subtitle">Lorem Ipsum</span>
-                    <h2>Dolor Sit Amet Consectetur</h2>
-                </div>
-                <div class="affiliations-container">
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 1;">Lorem Ipsum Dolor</div>
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 2;">Consectetur Adipiscing</div>
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 3;">Tempor</div>
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 4;">Incididunt Labore</div>
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 5;">Magna Aliqua</div>
-                    <div class="affiliation-name animate-on-scroll" style="--delay: 6;">Eiusmod Tempor</div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <footer class="main-footer">
+    <!-- About Me Section -->
+    <section id="about">
         <div class="container">
-            <div class="footer-brand">Demo Platform</div>
-            <div class="copyright">&copy; 2025 Demo. All rights reserved.</div>
+            <div class="about-image hidden">
+                <img src="https://placehold.co/600x450/F8F9FA/0A2647?text=Dedicated+Teaching" alt="Modern Classroom">
+            </div>
+            <div class="about-text hidden">
+                <h2 class="section-title" style="text-align:left; margin-bottom: 20px;">The Architect of A* Grades</h2>
+                <p>I am Dr. Adham Omar, a dedicated IGCSE English teacher with a passion for helping students excel. My approach is different: I don't just teach the language, I teach the science of the exam.</p>
+                <p>With years of experience and affiliations with leading institutions like Aspire International School, I have developed a unique methodology that decodes the marking scheme and empowers students with the exact skills needed to achieve top marks. My greatest satisfaction comes from seeing my students transform their potential into tangible A* results.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Me Section -->
+    <section id="why">
+        <div class="container">
+            <h2 class="section-title">The A* Method: A Three-Step Approach</h2>
+            <div class="method-flow">
+                <div class="method-step hidden">
+                    <div class="step-icon">🎯</div>
+                    <h3>Strategic Exam Focus</h3>
+                    <p>We target the exam's structure. You'll learn to think like an examiner and answer questions with precision, saving time and maximizing points.</p>
+                </div>
+                <div class="method-step hidden">
+                    <div class="step-icon">🚀</div>
+                    <h3>Rapid Grade Improvement</h3>
+                    <p>My techniques are designed for impact. Students consistently see dramatic improvements, turning predicted low grades into A* realities.</p>
+                </div>
+                <div class="method-step hidden">
+                    <div class="step-icon">💡</div>
+                    <h3>Proven Techniques</h3>
+                    <p>From the "Question-First" strategy to advanced paraphrasing, you get a toolkit of proven methods that simplify even the hardest parts of the exam.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section id="testimonials">
+        <div class="container">
+            <h2 class="section-title">Success Stories</h2>
+            <div class="testimonial-grid">
+                <div class="testimonial hidden">
+                    <p>Dr. Adham Omar is really good. I was predicted a C and ALWAYS got a B in mocks... I watched his recordings for 1 week before my test and for the first time in my whole life I got FULL marks in my actual exam. I was actually baffled!</p>
+                    <div class="testimonial-author">- IGCSE Student</div>
+                </div>
+                 <div class="testimonial hidden">
+                    <p>His method is perfect. It's not just about learning English; it's about learning how to win the exam. My confidence and my grades have never been higher. Thank you, Dr. Omar!</p>
+                    <div class="testimonial-author">- Former Student</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Dr. Adham Omar. All Rights Reserved. <br> IGCSE English Excellence</p>
         </div>
     </footer>
-
+    
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            // --- On-Scroll Animation Observer ---
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                    }
-                });
-            }, {
-                threshold: 0.1
+        // --- Scroll-triggered Animations ---
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('show');
+                }
             });
+        }, { threshold: 0.1 });
 
-            const elementsToAnimate = document.querySelectorAll('.animate-on-scroll');
-            elementsToAnimate.forEach(el => observer.observe(el));
+        const hiddenElements = document.querySelectorAll('.hidden');
+        hiddenElements.forEach((el) => observer.observe(el));
 
-            // --- Flash Message Handling ---
-            const flashMessages = document.querySelectorAll('.flash-message');
-            flashMessages.forEach(msg => {
-                setTimeout(() => {
-                    msg.classList.add('fade-out');
-                    msg.addEventListener('transitionend', () => msg.remove());
-                }, 5000);
-            });
+        // --- Sticky Header on Scroll ---
+        const header = document.querySelector('.header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
         });
     </script>
 </body>
-
 </html>
+
