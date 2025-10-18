@@ -559,6 +559,8 @@ def register():
             student_email = request.form.get("student_email", "").lower()
             student_phone = request.form.get("student_phone", "")
             parent_phone = request.form.get("parent_phone", "")
+            student_phone_country_code = request.form.get("student_phone_country_code", "2")
+            parent_phone_country_code = request.form.get("parent_phone_country_code", "2")
             password = request.form.get("password", "")
             parent_type = request.form.get("parent_type", "")
             group = request.form.get("group", "")
@@ -650,6 +652,8 @@ def register():
                 subjectid=subject_id,
                 profile_picture=profile_picture_filename,
                 otp = verification_code,
+                phone_number_country_code=student_phone_country_code,
+                parent_phone_number_country_code=parent_phone_country_code,
             )
 
 
