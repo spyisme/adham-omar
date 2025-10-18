@@ -1744,4 +1744,7 @@ def change_password():
 #===================================================
 @student.route("/whatsapp")
 def whatsapp():
+    if current_user.student_whatsapp == current_user.phone_number:
+        flash("You have already activated WhatsApp", "warning")
+        return redirect(url_for("student.new_home"))
     return render_template("student/whatsapp/whatsapp.html")
