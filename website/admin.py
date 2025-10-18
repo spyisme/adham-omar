@@ -6879,3 +6879,14 @@ def unlink_zoom_participant():
             'success': False,
             'message': str(e)
         }), 400
+
+
+#--- Temp ---
+
+@admin.route('/temp/activate/<int:user_id>')
+def temp_activate(user_id):
+    user = Users.query.get_or_404(user_id)
+    user.student_whatsapp = user.phone_number
+    user.parent_whatsapp = user.parent_phone_number
+    db.session.commit()
+    return redirect(url_for('admin.student' , user_id=user_id))
