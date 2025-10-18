@@ -748,23 +748,49 @@ def upload_chunk(assignment_id):
                 "details": str(e)
             }), 500
 
-        # Send notifications (non-blocking)
+        # Send notifications 
         try:
-            if deadline_date and deadline_date > current_date:
-                send_whatsapp_message(
-                    current_user.phone_number,
-                    f"Hi {current_user.name} 👋,\n\n"
-                    f"{assignment.title}\n"
-                    "We have received your homework submission ✅.\n\n"
-                    "Thank you for your dedication☺"
-                )
-                send_whatsapp_message(
-                    current_user.parent_phone_number,
-                    f"Dear Parent,\n\nWe wanted to inform you that we have received your child's homework submission ({assignment.title}) ✅.\nThank you for your continuous support and encouragement 🙏☺."
-                )
+            is_on_time = deadline_date and deadline_date > current_date
+            
+            if is_on_time:
+                # On-time submission messages
+                if assignment.student_whatsapp and current_user.phone_number:
+                    send_whatsapp_message(
+                        current_user.phone_number,
+                        f"Hi {current_user.name} 👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        "We have received your homework submission ✅\n\n"
+                        "Thank you for your dedication! ☺"
+                    )
+                
+                if assignment.parent_whatsapp and current_user.parent_phone_number:
+                    send_whatsapp_message(
+                        current_user.parent_phone_number,
+                        f"Dear Parent,\n\n"
+                        f"We wanted to inform you that we have received your child's homework submission for *{assignment.title}* ✅\n\n"
+                        "Thank you for your continuous support and encouragement 🙏☺"
+                    )
             else:
-                send_whatsapp_message(current_user.phone_number, f"Your assignment {assignment.title} has been submitted successfully! Late submission! {current_date.strftime('%d/%m/%Y %H:%M')}")
-                send_whatsapp_message(current_user.parent_phone_number, f"Student {current_user.name} has submitted their assignment {assignment.title}! Late submission!")
+                # Late submission messages
+                submission_time = current_date.strftime('%d/%m/%Y at %H:%M')
+                
+                if assignment.student_whatsapp and current_user.phone_number:
+                    send_whatsapp_message(
+                        current_user.phone_number,
+                        f"Hi {current_user.name} 👋,\n\n"
+                        f"Your assignment *{assignment.title}* has been submitted successfully ✅\n\n"
+                        f"⚠️ Note: This is a late submission (submitted on {submission_time})\n"
+                        "Points awarded will be reduced accordingly."
+                    )
+                
+                if assignment.parent_whatsapp and current_user.parent_phone_number:
+                    send_whatsapp_message(
+                        current_user.parent_phone_number,
+                        f"Dear Parent,\n\n"
+                        f"Your child {current_user.name} has submitted their assignment *{assignment.title}* ✅\n\n"
+                        f"⚠️ Note: This is a late submission (submitted on {submission_time})"
+                    )
+
         except Exception as e:
             # Don't fail the submission if notifications fail
             pass
@@ -1278,6 +1304,13 @@ def upload_exam_chunk(exam_id):
         final_filename = f"exam_{exam.id}.{ext}"
         final_file_path = os.path.join(final_folder, final_filename)
 
+        # Remove existing file if it exists
+        if os.path.exists(final_file_path):
+            try:
+                os.remove(final_file_path)
+            except Exception as e:
+                pass
+
         try:
             os.rename(temp_file_path, final_file_path)
         except Exception as e:
@@ -1368,24 +1401,49 @@ def upload_exam_chunk(exam_id):
                 "details": str(e)
             }), 500
 
-        # Send notifications (non-blocking)
+        # Send notifications 
         try:
-            pass
-        #     if deadline_date and deadline_date > current_date:
-        #         send_whatsapp_message(
-        #             current_user.phone_number,
-        #             f"Hi {current_user.name} 👋,\n\n"
-        #             f"{exam.title}\n"
-        #             "We have received your exam submission ✅.\n\n"
-        #             "Thank you for your dedication☺"
-        #         )
-        #         send_whatsapp_message(
-        #             current_user.parent_phone_number,
-        #             f"Dear Parent,\n\nWe wanted to inform you that we have received your child's exam submission ({exam.title}) ✅.\nThank you for your continuous support and encouragement 🙏☺."
-        #         )
-        #     else:
-        #         send_whatsapp_message(current_user.phone_number, f"Your exam {exam.title} has been submitted successfully! Late submission! {current_date.strftime('%d/%m/%Y %H:%M')}")
-        #         send_whatsapp_message(current_user.parent_phone_number, f"Student {current_user.name} has submitted their exam {exam.title}! Late submission!")
+            is_on_time = deadline_date and deadline_date > current_date
+            
+            if is_on_time:
+                # On-time submission messages
+                if exam.student_whatsapp and current_user.phone_number:
+                    send_whatsapp_message(
+                        current_user.phone_number,
+                        f"Hi {current_user.name} 👋,\n\n"
+                        f"*{exam.title}*\n"
+                        "We have received your exam submission ✅\n\n"
+                        "Thank you for your dedication! ☺"
+                    )
+                
+                if exam.parent_whatsapp and current_user.parent_phone_number:
+                    send_whatsapp_message(
+                        current_user.parent_phone_number,
+                        f"Dear Parent,\n\n"
+                        f"We wanted to inform you that we have received your child's exam submission for *{exam.title}* ✅\n\n"
+                        "Thank you for your continuous support and encouragement 🙏☺"
+                    )
+            else:
+                # Late submission messages
+                submission_time = current_date.strftime('%d/%m/%Y at %H:%M')
+                
+                if exam.student_whatsapp and current_user.phone_number:
+                    send_whatsapp_message(
+                        current_user.phone_number,
+                        f"Hi {current_user.name} 👋,\n\n"
+                        f"Your exam *{exam.title}* has been submitted successfully ✅\n\n"
+                        f"⚠️ Note: This is a late submission (submitted on {submission_time})\n"
+                        "Points awarded will be reduced accordingly."
+                    )
+                
+                if exam.parent_whatsapp and current_user.parent_phone_number:
+                    send_whatsapp_message(
+                        current_user.parent_phone_number,
+                        f"Dear Parent,\n\n"
+                        f"Your child {current_user.name} has submitted their exam *{exam.title}* ✅\n\n"
+                        f"⚠️ Note: This is a late submission (submitted on {submission_time})"
+                    )
+
         except Exception as e:
             # Don't fail the submission if notifications fail
             pass
@@ -1683,3 +1741,7 @@ def change_password():
     flash("Password updated successfully", "success")
     return redirect(url_for("student.my_account"))
 
+#===================================================
+@student.route("/whatsapp")
+def whatsapp():
+    return render_template("student/whatsapp/whatsapp.html")

@@ -630,6 +630,11 @@ def register():
                         return redirect(url_for("website.register"))
 
 
+            # Generate random 6 digit code for student verification
+            verification_code = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            
+
+
             hashed_password = generate_password_hash(password, method="pbkdf2:sha256", salt_length=8)
             new_user = Users(
                 name=student_name,
@@ -643,7 +648,8 @@ def register():
                 role="student",
                 schoolid=school_id,
                 subjectid=subject_id,
-                profile_picture=profile_picture_filename
+                profile_picture=profile_picture_filename,
+                otp = verification_code,
             )
 
 

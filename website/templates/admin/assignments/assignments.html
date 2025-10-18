@@ -510,7 +510,7 @@
             </div>
             <div class="modal-body">
                 <div>
-                    <label class="form-label">Title</label>
+                    <label class="form-label">Title (Required)</label>
                     <input type="text" name="title" required placeholder="e.g., Chapter 5 Review Questions"
                         class="form-input">
                 </div>
@@ -519,6 +519,26 @@
                     <textarea name="description" rows="4" placeholder="Provide instructions, topics, or details here..."
                         class="form-textarea"></textarea>
                 </div>
+                <div>
+                    <label class="form-label">
+                        <input type="checkbox" name="student_whatsapp" value="true" checked>
+                        Send WhatsApp notification to student
+                    </label>
+                </div>
+                <div>
+                    <label class="form-label">
+                        <input type="checkbox" name="parent_whatsapp" value="true" checked>
+                        Send WhatsApp notification to parent
+                    </label>
+                </div>
+
+
+                <div>
+                    <label class="form-label">Out of (Full Mark)</label>
+                    <input type="number" name="out_of" min="0" placeholder="e.g., 100 (leave empty for ungraded assignment)"
+                        class="form-input">
+                </div>
+                
                 <div>
                     <label class="form-label">Subject</label>
                     <div class="multi" id="ms-subjects">
@@ -557,7 +577,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">Deadline Date</label>
+                    <label class="form-label">Deadline Date (Required)</label>
                     <input type="datetime-local" name="deadline_date" required class="form-input">
                 </div>
                 <div>
@@ -569,8 +589,8 @@
                     <input type="url" name="link" placeholder="https://example.com/resource" class="form-input">
                 </div>
                 <div>
-                    <label class="form-label">Points</label>
-                    <input type="number" name="points" placeholder="0" class="form-input">
+                    <label class="form-label">Points (Optional)</label>
+                    <input type="number" name="points" placeholder="0 (for the website leaderboard)" class="form-input">
                 </div>
             </div>
             <div class="modal-footer">
@@ -1053,6 +1073,11 @@
                 <div class="skeleton skeleton-p"></div>
                 <div class="skeleton skeleton-p"></div>
                 <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
             </div>
         `;
         editModalFooter.style.display = 'none';
@@ -1093,6 +1118,22 @@
             <div>
                 <label class="form-label">Description</label>
                 <textarea name="description" rows="4" class="form-textarea">${escapeHtml(assignment.description || '')}</textarea>
+            </div>
+            <div>
+                <label class="form-label">
+                    <input type="checkbox" name="student_whatsapp" value="true" ${assignment.student_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp notification to student
+                </label>
+            </div>
+            <div>
+                <label class="form-label">
+                    <input type="checkbox" name="parent_whatsapp" value="true" ${assignment.parent_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp notification to parent
+                </label>
+            </div>
+            <div>
+                <label class="form-label">Out of (Full Mark) (Make it 0 for ungraded assignment)</label>
+                <input type="number" name="out_of" min="0" value="${assignment.out_of || ''}" class="form-input">
             </div>
             <div>
                 <label class="form-label">Subject</label>
@@ -1409,7 +1450,11 @@
                         <div>
                             <h3 class="assignment-title">${a.title}</h3>
                             <p class="assignment-due">Due: ${due}</p>
+                            <p class="assignment-out_of">Out of: ${a.out_of || 'N/A'}</p>
                             <p class="assignment-points">Points: ${a.points || 'N/A'}</p>
+
+                            <p class="assignment-student_whatsapp">Student WhatsApp: <span style="color: ${a.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.student_whatsapp ? 'Yes' : 'No'}</span></p>
+                            <p class="assignment-parent_whatsapp">Parent WhatsApp: <span style="color: ${a.parent_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.parent_whatsapp ? 'Yes' : 'No'}</span></p>
                         </div>
                         <div class="card-actions">
                             <div class="action-buttons">

@@ -1851,8 +1851,11 @@ def assignments_data():
             "stages": stages_names,
             "groups": groups_names,
             "status": a.status,
+            "out_of": a.out_of,
             "submitted_students_count": submitted_count,
             "qualified_students_count": qualified_count,
+            "student_whatsapp": a.student_whatsapp,
+            "parent_whatsapp": a.parent_whatsapp,
             "points": a.points,
             "created_by": a.created_by,
             "created_at": a.creation_date.strftime('%Y-%m-%d %I:%M %p') if a.creation_date else None,
@@ -1897,6 +1900,9 @@ def get_assignment_data(assignment_id):
         "stages_mm": stages_mm,
         "groups_mm": groups_mm,
         "attachments": existing_attachments,
+        "student_whatsapp": assignment.student_whatsapp,
+        "parent_whatsapp": assignment.parent_whatsapp,
+        "out_of": assignment.out_of,
         "status": assignment.status,
         "points": assignment.points,
         "created_by": created_by_user.name if created_by_user else None,
@@ -1956,6 +1962,8 @@ def exams_data():
             "schools": schools_names,
             "stages": stages_names,
             "groups": groups_names,
+            "student_whatsapp": e.student_whatsapp,
+            "parent_whatsapp": e.parent_whatsapp,
             "status": e.status,
             "submitted_students_count": submitted_count,
             "qualified_students_count": qualified_count,
@@ -2000,6 +2008,8 @@ def get_exam_data(exam_id):
         "stages_mm": stages_mm,
         "groups_mm": groups_mm,
         "attachments": existing_attachments,
+        "student_whatsapp": exam.student_whatsapp,
+        "parent_whatsapp": exam.parent_whatsapp,
         "status": exam.status,
         "out_of": exam.out_of,
         "points": exam.points,
@@ -2037,6 +2047,19 @@ def assignments():
 
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip()
+        student_whatsapp = request.form.get("student_whatsapp", False)
+        if student_whatsapp == "true":
+            student_whatsapp = True
+        else:
+            student_whatsapp = False
+        parent_whatsapp = request.form.get("parent_whatsapp", False)
+        if parent_whatsapp == "true":
+            parent_whatsapp = True
+        else:
+            parent_whatsapp = False
+        # out of (full mark)
+        out_of = request.form.get("out_of", 0)
+        out_of = int(out_of) if str(out_of).isdigit() else 0
 
         subject_id_single = int_or_none(request.form.get("subject_id")) 
 
@@ -2133,6 +2156,9 @@ def assignments():
             points=points,
             created_by=current_user.id,
             creation_date=naive_local_time,
+            student_whatsapp=student_whatsapp,
+            parent_whatsapp=parent_whatsapp,
+            out_of=out_of,
         )
 
         # IMPORTANT: add to session BEFORE assigning M2M relations
@@ -2172,6 +2198,7 @@ def assignments():
                         "schools": [s.id for s in getattr(new_assignment, "schools", [])],
                         "attachments": json.loads(new_assignment.attachments) if new_assignment.attachments else [],
                         "points": new_assignment.points,
+                        "out_of": new_assignment.out_of,
                     },
                     "before": None,
                     "after": None
@@ -2204,6 +2231,7 @@ def assignments():
                 "points": new_assignment.points,
                 "submitted_students_count": submitted_count,
                 "qualified_students_count": qualified_count,
+                "out_of": new_assignment.out_of,
             }
             return jsonify({"success": True, "message": "Assignment added successfully!", "assignment": response_payload})
 
@@ -2309,7 +2337,13 @@ def edit_pdf(submission_id):
     pdfurl = f"/admin/getpdf/{submission_id}"
     filename = submission.file_url
 
-    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id)
+    assignment = Assignments.query.get(submission.assignment_id)
+
+    if assignment.out_of > 0:
+        show_grade = True
+    else:
+        show_grade = False
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade)
 
 #Save new pdf and grade
 @admin.route("/assignments/annotate", methods=["POST"])
@@ -2350,15 +2384,22 @@ def save_pdf():
             f.seek(offset)
             f.write(chunk_data)
     except IOError as e:
-        return jsonify({"error": f"Could not write to file: {e}"}), 500
+        return jsonify({"status": "error", "error": f"Could not write to file: {e}", "action": "restart_upload"}), 500
 
     # If this is the final chunk, finalize the upload
     if offset + chunk_size >= total_size:
+        # Verify final file size
+        final_temp_size = os.path.getsize(temp_file_path)
+        if final_temp_size != total_size:
+            if os.path.exists(temp_file_path):
+                os.remove(temp_file_path)
+            return jsonify({"status": "error", "error": "Final size mismatch", "action": "restart_upload"}), 400
+        
         # Validate file extension
         ext = original_filename.rsplit(".", 1)[-1].lower() if "." in original_filename else ""
         if ext != "pdf":
             os.remove(temp_file_path)
-            return jsonify({"error": "Only PDF files are allowed for annotations"}), 400
+            return jsonify({"status": "error", "error": "Only PDF files are allowed for annotations", "action": "invalid_file_type"}), 400
 
         # Create final filename based on assignment type
         assignment = Assignments.query.get(submission.assignment_id)
@@ -2379,7 +2420,10 @@ def save_pdf():
             except Exception as e:
                 pass
         
-        os.rename(temp_file_path, final_file_path)
+        try:
+            os.rename(temp_file_path, final_file_path)
+        except Exception as e:
+            return jsonify({"status": "error", "error": f"Failed to finalize upload: {str(e)}", "action": "restart_upload"}), 500
         
         # Clean up temp file if it still exists
         if os.path.exists(temp_file_path):
@@ -2393,17 +2437,25 @@ def save_pdf():
             with open(final_file_path, "rb") as data:
                 storage.upload_file(data, f"submissions/uploads/student_{student_id}", annotated_filename)
         except Exception as e:
-            os.remove(final_file_path)
-            return jsonify({"error": f"Error uploading to storage: {e}"}), 500
+            try:
+                os.remove(final_file_path)
+            except:
+                pass
+            return jsonify({"status": "error", "error": f"Error uploading to storage: {str(e)}", "action": "restart_upload"}), 500
 
         # Save grade if provided
-        if grade is not None:
+        if grade is not None and grade != '':
             submission.mark = grade
-            try:
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({'status': 'error', 'message': f'Failed to save grade: {str(e)}'}), 500
+        
+        # Mark submission as corrected
+        submission.corrected = True
+        
+        try:
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'status': 'error', 'error': f'Failed to save grade: {str(e)}', 'action': 'restart_upload'}), 500
+
         assignment = Assignments.query.get(submission.assignment_id)
         if assignment.type == "Exam":
             redirect_url = url_for("admin.view_exam_submissions", exam_id=submission.assignment_id)
@@ -2425,10 +2477,10 @@ def save_pdf():
         except Exception as e:
             pass
 
-        return jsonify({'success': True, 'message': 'Grade saved successfully!', 'redirect_url': redirect_url}), 200
+        return jsonify({'status': 'success', 'message': 'Grade saved successfully!', 'action': 'upload_complete', 'redirect_url': redirect_url}), 200
 
-    # Return success for chunk received
-    return jsonify({"message": "Chunk received."}), 200
+    # Return success for chunk received (intermediate chunk)
+    return jsonify({"status": "success", "message": "Chunk received", "action": "continue_upload"}), 200
 
 #Get original pdf (backend route for annotation)
 @admin.route("/getpdf/<int:submission_id>")
@@ -2663,18 +2715,22 @@ def upload_corrected_pdf_chunk(submission_id):
             }), 500
         
         # Save grade if provided
-        if mark is not None and mark.strip():
-            submission.mark = mark
-            try:
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({
-                    'status': 'error',
-                    'error': f'Failed to save grade: {str(e)}',
-                    'action': 'restart_upload'
-                }), 500
-        
+        if submission.assignment.out_of > 0:
+            if mark is not None and mark.strip():
+                submission.mark = mark
+                try:
+                    db.session.commit()
+                except Exception as e:
+                    db.session.rollback()
+                    return jsonify({
+                        'status': 'error',
+                        'error': f'Failed to save grade: {str(e)}',
+                        'action': 'restart_upload'
+                    }), 500
+        else :
+            submission.corrected =True 
+            db.session.commit()
+            
         # Send WhatsApp notifications
         assignment = Assignments.query.get(submission.assignment_id)
         try:
@@ -3097,6 +3153,9 @@ def edit_assignment(assignment_id):
             "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
             "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
             "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None, 
+            "student_whatsapp": assignment.student_whatsapp,
+            "parent_whatsapp": assignment.parent_whatsapp,
+            "out_of": assignment.out_of,
         }
 
         # Update basic fields
@@ -3113,6 +3172,28 @@ def edit_assignment(assignment_id):
         except (TypeError, ValueError):
             flash("Invalid deadline date. Please use the datetime picker.", "error")
             return redirect(url_for("admin.assignments"))
+
+
+        student_whatsapp = request.form.get("student_whatsapp", False)
+        if student_whatsapp == "true":
+            student_whatsapp = True
+        else:
+            student_whatsapp = False
+        parent_whatsapp = request.form.get("parent_whatsapp", False)
+        if parent_whatsapp == "true":
+            parent_whatsapp = True
+        else:
+            parent_whatsapp = False
+        # out of (full mark)
+        out_of = request.form.get("out_of", 0)
+        out_of = int(out_of) if str(out_of).isdigit() else 0
+        assignment.student_whatsapp = student_whatsapp
+        assignment.parent_whatsapp = parent_whatsapp
+        assignment.out_of = out_of
+
+
+
+
 
 
         subject_id_single = int_or_none(request.form.get("subject")) 
@@ -3211,6 +3292,9 @@ def edit_assignment(assignment_id):
                     "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
                     "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
                     "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None,  # Add subject name
+                    "student_whatsapp": assignment.student_whatsapp,
+                    "parent_whatsapp": assignment.parent_whatsapp,
+                    "out_of": assignment.out_of,
                 }
             }
         )
@@ -3248,6 +3332,9 @@ def edit_assignment(assignment_id):
                 "points": assignment.points,
                 "submitted_students_count": submitted_count,
                 "qualified_students_count": qualified_count,
+                "student_whatsapp": assignment.student_whatsapp,
+                "parent_whatsapp": assignment.parent_whatsapp,
+                "out_of": assignment.out_of,
             }
             
             return jsonify({"success": True, "message": "Assignment updated successfully!", "assignment": updated_assignment})

@@ -1,3 +1,4 @@
+from re import T
 from flask_login import UserMixin
 from datetime import datetime
 import pytz
@@ -434,6 +435,11 @@ class Assignments(db.Model):
     submissions = db.relationship('Submissions', back_populates='assignment', lazy='dynamic', cascade="all, delete-orphan")
 
 
+    #Extra Fields
+    student_whatsapp = db.Column(db.Boolean, default=True)
+    parent_whatsapp = db.Column(db.Boolean, default=True)
+
+
 
 class Submissions(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -447,6 +453,7 @@ class Submissions(db.Model):
 
     assignment = db.relationship('Assignments', back_populates='submissions')
     student = db.relationship('Users', back_populates='submissions')
+    corrected = db.Column(db.Boolean, default=False)
 
 
 class Announcements(db.Model):
