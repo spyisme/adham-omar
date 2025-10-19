@@ -230,16 +230,16 @@
                                         </button>
                                         <a href="{{ url_for('admin.edit_pdf', submission_id=submission.id) }}"
                                             class="actions-menu-item">
-                                            📝 Correct Student PDF
+                                            ✏️ Correct Student PDF
                                         </a>
                                         {% if submission.mark or submission.corrected %}
                                         <a href="{{ url_for('admin.edit_pdf2', submission_id=submission.id) }}"
                                          class="actions-menu-item">
-                                            📄 Edit on Corrected PDF
+                                            🖊️ Edit on Corrected PDF
                                         </a>
                                         <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}"
                                          class="actions-menu-item">
-                                            📄 Open Corrected PDF
+                                            👁️ Open Corrected PDF
                                         </a>
 
                                         <form method="POST"
