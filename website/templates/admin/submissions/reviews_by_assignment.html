@@ -1,0 +1,150 @@
+{% extends "admin/submissions/reviews_all.html" %}
+
+{% block content %}
+<header class="page-header">
+    <div class="page-header-content">
+        <a href="{{ url_for('admin.view_assignment_submissions', assignment_id=assignment.id) }}" class="back-button">←
+            Back to Assignment Submissions</a>
+        <h1 class="page-title">{{ title }}</h1>
+    </div>
+</header>
+
+<div class="container">
+    {% if submissions|length > 0 %}
+    <div class="stats-banner">
+        <div class="stat-item">
+            <div class="stat-value">{{ submissions|length }}</div>
+            <div class="stat-label">Pending Reviews</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ assignment.title }}</div>
+            <div class="stat-label">Assignment</div>
+        </div>
+    </div>
+
+    {% for submission in submissions %}
+    <div class="review-card">
+        <div class="review-header">
+            <div class="review-info">
+                <div class="review-title">
+                    {{ submission.student.name }}
+                    {% if submission.assignment.type == "Exam" %}
+                    <span class="badge badge-exam">Exam</span>
+                    {% else %}
+                    <span class="badge badge-assignment">Assignment</span>
+                    {% endif %}
+                </div>
+                <div class="review-meta">
+                    <div class="review-meta-item">
+                        <span class="review-meta-label">Student:</span>
+                        {{ submission.student.name }}
+                    </div>
+                    <div class="review-meta-item">
+                        <span class="review-meta-label">Corrected by:</span>
+                        {{ submission.corrector.name if submission.corrector else "Unknown" }}
+                    </div>
+                    <div class="review-meta-item">
+                        <span class="review-meta-label">Mark:</span>
+                        {{ submission.mark or "N/A" }}{% if submission.assignment.out_of > 0 %} / {{
+                        submission.assignment.out_of }}{% endif %}
+                    </div>
+                    <div class="review-meta-item">
+                        <span class="review-meta-label">Corrected:</span>
+                        {{ submission.correction_date.strftime('%b %d, %Y at %I:%M %p') if submission.correction_date
+                        else "N/A" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="review-actions">
+            <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank" class="btn-view-pdf">
+                📄 View Corrected PDF
+            </a>
+
+            <form method="POST" action="{{ url_for('admin.approve_submission', submission_id=submission.id) }}"
+                style="display: inline;">
+                <button type="submit" class="btn-approve">✓ Approve</button>
+            </form>
+
+            <button onclick="openRejectionModal({{ submission.id }})" class="btn-reject">✗ Reject</button>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a
+            href="{{ url_for('admin.view_reviews_by_assignment', assignment_id=assignment.id, page=pagination.prev_num) }}">Previous</a>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
+        {% if page_num %}
+        {% if page_num == pagination.page %}
+        <span class="active">{{ page_num }}</span>
+        {% else %}
+        <a href="{{ url_for('admin.view_reviews_by_assignment', assignment_id=assignment.id, page=page_num) }}">{{
+            page_num }}</a>
+        {% endif %}
+        {% else %}
+        <span>...</span>
+        {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <a
+            href="{{ url_for('admin.view_reviews_by_assignment', assignment_id=assignment.id, page=pagination.next_num) }}">Next</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <h2>All caught up!</h2>
+        <p>No submissions for this assignment are waiting for review.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectionModal" class="rejection-modal">
+    <div class="modal-content">
+        <div class="modal-header">Reject Submission</div>
+        <form id="rejectionForm" method="POST">
+            <div class="form-group">
+                <label for="rejection_reason">Rejection Reason:</label>
+                <textarea id="rejection_reason" name="rejection_reason"
+                    placeholder="Explain why this correction is being rejected..." required></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="button" onclick="closeRejectionModal()" class="btn-cancel">Cancel</button>
+                <button type="submit" class="btn-reject">Reject Submission</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openRejectionModal(submissionId) {
+        const modal = document.getElementById('rejectionModal');
+        const form = document.getElementById('rejectionForm');
+        form.action = `/admin/submissions/review/reject/${submissionId}`;
+        modal.classList.add('active');
+    }
+
+    function closeRejectionModal() {
+        const modal = document.getElementById('rejectionModal');
+        modal.classList.remove('active');
+        document.getElementById('rejection_reason').value = '';
+    }
+
+    // Close modal on outside click
+    document.getElementById('rejectionModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeRejectionModal();
+        }
+    });
+</script>
+{% endblock %}

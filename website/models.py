@@ -138,6 +138,11 @@ class Users(db.Model, UserMixin):
     submissions = db.relationship('Submissions', back_populates='student', lazy='dynamic', cascade="all, delete-orphan",
                                   foreign_keys='Submissions.student_id')
 
+    corrected_submissions = db.relationship('Submissions', 
+                                           back_populates='corrector', 
+                                           lazy='dynamic', 
+                                           foreign_keys='Submissions.corrected_by_id')
+
     reviewed_submissions = db.relationship('Submissions', 
                                            back_populates='reviewer', 
                                            lazy='dynamic', 
@@ -277,6 +282,8 @@ class Submissions(db.Model):
     mark = db.Column(db.Text, nullable=True)
     corrected = db.Column(db.Boolean, default=False)
     reviewed = db.Column(db.Boolean, default=False)
+    correction_date = db.Column(db.DateTime, nullable=True)
+    review_date = db.Column(db.DateTime, nullable=True)
 
     # --- Link 1: The Student ---
     student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -284,7 +291,13 @@ class Submissions(db.Model):
                               back_populates='submissions', 
                               foreign_keys=[student_id])
 
-    # --- Link 2: The Admin/Reviewer ---
+    # --- Link 2: The Assistant who corrected ---
+    corrected_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    corrector = db.relationship('Users', 
+                               back_populates='corrected_submissions', 
+                               foreign_keys=[corrected_by_id])
+
+    # --- Link 3: The Admin/Super Admin who reviewed ---
     reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     reviewer = db.relationship('Users', 
                                back_populates='reviewed_submissions', 

@@ -1115,7 +1115,7 @@ def edit_assistant(user_id):
                 flash('You can\'t delete an assistant!', 'danger')
                 return redirect(url_for('admin.assistants', user_id=user_id))
             if user.role == 'super_admin' and current_user.role != 'super_admin':
-                flash('You can\'t delete a super admin!', 'danger')
+                flash('You can\'t delete a Head!', 'danger')
                 return redirect(url_for('admin.assistants'))
             if user.id == current_user.id:
                 flash('You can\'t delete yourself!', 'danger')
@@ -1839,15 +1839,48 @@ def view_assignment_submissions(assignment_id):
         submission_id = request.form.get("submission_id")
         mark = request.form.get("mark")
         submission = Submissions.query.get_or_404(submission_id)
+        
+        # Check if mark is being changed
+        mark_changed = submission.mark != mark
+        
         submission.mark = mark
+        
+        # If super_admin is updating, auto-approve and send notifications
+        if current_user.role == "super_admin":
+            if mark_changed:
+                submission.corrected = True
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                submission.reviewed = True
+                submission.reviewed_by_id = current_user.id
+                submission.review_date = datetime.now(GMT_PLUS_2)
+                
+                # Send WhatsApp notifications immediately
+                try:
+                    send_whatsapp_message(submission.student.phone_number, f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}")
+                    send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}")
+                except:
+                    pass
+                
+                flash("Grade updated and notifications sent!", "success")
+            else:
+                flash("Grade updated successfully!", "success")
+        # If assistant/admin is updating, require review
+        else:
+            if mark_changed and submission.reviewed:
+                submission.reviewed = False
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                flash("Grade updated! Awaiting Head review before student notification.", "info")
+            elif mark_changed:
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                flash("Grade updated! Awaiting Head review.", "success")
+            else:
+                flash("Grade updated successfully!", "success")
+        
         try:
             db.session.commit()
-            try:
-                send_whatsapp_message(submission.student.phone_number, f"Your Submission in {assignment.title} has been graded!")
-                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded for {assignment.title}!")
-            except:
-                pass
-            flash("Grade updated successfully!", "success")
         except Exception as e:
             db.session.rollback()
             flash(f"Error updating grade: {str(e)}", "danger")
@@ -1860,12 +1893,13 @@ def view_assignment_submissions(assignment_id):
         .subquery()
     )
 
-    # ✅ Only submissions from students the admin manages
+    # ✅ Only submissions from students the admin manages (sorted alphabetically by student name)
     submissions = (
         Submissions.query
         .join(Users, Submissions.student_id == Users.id)
         .filter(Submissions.assignment_id == assignment_id)
         .filter(Submissions.student_id.in_(qualified_students_subq))
+        .order_by(Users.name)
         .all()
     )
 
@@ -1877,11 +1911,11 @@ def view_assignment_submissions(assignment_id):
     # ✅ Students who have submitted (set of IDs)
     submitted_student_ids = {sub.student_id for sub in submissions}
 
-    # ✅ Students who have NOT submitted
-    not_submitted_students = [
-        student for student in all_qualified_students
-        if student.id not in submitted_student_ids
-    ]
+    # ✅ Students who have NOT submitted (sorted alphabetically)
+    not_submitted_students = sorted(
+        [student for student in all_qualified_students if student.id not in submitted_student_ids],
+        key=lambda s: s.name
+    )
 
 
 
@@ -2020,12 +2054,22 @@ def save_pdf():
                 pass
             return jsonify({"status": "error", "error": f"Error uploading to storage: {str(e)}", "action": "restart_upload"}), 500
 
-        # Save grade if provided
+        # Save grade and mark as corrected
         if grade is not None and grade != '':
             submission.mark = grade
         
         # Mark submission as corrected
         submission.corrected = True
+        submission.corrected_by_id = current_user.id
+        submission.correction_date = datetime.now(GMT_PLUS_2)
+        
+        # If super_admin is correcting, auto-approve
+        if current_user.role == "super_admin":
+            submission.reviewed = True
+            submission.reviewed_by_id = current_user.id
+            submission.review_date = datetime.now(GMT_PLUS_2)
+        else:
+            submission.reviewed = False  # Not reviewed yet, will be reviewed by Head
         
         try:
             db.session.commit()
@@ -2039,22 +2083,16 @@ def save_pdf():
         else:
             redirect_url = url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id)
 
-        # Send WhatsApp notifications
-        try:
-            if assignment.type == "Exam":
-                send_whatsapp_message(submission.student.phone_number, f"Your Exam {assignment.title} has been graded!")
-                send_whatsapp_message(submission.student.parent_phone_number, 
-                f"Student {submission.student.name} has been graded for Exam {assignment.title}!"
-                f"Grade: {grade}")
-            else:
-                send_whatsapp_message(submission.student.phone_number, f"Your Assignment {assignment.title} has been graded!")
-                send_whatsapp_message(submission.student.parent_phone_number, 
-                f"Student {submission.student.name} has been graded for Assignment {assignment.title}!"
-                f"Grade: {grade}")
-        except Exception as e:
-            pass
-
-        return jsonify({'status': 'success', 'message': 'Grade saved successfully!', 'action': 'upload_complete', 'redirect_url': redirect_url}), 200
+        # If super_admin uploaded the correction, send notifications immediately
+        if current_user.role == "super_admin":
+            try:
+                send_whatsapp_message(submission.student.phone_number, f"Your Assignment '{assignment.title}' has been corrected! Check it out.")
+                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name}'s Assignment '{assignment.title}' has been corrected.")
+            except:
+                pass
+            return jsonify({'status': 'success', 'message': 'Corrected PDF uploaded and approved! Notifications sent.', 'action': 'upload_complete', 'redirect_url': redirect_url}), 200
+        else:
+            return jsonify({'status': 'success', 'message': 'Correction saved! Awaiting Head review.', 'action': 'upload_complete', 'redirect_url': redirect_url}), 200
 
     # Return success for chunk received (intermediate chunk)
     return jsonify({"status": "success", "message": "Chunk received", "action": "continue_upload"}), 200
@@ -2291,43 +2329,32 @@ def upload_corrected_pdf_chunk(submission_id):
                 "action": "restart_upload"
             }), 500
         
-        # Save grade if provided
+        # Save grade and mark as corrected (but not reviewed yet)
         if submission.assignment.out_of > 0:
             if mark is not None and mark.strip():
                 submission.mark = mark
-                try:
-                    db.session.commit()
-                except Exception as e:
-                    db.session.rollback()
-                    return jsonify({
-                        'status': 'error',
-                        'error': f'Failed to save grade: {str(e)}',
-                        'action': 'restart_upload'
-                    }), 500
-        else :
-            submission.corrected =True 
-            db.session.commit()
-            
-        # Send WhatsApp notifications
-        assignment = Assignments.query.get(submission.assignment_id)
+        
+        submission.corrected = True
+        submission.corrected_by_id = current_user.id
+        submission.correction_date = datetime.now(GMT_PLUS_2)
+        submission.reviewed = False  # Not reviewed yet, will be reviewed by super_admin
+        
         try:
-            if assignment.type == "Exam":
-                send_whatsapp_message(submission.student.phone_number, 
-                    f"Your Exam '{assignment.title}' has been graded!")
-                send_whatsapp_message(submission.student.parent_phone_number, 
-                    f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}")
-            else:
-                send_whatsapp_message(submission.student.phone_number, 
-                    f"Your Assignment '{assignment.title}' has been graded!")
-                send_whatsapp_message(submission.student.parent_phone_number, 
-                    f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}")
+            db.session.commit()
         except Exception as e:
-            pass
+            db.session.rollback()
+            return jsonify({
+                'status': 'error',
+                'error': f'Failed to save correction: {str(e)}',
+                'action': 'restart_upload'
+            }), 500
+        
+        # NOTE: WhatsApp notifications are now sent only after super_admin reviews and approves
         
         return jsonify({
             'status': 'success',
             'action': 'upload_complete',
-            'message': 'Corrected PDF uploaded successfully!'
+            'message': 'Corrected PDF uploaded successfully! Awaiting Head review.'
         }), 200
     
     # Return success for chunk received
@@ -2531,34 +2558,52 @@ def upload_corrected_exam_pdf_chunk(submission_id):
                 "action": "restart_upload"
             }), 500
         
-        # Save grade if provided
+        # Save grade and mark as corrected
         if mark is not None and mark.strip():
             submission.mark = mark
-            try:
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                return jsonify({
-                    'status': 'error',
-                    'error': f'Failed to save grade: {str(e)}',
-                    'action': 'restart_upload'
-                }), 500
         
-        # Send WhatsApp notifications
-        assignment = Assignments.query.get(submission.assignment_id)
+        submission.corrected = True
+        submission.corrected_by_id = current_user.id
+        submission.correction_date = datetime.now(GMT_PLUS_2)
+        
+        # If super_admin is correcting, auto-approve
+        if current_user.role == "super_admin":
+            submission.reviewed = True
+            submission.reviewed_by_id = current_user.id
+            submission.review_date = datetime.now(GMT_PLUS_2)
+        else:
+            submission.reviewed = False  # Not reviewed yet, will be reviewed by Head
+        
         try:
-            send_whatsapp_message(submission.student.phone_number, 
-                f"Your Exam '{assignment.title}' has been graded!")
-            send_whatsapp_message(submission.student.parent_phone_number, 
-                f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}")
+            db.session.commit()
         except Exception as e:
-            pass
+            db.session.rollback()
+            return jsonify({
+                'status': 'error',
+                'error': f'Failed to save correction: {str(e)}',
+                'action': 'restart_upload'
+            }), 500
         
-        return jsonify({
-            'status': 'success',
-            'action': 'upload_complete',
-            'message': 'Corrected exam PDF uploaded successfully!'
-        }), 200
+        # If super_admin uploaded the correction, send notifications immediately
+        if current_user.role == "super_admin":
+            exam = Assignments.query.get(submission.assignment_id)
+            try:
+                send_whatsapp_message(submission.student.phone_number, f"Your Exam '{exam.title}' has been corrected! Check it out.")
+                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name}'s Exam '{exam.title}' has been corrected.")
+            except:
+                pass
+            return jsonify({
+                'status': 'success',
+                'action': 'upload_complete',
+                'message': 'Corrected exam PDF uploaded and approved! Notifications sent.'
+            }), 200
+        else:
+            # NOTE: WhatsApp notifications are now sent only after super_admin reviews and approves
+            return jsonify({
+                'status': 'success',
+                'action': 'upload_complete',
+                'message': 'Corrected exam PDF uploaded successfully! Awaiting Head review.'
+            }), 200
     
     # Return success for chunk received
     return jsonify({
@@ -4932,15 +4977,48 @@ def view_exam_submissions(exam_id):
         submission_id = request.form.get("submission_id")
         mark = request.form.get("mark")
         submission = Submissions.query.get_or_404(submission_id)
+        
+        # Check if mark is being changed
+        mark_changed = submission.mark != mark
+        
         submission.mark = mark
+        
+        # If super_admin is updating, auto-approve and send notifications
+        if current_user.role == "super_admin":
+            if mark_changed:
+                submission.corrected = True
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                submission.reviewed = True
+                submission.reviewed_by_id = current_user.id
+                submission.review_date = datetime.now(GMT_PLUS_2)
+                
+                # Send WhatsApp notifications immediately
+                try:
+                    send_whatsapp_message(submission.student.phone_number, f"Your Exam '{exam.title}' has been graded! Mark: {mark}")
+                    send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded for Exam '{exam.title}'! Grade: {mark}")
+                except:
+                    pass
+                
+                flash("Grade updated and notifications sent!", "success")
+            else:
+                flash("Grade updated successfully!", "success")
+        # If assistant/admin is updating, require review
+        else:
+            if mark_changed and submission.reviewed:
+                submission.reviewed = False
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                flash("Grade updated! Awaiting Head review before student notification.", "info")
+            elif mark_changed:
+                submission.corrected_by_id = current_user.id
+                submission.correction_date = datetime.now(GMT_PLUS_2)
+                flash("Grade updated! Awaiting Head review.", "success")
+            else:
+                flash("Grade updated successfully!", "success")
+        
         try:
             db.session.commit()
-            try:
-                send_whatsapp_message(submission.student.phone_number, f"Your grade in {exam.title} has been updated!")
-                send_whatsapp_message(submission.student.parent_phone_number, f"Student {submission.student.name} has been graded in {exam.title}!")
-            except:
-                pass
-            flash("Grade updated successfully!", "success")
         except Exception as e:
             db.session.rollback()
             flash(f"Error updating grade: {str(e)}", "danger")
@@ -4953,12 +5031,13 @@ def view_exam_submissions(exam_id):
         .subquery()
     )
 
-    # ✅ Only submissions from students the admin manages
+    # ✅ Only submissions from students the admin manages (sorted alphabetically by student name)
     submissions = (
         Submissions.query
         .join(Users, Submissions.student_id == Users.id)
         .filter(Submissions.assignment_id == exam_id)
         .filter(Submissions.student_id.in_(qualified_students_subq))
+        .order_by(Users.name)
         .all()
     )
 
@@ -4970,11 +5049,11 @@ def view_exam_submissions(exam_id):
     # ✅ Students who have submitted (set of IDs)
     submitted_student_ids = {sub.student_id for sub in submissions}
 
-    # ✅ Students who have NOT submitted
-    not_submitted_students = [
-        student for student in all_qualified_students
-        if student.id not in submitted_student_ids
-    ]
+    # ✅ Students who have NOT submitted (sorted alphabetically)
+    not_submitted_students = sorted(
+        [student for student in all_qualified_students if student.id not in submitted_student_ids],
+        key=lambda s: s.name
+    )
 
 
     whatsapp_notifications = Assignments_whatsapp.query.filter_by(
@@ -6423,6 +6502,314 @@ def group_assistants(group_id):
         group=group,
         pagination=pagination,
     )
+
+
+#=================================================================
+#=================================================================
+# SUBMISSION REVIEW SYSTEM (Super Admin Only)
+#=================================================================
+#=================================================================
+
+# Approve a submission (sends WhatsApp notifications)
+@admin.route("/submissions/review/approve/<int:submission_id>", methods=["POST"])
+def approve_submission(submission_id):
+    """Head approves a corrected submission and sends WhatsApp notifications"""
+    if current_user.role != "super_admin":
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": False, "message": "Access denied. Only Heads can approve submissions."}), 403
+        flash("Access denied. Only Heads can approve submissions.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    submission = Submissions.query.get_or_404(submission_id)
+    
+    if not submission.corrected:
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": False, "message": "This submission hasn't been corrected yet."}), 400
+        flash("This submission hasn't been corrected yet.", "warning")
+        return redirect(request.referrer or url_for("admin.home"))
+    
+    if submission.reviewed:
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": False, "message": "This submission has already been reviewed."}), 400
+        flash("This submission has already been reviewed.", "info")
+        return redirect(request.referrer or url_for("admin.home"))
+    
+    # Mark as reviewed
+    submission.reviewed = True
+    submission.reviewed_by_id = current_user.id
+    submission.review_date = datetime.now(GMT_PLUS_2)
+    
+    try:
+        db.session.commit()
+        
+        # Send WhatsApp notifications
+        assignment = submission.assignment
+        mark = submission.mark or "Graded"
+        
+        try:
+            if assignment.type == "Exam":
+                send_whatsapp_message(
+                    submission.student.phone_number, 
+                    f"Your Exam '{assignment.title}' has been graded! Mark: {mark}"
+                )
+                send_whatsapp_message(
+                    submission.student.parent_phone_number, 
+                    f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}"
+                )
+            else:
+                send_whatsapp_message(
+                    submission.student.phone_number, 
+                    f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}"
+                )
+                send_whatsapp_message(
+                    submission.student.parent_phone_number, 
+                    f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}"
+                )
+        except Exception as e:
+            pass  # Don't fail if WhatsApp fails
+        
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": True, "message": "Submission approved and notifications sent!"}), 200
+        flash("Submission approved and notifications sent!", "success")
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json or request.headers.get('Content-Type') == 'application/json':
+            return jsonify({"success": False, "message": f"Error approving submission: {str(e)}"}), 500
+        flash(f"Error approving submission: {str(e)}", "danger")
+    
+    return redirect(request.referrer or url_for("admin.home"))
+
+
+# Reject a submission (request re-correction)
+@admin.route("/submissions/review/reject/<int:submission_id>", methods=["POST"])
+def reject_submission(submission_id):
+    """Head rejects a corrected submission and requests re-correction"""
+    if current_user.role != "super_admin":
+        flash("Access denied. Only Heads can reject submissions.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    submission = Submissions.query.get_or_404(submission_id)
+    
+    if not submission.corrected:
+        flash("This submission hasn't been corrected yet.", "warning")
+        return redirect(request.referrer or url_for("admin.home"))
+    
+    if submission.reviewed:
+        flash("This submission has already been approved.", "info")
+        return redirect(request.referrer or url_for("admin.home"))
+    
+    # Reset correction status to request re-correction
+    rejection_reason = request.form.get("rejection_reason", "")
+    
+    submission.corrected = False
+    submission.mark = None
+    submission.correction_date = None
+    # Keep corrected_by_id for tracking
+    
+    try:
+        db.session.commit()
+        
+        # Notify the assistant who corrected it
+        if submission.corrector and submission.corrector.phone_number:
+            try:
+                send_whatsapp_message(
+                    submission.corrector.phone_number,
+                    f"Your correction for {submission.student.name}'s {submission.assignment.type} '{submission.assignment.title}' was rejected. Reason: {rejection_reason or 'No reason provided'}"
+                )
+            except Exception as e:
+                pass
+        
+        flash("Submission rejected. Assistant has been notified.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error rejecting submission: {str(e)}", "danger")
+    
+    return redirect(request.referrer or url_for("admin.home"))
+
+
+# View all pending reviews (awaiting approval)
+@admin.route("/submissions/reviews")
+def view_all_reviews():
+    """View all submissions awaiting review"""
+    if current_user.role != "super_admin":
+        flash("Access denied. Only Heads can view reviews.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Get all corrected but not reviewed submissions
+    pending_reviews = Submissions.query.filter_by(
+        corrected=True, 
+        reviewed=False
+    ).order_by(Submissions.correction_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template(
+        "admin/submissions/reviews_all.html",
+        submissions=pending_reviews.items,
+        pagination=pending_reviews,
+        title="All Pending Reviews"
+    )
+
+
+# View reviews by specific assignment
+@admin.route("/submissions/reviews/assignment/<int:assignment_id>")
+def view_reviews_by_assignment(assignment_id):
+    """View submissions awaiting review for a specific assignment"""
+    if current_user.role != "super_admin":
+        flash("Access denied. Only Heads can view reviews.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    assignment = Assignments.query.get_or_404(assignment_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Get all corrected but not reviewed submissions for this assignment
+    pending_reviews = Submissions.query.filter_by(
+        assignment_id=assignment_id,
+        corrected=True, 
+        reviewed=False
+    ).order_by(Submissions.correction_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template(
+        "admin/submissions/reviews_by_assignment.html",
+        submissions=pending_reviews.items,
+        pagination=pending_reviews,
+        assignment=assignment,
+        title=f"Reviews for {assignment.title}"
+    )
+
+
+# View reviews by specific group
+@admin.route("/submissions/reviews/group/<int:group_id>")
+def view_reviews_by_group(group_id):
+    """View submissions awaiting review for a specific group"""
+    if current_user.role != "super_admin":
+        flash("Access denied. Only Heads can view reviews.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    group = Groups.query.get_or_404(group_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Get student IDs in this group
+    student_ids = [student.id for student in group.members.filter(Users.role == 'student').all()]
+    
+    # Get all corrected but not reviewed submissions for students in this group
+    pending_reviews = Submissions.query.filter(
+        Submissions.student_id.in_(student_ids),
+        Submissions.corrected == True,
+        Submissions.reviewed == False
+    ).order_by(Submissions.correction_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template(
+        "admin/submissions/reviews_by_group.html",
+        submissions=pending_reviews.items,
+        pagination=pending_reviews,
+        group=group,
+        title=f"Reviews for {group.name}"
+    )
+
+
+# View reviews by specific assistant (who corrected them)
+@admin.route("/submissions/reviews/assistant/<int:assistant_id>")
+def view_reviews_by_assistant(assistant_id):
+    """View submissions corrected by a specific assistant awaiting review"""
+    if current_user.role != "super_admin":
+        flash("Access denied. Only Heads can view reviews.", "danger")
+        return redirect(url_for("admin.home"))
+    
+    assistant = Users.query.get_or_404(assistant_id)
+    page = request.args.get('page', 1, type=int)
+    per_page = 20
+    
+    # Get all corrected but not reviewed submissions by this assistant
+    pending_reviews = Submissions.query.filter_by(
+        corrected_by_id=assistant_id,
+        corrected=True, 
+        reviewed=False
+    ).order_by(Submissions.correction_date.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
+    return render_template(
+        "admin/submissions/reviews_by_assistant.html",
+        submissions=pending_reviews.items,
+        pagination=pending_reviews,
+        assistant=assistant,
+        title=f"Reviews for corrections by {assistant.name}"
+    )
+
+
+# Approve all corrected submissions for an assignment
+@admin.route("/assignments/<int:assignment_id>/approve-all-submissions", methods=["POST"])
+def approve_all_submissions(assignment_id):
+    """Head approves all corrected but not reviewed submissions for an assignment"""
+    if current_user.role != "super_admin":
+        return jsonify({"success": False, "message": "Access denied. Only Heads can approve submissions."}), 403
+    
+    assignment = Assignments.query.get_or_404(assignment_id)
+    
+    # Get all corrected but not reviewed submissions for this assignment
+    pending_submissions = Submissions.query.filter_by(
+        assignment_id=assignment_id,
+        corrected=True,
+        reviewed=False
+    ).all()
+    
+    if not pending_submissions:
+        return jsonify({"success": False, "message": "No submissions awaiting review."}), 400
+    
+    approved_count = 0
+    
+    try:
+        for submission in pending_submissions:
+            submission.reviewed = True
+            submission.reviewed_by_id = current_user.id
+            submission.review_date = datetime.now(GMT_PLUS_2)
+            
+            # Send WhatsApp notifications
+            mark = submission.mark or "Graded"
+            try:
+                if assignment.type == "Exam":
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Exam '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}"
+                    )
+                else:
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}"
+                    )
+            except Exception as e:
+                pass  # Don't fail if WhatsApp fails
+            
+            approved_count += 1
+        
+        db.session.commit()
+        return jsonify({
+            "success": True, 
+            "message": f"Approved {approved_count} submissions",
+            "approved_count": approved_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"Error approving submissions: {str(e)}"}), 500
 
 
 

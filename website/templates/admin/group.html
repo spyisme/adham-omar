@@ -10,7 +10,7 @@
 
     <div class="group-sections">
         <!-- Content Section -->
-         
+
         <div class="group-section-card">
             <div class="section-card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                 <div class="section-card-pattern"></div>
@@ -70,6 +70,26 @@
                         </svg>
                     </a>
                     {% if current_user.role == "super_admin" %}
+
+                    <a href="{{ url_for('admin.view_reviews_by_group', group_id=group.id) }}" class="action-item">
+                        <div class="action-item-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div class="action-item-content">
+                            <span class="action-item-title">Reviews</span>
+                            <span class="action-item-subtitle">Review pending corrections</span>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                            class="action-item-arrow">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
 
                     <a href="#" class="action-item">
                         <div class="action-item-icon">

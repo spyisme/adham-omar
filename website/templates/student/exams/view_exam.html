@@ -427,12 +427,14 @@
             <h3 class="section-title">Exam Mark</h3>
             <p style="color: #1f2937;">{{ submission.mark }}</p>
           </div>
+          {% if submission.show_corrected %}
           <div>
             <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
               class="btn btn-secondary">
               📎 View Correction
             </a>
           </div>
+          {% endif %}
           {% endif %}
 
 

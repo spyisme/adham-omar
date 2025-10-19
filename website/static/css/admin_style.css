@@ -361,3 +361,156 @@ tr.hidden-assignment { opacity: 0.6; background-color: var(--color-bg-secondary)
 
     .action-buttons { justify-content: flex-end; }
 }
+
+
+/* =======================================
+   RESPONSIVE TABLE STYLES
+   Add this to your /static/css/admin_style.css file
+   ======================================= */
+
+/* 1. Mobile-First Styles (Card View for small screens) */
+@media (max-width: 767px) {
+    .table-wrapper table,
+    .table-wrapper thead,
+    .table-wrapper tbody,
+    .table-wrapper th,
+    .table-wrapper td,
+    .table-wrapper tr {
+        display: block; /* Stack all elements */
+    }
+
+    /* Hide the desktop headers */
+    .table-wrapper thead {
+        display: none;
+    }
+
+    .table-wrapper tr {
+        /* Each row becomes a card */
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        background: #ffffff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .table-wrapper td {
+        display: flex; /* Use flex for better alignment */
+        justify-content: space-between; /* Label on left, data on right */
+        align-items: center;
+        padding: 12px 15px;
+        position: relative;
+        border-bottom: 1px solid #f0f0f0;
+        min-height: 40px;
+        text-align: right; /* Align data to the right */
+    }
+
+    .table-wrapper tr:last-child td:last-child,
+    .table-wrapper td:last-child {
+        border-bottom: none; /* No border on the last cell of a card */
+    }
+
+    .table-wrapper td::before {
+        /* This creates the label from the 'data-label' attribute */
+        content: attr(data-label);
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        font-size: 0.9rem;
+    }
+
+    /* Specific tweaks for mobile */
+    .table-wrapper .student-name {
+        flex-direction: column; /* Stack student name and code */
+        align-items: flex-end; /* Align them to the right */
+        padding: 12px 15px;
+    }
+
+    .table-wrapper td[data-label="Grade"] form {
+        width: 100%;
+        justify-content: flex-end;
+    }
+    .table-wrapper td[data-label="Grade"] form input[type="text"] {
+        max-width: 100px;
+    }
+}
+
+
+/* 2. Desktop Styles (This is the fix for your image) */
+@media (min-width: 768px) {
+    .table-wrapper table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+    }
+
+    .table-wrapper thead {
+        display: table-header-group;
+        background-color: #f8f9fa; /* Light grey header */
+    }
+
+    .table-wrapper tbody {
+        display: table-row-group;
+    }
+
+    .table-wrapper tr {
+        display: table-row;
+        border: none;
+        margin-bottom: 0;
+        border-bottom: 1px solid #e0e0e0;
+        background: #ffffff;
+    }
+    
+    .table-wrapper tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .table-wrapper th,
+    .table-wrapper td {
+        display: table-cell;
+        padding: 16px 12px; /* Good desktop padding */
+        text-align: left;
+        vertical-align: middle;
+        border: none;
+        position: static;
+    }
+
+    /* Hide the mobile-only labels */
+    .table-wrapper td::before {
+        display: none;
+    }
+
+    /* Center-align some columns for a cleaner look */
+    .table-wrapper th:first-child, /* # */
+    .table-wrapper td:first-child,
+    .table-wrapper th:nth-child(4), /* Grade */
+    .table-wrapper td:nth-child(4),
+    .table-wrapper th:nth-child(5), /* Status */
+    .table-wrapper td:nth-child(5),
+    .table-wrapper th:nth-child(6), /* Original File */
+    .table-wrapper td:nth-child(6),
+    .table-wrapper th:last-child,  /* Actions */
+    .table-wrapper td:last-child {
+        text-align: center;
+    }
+    
+    /* Keep student name left-aligned */
+    .table-wrapper th:nth-child(2), /* Student */
+    .table-wrapper td:nth-child(2) {
+        text-align: left;
+    }
+
+    .table-wrapper .student-name .assignment-due {
+        font-size: 0.9rem;
+        color: #777;
+    }
+
+    /* Fix for dropdowns being cut off */
+    .table-wrapper,
+    .card-content {
+        overflow: visible;
+    }
+    
+    .table-wrapper td:last-child {
+        overflow: visible; /* Allows the dropdown to show */
+    }
+}

@@ -400,8 +400,12 @@ def assignments():
             if aware_submission_date > aware_deadline:
                 assignment.submitted_late = True
 
-        if submission and not submission.mark:
-            submission.mark = "Not marked yet"
+        if submission:
+            # Only show mark if reviewed by super admin
+            if not submission.reviewed:
+                submission.mark = "Being reviewed"
+            elif not submission.mark:
+                submission.mark = "Not marked yet"
 
         processed_assignments.append(assignment)
 
@@ -447,9 +451,16 @@ def view_assignment(assignment_id):
         assignment.past_deadline = False
 
 
-    if submission and (submission.mark is None or submission.mark == ""):
-        submission.mark = "Not marked yet"
-        
+    if submission:
+        # Only show mark and corrected PDF if reviewed by super admin
+        if not submission.reviewed:
+            submission.mark = "Being reviewed"
+            submission.show_corrected = False
+        else:
+            submission.show_corrected = submission.corrected
+            if submission.mark is None or submission.mark == "":
+                submission.mark = "Not marked yet"
+    
     assignment.done = submission is not None
 
     return render_template(
@@ -1108,8 +1119,12 @@ def exams():
             if aware_submission_date > aware_deadline:
                 exam.submitted_late = True
 
-        if submission and not submission.mark:
-            submission.mark = "Not marked yet"
+        if submission:
+            # Only show mark if reviewed by super admin
+            if not submission.reviewed:
+                submission.mark = "Being reviewed"
+            elif not submission.mark:
+                submission.mark = "Not marked yet"
 
         processed_exams.append(exam)
 
@@ -1153,9 +1168,16 @@ def view_exam(exam_id):
     except Exception:
         exam.past_deadline = False
 
-    if submission and (submission.mark is None or submission.mark == ""):
-        submission.mark = "Not marked yet"
-        
+    if submission:
+        # Only show mark and corrected PDF if reviewed by super admin
+        if not submission.reviewed:
+            submission.mark = "Being reviewed"
+            submission.show_corrected = False
+        else:
+            submission.show_corrected = submission.corrected
+            if submission.mark is None or submission.mark == "":
+                submission.mark = "Not marked yet"
+    
     exam.done = submission is not None
 
     return render_template(

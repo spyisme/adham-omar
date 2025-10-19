@@ -401,21 +401,23 @@
         </form>
       </div>
 
-      {% if submission.mark is not none and submission.mark != "Not marked yet" and submission.assignment.out_of > 0   %}
+      {% if submission.mark is not none and submission.mark != "Not marked yet" and submission.assignment.out_of > 0 %}
       <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
         <div>
           Mark: <span style="color: var(--primary);">{{ submission.mark }}</span>
         </div>
+        {% if submission.show_corrected %}
         <h3 class="section-title">Correction</h3>
         <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
           class="btn btn-secondary">
           📄 View Correction
         </a>
+        {% endif %}
       </div>
       {% endif %}
 
 
-      {% if submission.corrected and submission.assignment.out_of == 0 %}
+      {% if submission.show_corrected and submission.assignment.out_of == 0 %}
       <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
         <h3 class="section-title">Correction</h3>
         <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"

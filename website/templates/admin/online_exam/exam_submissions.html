@@ -80,18 +80,39 @@
     </div>
 
     <div class="card" style="overflow: visible;">
-        <div class="card-header">
-            <h3>Student Submissions</h3>
-            <p>Review and grade submitted exams.</p>
+        <div class="card-header"
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h3>Student Submissions</h3>
+                <p>Review and grade submitted exams.</p>
+            </div>
+            {% if current_user.role == "super_admin" %}
+            <button onclick="approveAllSubmissions()" class="btn btn-success" style="
+                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-weight: 600;
+                border: none;
+                cursor: pointer;
+                box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+                transition: all 0.3s;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
+                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
+                ✓ Approve All Corrected
+            </button>
+            {% endif %}
         </div>
         <div class="card-content no-padding" style="overflow: visible;">
             <div class="table-wrapper" style="overflow: visible;">
                 <table style="position: relative;">
                     <thead>
                         <tr>
+                            <th>#</th>
                             <th>Student</th>
                             <th>Submission Time</th>
                             <th>Grade</th>
+                            <th>Status</th>
                             <th>Original File</th>
                             <th>Actions</th>
                         </tr>
@@ -101,6 +122,7 @@
                         {% if submission.student_id in submitted_student_ids %}
 
                         <tr>
+                            <td data-label="#" style="font-weight: 600; color: #666;">{{ loop.index }}</td>
                             <td data-label="Student" class="student-name">
                                 <a href="{{ url_for('admin.student', user_id=submission.student.id) }}">{{
                                     submission.student.name }}</a>
@@ -140,6 +162,22 @@
                                 </form>
                             </td>
 
+                            <td data-label="Status">
+                                {% if submission.corrected and submission.reviewed %}
+                                <span class="badge badge-success"
+                                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">✓
+                                    Approved</span>
+                                {% elif submission.corrected and not submission.reviewed %}
+                                <span class="badge badge-warning"
+                                    style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); color: #2d3436; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">⏳
+                                    Pending Review</span>
+                                {% else %}
+                                <span class="badge badge-secondary"
+                                    style="background: #e0e0e0; color: #666; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">—
+                                    Not Corrected</span>
+                                {% endif %}
+                            </td>
+
                             <td>
                                 <a href="{{ url_for('admin.get_pdf', submission_id=submission.id) }}" target="_blank"
                                     class="btn btn-primary btn-open btn-small">Open Original File</a>
@@ -151,6 +189,14 @@
                                         class="btn btn-primary btn-open btn-small actions-menu-button">Actions
                                         &#x25BC;</button>
                                     <div class="actions-menu">
+                                        {% if current_user.role == "super_admin" and submission.corrected and not
+                                        submission.reviewed %}
+                                        <button type="button" class="actions-menu-item"
+                                            style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; font-weight: 600;"
+                                            onclick="closeAllMenus(); approveSubmission({{ submission.id }}, '{{ submission.student.name }}');">
+                                            ✓ Approve Correction
+                                        </button>
+                                        {% endif %}
                                         <button type="button" class="actions-menu-item"
                                             data-submission-id="{{ submission.id }}"
                                             data-student-name="{{ submission.student.name }}"
@@ -858,4 +904,149 @@
         overflow: visible;
     }
 </style>
+
+<script>
+    // Approve individual submission
+    window.approveSubmission = function (submissionId, studentName) {
+        Swal.fire({
+            title: 'Approve Correction?',
+            html: `
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">Are you sure you want to approve the correction for <strong>${studentName}</strong>?</p>
+                <p style="color: #666; font-size: 0.95rem;">This will send WhatsApp notifications to the student and parent.</p>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#11998e',
+            cancelButtonColor: '#d33',
+            confirmButtonText: '✓ Yes, Approve',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Approving...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(`/admin/submissions/review/approve/${submissionId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Approved!',
+                                text: 'The correction has been approved and notifications sent.',
+                                icon: 'success',
+                                confirmButtonColor: '#11998e'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'Failed to approve submission.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'An error occurred while approving.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
+            }
+        });
+    }
+
+    // Approve all corrected submissions
+    window.approveAllSubmissions = function () {
+        const pendingReviews = document.querySelectorAll('.badge-warning');
+        const pendingCount = pendingReviews.length;
+
+        if (pendingCount === 0) {
+            Swal.fire({
+                title: 'No Pending Reviews',
+                text: 'There are no submissions awaiting review.',
+                icon: 'info',
+                confirmButtonColor: '#11998e'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Approve All Corrections?',
+            html: `
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">You are about to approve <strong>${pendingCount}</strong> correction(s).</p>
+                <p style="color: #666; font-size: 0.95rem;">This will send WhatsApp notifications to all students and parents.</p>
+                <p style="color: #d33; font-size: 0.9rem; margin-top: 1rem;"><strong>⚠️ This action cannot be undone!</strong></p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#11998e',
+            cancelButtonColor: '#d33',
+            confirmButtonText: `✓ Yes, Approve All ${pendingCount}`,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Approving All...',
+                    text: 'This may take a moment',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(`/admin/assignments/{{ exam.id }}/approve-all-submissions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                html: `
+                                <p style="font-size: 1.1rem;">${data.approved_count} correction(s) approved!</p>
+                                <p style="color: #666; font-size: 0.95rem; margin-top: 0.5rem;">Notifications have been sent.</p>
+                            `,
+                                icon: 'success',
+                                confirmButtonColor: '#11998e'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'Failed to approve submissions.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'An error occurred while approving.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
+            }
+        });
+    }
+</script>
 {% endblock %}
