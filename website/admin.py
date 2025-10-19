@@ -1446,7 +1446,7 @@ def assignments_data():
             Submissions.query
             .with_entities(Submissions.student_id)
             .filter(Submissions.assignment_id == a.id)
-            .filter(Submissions.student_id.in_(qualified_students_subq))
+            .filter(Submissions.student_id.in_(db.select(qualified_students_subq.c.id)))
             .distinct()
             .count()
         )

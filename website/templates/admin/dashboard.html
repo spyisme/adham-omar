@@ -62,6 +62,8 @@
                 </li>
 
 
+                
+
                 {% if current_user.email == "amr@spysnet.com" %}
                 <!-- <li class="nav-category">Spy only</li>
 
@@ -114,7 +116,20 @@
                 </li>
                 {% endif %}
 
+                {% if current_user.role == "super_admin" %}
+                <li class="nav-category">Announcements</li>
 
+                <li>
+                    <a href="/admin/announcements"
+                        class="nav-link {% if request.path == '/admin/announcements' %}active{% endif %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>Announcements</span>
+                    </a>
+                </li>
+                {% endif %}
                 
 
                 {% if current_user.role == "super_admin" %}
