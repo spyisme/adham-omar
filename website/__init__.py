@@ -106,7 +106,14 @@ def create_app():
         if current_user.is_authenticated and current_user.role == 'student' and current_user.code.lower() == 'nth' and request.endpoint != 'student.pending_account':
             return redirect(url_for('student.pending_account'))
 
-        if current_user.is_authenticated and current_user.role == 'student' and request.endpoint != 'student.whatsapp' and current_user.student_whatsapp != current_user.phone_number and current_user.code != 'nth' and current_user.code != 'Nth':
+        full_phone_number = current_user.phone_number_country_code + current_user.phone_number
+            
+        if current_user.is_authenticated \
+        and current_user.role == 'student' \
+        and request.endpoint != 'student.whatsapp' \
+        and current_user.student_whatsapp != full_phone_number \
+        and current_user.code.lower() != 'nth':
+            
             return redirect(url_for('student.whatsapp'))
 
 
