@@ -17,6 +17,9 @@ import time
 import random
 import string
 from datetime import datetime
+from sqlalchemy import or_ , func
+
+
 
 load_dotenv()
 account_id = os.getenv('ACCOUNT_ID')
@@ -234,7 +237,7 @@ def whatsapp_sender_worker(app=None):
 
 # --- 3. The Modified Public Function ---
 # This function saves the message to the database instead of a queue.
-def send_whatsapp_message(phone_number, message, country_code , bypass = False):
+def send_whatsapp_message(phone_number, message, country_code=None, bypass=False):
     """
     Validates user and adds the message to the database to be sent by the background worker.
     This function returns immediately.
@@ -246,60 +249,74 @@ def send_whatsapp_message(phone_number, message, country_code , bypass = False):
         
         if len(message) > 4000:  # WhatsApp message limit
             return False, "Message is too long (max 4000 characters)"
-        
-        # Find the user first. This is important to do before saving.
+
+        target_whatsapp_number = None
+        user = None
+        user_id = None
+
         if bypass:
-            user = None
-            if not country_code:
-                country_code = "2"
+            # In bypass mode (like from activate_whatsapp), the 'phone_number'
+            # is ALREADY the full international number (e.g., "2011111").
+            # We don't need to add a country code.
+            target_whatsapp_number = phone_number
+            user = None # No user associated
+            
+            # This logic (adding country_code) was flawed and would create "22011111"
+            # formatted_number = f"{country_code}{phone_number}" if country_code else phone_number
+        
         else:
+            # Not bypass: Find the user by their LOCAL phone number
+            
+            # --- THIS IS THE MAIN FIX ---
+            # Search the columns that store the local number you are passing in.
             user = Users.query.filter(
-                (Users.student_whatsapp == phone_number) | 
-                (Users.parent_whatsapp == phone_number) 
+                or_(
+                    (Users.phone_number == phone_number),
+                    (Users.parent_phone_number == phone_number)
+                )
             ).first()
             
             if not user:
-                return False, "User not found"
+                return False, f"User not found with phone number: {phone_number}"
+            
+            user_id = user.id
 
-            if not country_code:
-                # Determine which country code to use based on which phone number matches
-                if user.student_whatsapp and str(user.student_whatsapp) == str(phone_number):
-                    country_code = user.phone_number_country_code
-                elif user.parent_whatsapp and str(user.parent_whatsapp) == str(phone_number):
-                    country_code = user.parent_phone_number_country_code
-                else:
-                    country_code = user.phone_number_country_code
+            # Now, determine which activated number to send to
+            is_student_match = str(user.phone_number) == str(phone_number)
+            is_parent_match = str(user.parent_phone_number) == str(phone_number)
+
+            if is_student_match and user.student_whatsapp:
+                # Found user via student number, send to their activated student_whatsapp
+                target_whatsapp_number = user.student_whatsapp
             
-            # Validate that student_whatsapp matches phone_number
-            if user.student_whatsapp and str(user.student_whatsapp) != str(user.phone_number):
-                user.student_whatsapp = None
-                db.session.commit()
-                return False, "Student WhatsApp number does not match phone number"
+            elif is_parent_match and user.parent_whatsapp:
+                # Found user via parent number, send to their activated parent_whatsapp
+                target_whatsapp_number = user.parent_whatsapp
             
-            # Validate that parent_whatsapp matches parent_phone_number
-            if user.parent_whatsapp and str(user.parent_whatsapp) != str(user.parent_phone_number):
-                user.parent_whatsapp = None
-                db.session.commit()
-                return False, "Parent WhatsApp number does not match phone number"
+            else:
+                # User was found, but the matching number hasn't been activated yet
+                return False, "This WhatsApp number is not activated for this user."
+
+            # --- The broken validation logic below was removed ---
+            # if user.student_whatsapp and str(user.student_whatsapp) != str(user.phone_number):
+            # if user.parent_whatsapp and str(user.parent_whatsapp) != str(user.parent_phone_number):
 
         
         # Create a new WhatsApp message record
-        # Only add country code if it's not already in the phone number
-        formatted_number = f"{country_code}{phone_number}" if country_code else phone_number
-        
         whatsapp_msg = WhatsappMessages(
-            to=formatted_number,
+            to=target_whatsapp_number,  # This is now the correct, full number
             content=message,
-            user_id=user.id if user else None,
+            user_id=user_id if user else None,
             status="pending"
         )
     
         db.session.add(whatsapp_msg)
         db.session.commit()
+        
         if not user:
-            print(f"✅ Message for {phone_number} has been saved to database. Message ID: {whatsapp_msg.id}")
+            print(f"✅ Message for {target_whatsapp_number} has been saved (Bypass). ID: {whatsapp_msg.id}")
         else:
-            print(f"✅ Message for {phone_number} (User ID: {user.id}) has been saved to database. Message ID: {whatsapp_msg.id}")
+            print(f"✅ Message for {target_whatsapp_number} (User ID: {user.id}) has been saved. ID: {whatsapp_msg.id}")
         
         return True, f"WhatsApp message has been queued for sending (ID: {whatsapp_msg.id})"
     
@@ -307,7 +324,6 @@ def send_whatsapp_message(phone_number, message, country_code , bypass = False):
         print(f"❌ Error queueing WhatsApp message: {str(e)}")
         db.session.rollback()
         return False, f"Failed to queue message: {str(e)}"
-
 
 storage = R2Storage()
 
@@ -758,7 +774,6 @@ def forget_password_otp():
 
 
 
-from sqlalchemy import func
 #--- Receive Whatsapp Messages (Full Corrected Route) ---
 @website.route("/backend/whatsapp", methods=["POST"])
 def activate_whatsapp():
@@ -770,85 +785,72 @@ def activate_whatsapp():
         return jsonify({"error": "Phone number is required"}), 400
 
     # 1. Normalize inputs
-    # Cleans " 20 100 123 4567" to "201001234567"
+    # This gives you the full international number, e.g., "201001234567"
     cleaned_number = phone_number_raw.replace(" ", "").lstrip("+")
     cleaned_message = message_content.strip()
 
     # 2. Find the user
-    # This correctly combines the country code and number to match the incoming number.
-    
-    # Try to find as a student first
+    # This logic correctly finds the user based on the incoming international number
     target_user = Users.query.filter(
         func.concat(Users.phone_number_country_code, Users.phone_number) == cleaned_number
     ).first()
     
-    is_parent = False # Flag to track how we found them
-    phone_without_code = None
+    is_parent = False
 
     if not target_user:
-        # Not found as student, check if they are a parent
         target_user = Users.query.filter(
             func.concat(Users.parent_phone_number_country_code, Users.parent_phone_number) == cleaned_number
         ).first()
-        
         if target_user:
-            is_parent = True # We found them using the parent_phone_number field
-            # Extract phone number without country code
-            phone_without_code = target_user.parent_phone_number
-    else:
-        # Extract phone number without country code
-        phone_without_code = target_user.phone_number
+            is_parent = True
 
     # 3. Process OTP and activation logic
     
-    # Case 1: User found AND OTP is set AND the message matches the OTP
+    # Case 1: User found, OTP is valid
     if target_user and target_user.otp and cleaned_message == target_user.otp:
         
         if is_parent:
             # --- Activate Parent WhatsApp ---
             if target_user.parent_whatsapp is None:
-                target_user.parent_whatsapp = phone_without_code
+                # --- FIX: Save the full international number ---
+                target_user.parent_whatsapp = cleaned_number
                 # target_user.otp = None  # Good practice: clear OTP after use
                 db.session.commit()
                 
                 flash("Parent Whatsapp activated successfully!", "success")
-                send_whatsapp_message(phone_without_code, "Whatsapp activated successfully!", bypass=True)
+                # --- FIX: Send to the full number using bypass ---
+                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
-                # Already activated
                 return jsonify({"message": "Parent Whatsapp already activated!"})
         
         else:
             # --- Activate Student WhatsApp ---
             if target_user.student_whatsapp is None:
-                target_user.student_whatsapp = phone_without_code
+                # --- FIX: Save the full international number ---
+                target_user.student_whatsapp = cleaned_number
                 # target_user.otp = None  # Good practice: clear OTP after use
                 db.session.commit()
 
                 flash("Student Whatsapp activated successfully!", "success")
-                send_whatsapp_message(phone_without_code, "Whatsapp activated successfully!", bypass=True)
+                # --- FIX: Send to the full number using bypass ---
+                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
-                # Already activated
                 return jsonify({"message": "Student Whatsapp already activated!"})
 
-    # Case 2: User found AND OTP is set, but message does NOT match
+    # Case 2: User found, but OTP is invalid
     elif target_user and target_user.otp:
-        # Only send "Invalid OTP" if they aren't already activated.
         if target_user.student_whatsapp is None and target_user.parent_whatsapp is None:
+            # --- FIX: Send to the full number using bypass ---
             send_whatsapp_message(cleaned_number, "Invalid OTP. Please try again.", bypass=True)
             return jsonify({"message": "Invalid OTP"})
         else:
-            # User is already activated, just ignore the random message
             return jsonify({"message": "User already activated, message ignored."})
 
-    # Case 3: User not found OR user was found but has no OTP
+    # Case 3: User not found or no OTP was pending
     else:
-        # This covers:
-        # 1. No user row matched the phone number.
-        # 2. A user was found, but their `otp` field is NULL (e.g., they didn't request one).
         flash("User not found or no OTP pending!", "danger")
-        # send_whatsapp_message(cleaned_number, "User not found! Please register first.", bypass=True)
         return jsonify({"message": "User not found or no OTP pending!"})
 
 
