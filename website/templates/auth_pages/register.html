@@ -185,43 +185,60 @@
       background-size: 1em 1em;
       cursor: pointer;
     }
+    
+    /* --- UPDATED: Phone Input Container --- */
+    .phone-input-container {
+        display: flex;
+        gap: 0.75rem;
+    }
+    .phone-input-container input {
+        flex: 1;
+    }
 
     .country-code-input {
-      width: 80px;
-      flex-shrink: 0;
-      padding: 0.85rem 0.5rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      font-size: 1rem;
+      flex: 0 0 100px !important;
       text-align: center;
     }
 
+    /* --- UPDATED: Checkbox Alignment --- */
     .non-egyptian-checkbox {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
+      margin-top: 0.75rem;
+      font-size: 0.9rem;
       color: var(--text-color-light);
       cursor: pointer;
     }
+    .non-egyptian-checkbox input {
+        width: auto;
+        margin-right: 0.25rem;
+    }
 
+    /* --- UPDATED: File Input Styling --- */
     .file-input-wrapper {
       display: flex;
       align-items: stretch;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      overflow: hidden; /* Important for border-radius */
+    }
+    .file-input-wrapper:focus-within {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
     }
 
     .file-input-trigger {
       background-color: var(--secondary-color);
       color: var(--text-color);
       padding: 0.75rem 1rem;
-      border-radius: var(--radius-md) 0 0 var(--radius-md);
-      border: 1px solid var(--border-color);
-      border-right: none;
       cursor: pointer;
       font-weight: 500;
       white-space: nowrap;
       transition: background-color 0.2s;
+      border-right: 1px solid var(--border-color);
     }
     .file-input-trigger:hover {
       background-color: #e2e6ea;
@@ -234,11 +251,9 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      border: 1px solid var(--border-color);
-      border-radius: 0 var(--radius-md) var(--radius-md) 0;
       display: flex;
       align-items: center;
-      background-color: #fcfdff;
+      background-color: var(--white-color);
     }
 
     .form-submit {
@@ -390,23 +405,19 @@
                 <input type="text" id="student_name" name="student_name" required placeholder="Enter first 4 names" />
             </div>
 
+            <!-- UPDATED HTML STRUCTURE FOR PHONE INPUT -->
             <div class="form-group">
-                <div class="form-row">
-                <div class="form-group" id="student_country_code_group" style="display: none; margin-bottom: 0;">
-                    <label for="student_phone_country_code">Country Code</label>
-                    <input type="tel" id="student_phone_country_code" name="student_phone_country_code"
-                    placeholder="e.g., 971" class="country-code-input" />
-                </div>
-                <div class="form-group" id="student_phone_number_group" style="margin-bottom: 0;">
-                    <label for="student_phone" id="student_phone_label">Student Phone Number</label>
+                <label id="student_phone_main_label">Student Phone Number</label>
+                <div class="phone-input-container">
+                    <input type="tel" id="student_phone_country_code" name="student_phone_country_code" placeholder="e.g., 971" class="country-code-input" style="display: none;" />
                     <input type="tel" id="student_phone" name="student_phone" required placeholder="e.g., 01xxxxxxxxx" />
                 </div>
-                </div>
                 <label class="non-egyptian-checkbox">
-                <input type="checkbox" id="student_non_egyptian" />
-                <span>Non-Egyptian number</span>
+                    <input type="checkbox" id="student_non_egyptian" />
+                    <span>Non-Egyptian number</span>
                 </label>
             </div>
+
             <div class="form-group">
                 <label for="student_email">Student Email Address</label>
                 <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
@@ -420,14 +431,14 @@
                 {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
                 </select>
             </div>
-
+            
+            <!-- UPDATED: No structural change, but CSS will fix it -->
             <div class="form-group">
                 <label for="profile_picture">Profile Picture</label>
                 <div class="file-input-wrapper">
-                <input type="file" id="profile_picture" name="profile_picture" accept=".jpg,.jpeg,.png" required
-                    style="display:none;">
-                <label for="profile_picture" class="file-input-trigger">Choose File</label>
-                <span class="file-input-name">No file chosen...</span>
+                    <input type="file" id="profile_picture" name="profile_picture" accept=".jpg,.jpeg,.png" required style="display:none;">
+                    <label for="profile_picture" class="file-input-trigger">Choose File</label>
+                    <span class="file-input-name">No file chosen...</span>
                 </div>
             </div>
             </section>
@@ -444,18 +455,13 @@
                 <option value="guardian">Guardian</option>
                 </select>
             </div>
-
+            
+            <!-- UPDATED HTML STRUCTURE FOR PHONE INPUT -->
             <div class="form-group">
-                <div class="form-row">
-                <div class="form-group" id="parent_country_code_group" style="display: none; margin-bottom: 0;">
-                    <label for="parent_phone_country_code">Country Code</label>
-                    <input type="tel" id="parent_phone_country_code" name="parent_phone_country_code"
-                    placeholder="e.g., 971" class="country-code-input"/>
-                </div>
-                <div class="form-group" id="parent_phone_number_group" style="margin-bottom: 0;">
-                    <label for="parent_phone" id="parent_phone_label">Parent Phone Number</label>
+                 <label id="parent_phone_main_label">Parent Phone Number</label>
+                <div class="phone-input-container">
+                    <input type="tel" id="parent_phone_country_code" name="parent_phone_country_code" placeholder="e.g., 971" class="country-code-input" style="display: none;" />
                     <input type="tel" id="parent_phone" name="parent_phone" required placeholder="e.g., 01xxxxxxxxx" />
-                </div>
                 </div>
                 <label class="non-egyptian-checkbox">
                 <input type="checkbox" id="parent_non_egyptian" />
@@ -501,44 +507,49 @@
         });
       }
       
+      // --- UPDATED JAVASCRIPT LOGIC ---
+      
+      // --- Student Phone Elements ---
       const studentNonEgyptianCheckbox = document.getElementById('student_non_egyptian');
-      const studentCountryCodeGroup = document.getElementById('student_country_code_group');
       const studentCountryCodeInput = document.getElementById('student_phone_country_code');
-      const studentPhoneLabel = document.getElementById('student_phone_label');
+      const studentPhoneMainLabel = document.getElementById('student_phone_main_label');
       const studentPhoneInput = document.getElementById('student_phone');
 
+      // --- Parent Phone Elements ---
       const parentNonEgyptianCheckbox = document.getElementById('parent_non_egyptian');
-      const parentCountryCodeGroup = document.getElementById('parent_country_code_group');
       const parentCountryCodeInput = document.getElementById('parent_phone_country_code');
-      const parentPhoneLabel = document.getElementById('parent_phone_label');
+      const parentPhoneMainLabel = document.getElementById('parent_phone_main_label');
       const parentPhoneInput = document.getElementById('parent_phone');
 
+      // --- Student Toggle Logic ---
       studentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
-          studentCountryCodeGroup.style.display = 'block';
-          studentPhoneLabel.textContent = 'Phone Number';
+          studentCountryCodeInput.style.display = 'block';
+          studentPhoneMainLabel.textContent = 'Country Code & Phone Number';
           studentPhoneInput.placeholder = 'e.g., 1234567890';
-          studentCountryCodeInput.value = '';
+          studentCountryCodeInput.value = ''; // Clear any default
         } else {
-          studentCountryCodeGroup.style.display = 'none';
-          studentPhoneLabel.textContent = 'Student Phone Number';
+          studentCountryCodeInput.style.display = 'none';
+          studentPhoneMainLabel.textContent = 'Student Phone Number';
           studentPhoneInput.placeholder = 'e.g., 01xxxxxxxxx';
         }
       });
 
+      // --- Parent Toggle Logic ---
       parentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
-          parentCountryCodeGroup.style.display = 'block';
-          parentPhoneLabel.textContent = 'Phone Number';
+          parentCountryCodeInput.style.display = 'block';
+          parentPhoneMainLabel.textContent = 'Country Code & Phone Number';
           parentPhoneInput.placeholder = 'e.g., 1234567890';
-          parentCountryCodeInput.value = '';
+          parentCountryCodeInput.value = ''; // Clear any default
         } else {
-          parentCountryCodeGroup.style.display = 'none';
-          parentPhoneLabel.textContent = 'Parent Phone Number';
+          parentCountryCodeInput.style.display = 'none';
+          parentPhoneMainLabel.textContent = 'Parent Phone Number';
           parentPhoneInput.placeholder = 'e.g., 01xxxxxxxxx';
         }
       });
 
+      // --- Form Validation (remains mostly the same) ---
       const form = document.getElementById("registerForm");
       const errorContainer = document.getElementById("form-errors");
       const maxFileSize = 5 * 1024 * 1024;
@@ -630,3 +641,4 @@
 </body>
 
 </html>
+
