@@ -6366,17 +6366,15 @@ def zoom_user(user_id):
 @admin.route('/zoom')
 def zoom():
     zoom_meetings = Zoom_meeting.query.all()
-    subjects = Subjects.query.all()
+
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
+
     
     return render_template("admin/zoom.html", 
                          zoom_meetings=zoom_meetings,
-                         subjects=subjects,
+
                          groups=groups,
-                         stages=stages,
-                         schools=schools)
+            )
 
 @admin.route('/zoom/<int:meeting_id>')
 def view_zoom_meeting(meeting_id):
