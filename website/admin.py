@@ -1856,6 +1856,7 @@ def assignments_data():
             "qualified_students_count": qualified_count,
             "student_whatsapp": a.student_whatsapp,
             "parent_whatsapp": a.parent_whatsapp,
+            "close_after_deadline": a.close_after_deadline,
             "points": a.points,
             "created_by": a.created_by,
             "created_at": a.creation_date.strftime('%Y-%m-%d %I:%M %p') if a.creation_date else None,
@@ -1905,6 +1906,7 @@ def get_assignment_data(assignment_id):
         "out_of": assignment.out_of,
         "status": assignment.status,
         "points": assignment.points,
+        "close_after_deadline": assignment.close_after_deadline,
         "created_by": created_by_user.name if created_by_user else None,
         "created_at": assignment.creation_date.strftime('%Y-%m-%d %I:%M %p') if assignment.creation_date else None,
         "last_edited_by": last_edited_by_user.name if last_edited_by_user else None,
@@ -2059,6 +2061,18 @@ def assignments():
             parent_whatsapp = True
         else:
             parent_whatsapp = False
+
+        #Close after deadline
+        close_after_deadline = request.form.get("close_after_deadline", False)
+        if close_after_deadline == "true":
+            close_after_deadline = True
+        else:
+            close_after_deadline = False
+
+
+
+
+        
         # out of (full mark)
         out_of = request.form.get("out_of", 0)
         out_of = int(out_of) if str(out_of).isdigit() else 0
@@ -2161,6 +2175,7 @@ def assignments():
             student_whatsapp=student_whatsapp,
             parent_whatsapp=parent_whatsapp,
             out_of=out_of,
+            close_after_deadline=close_after_deadline,
         )
 
         # IMPORTANT: add to session BEFORE assigning M2M relations
@@ -2236,6 +2251,7 @@ def assignments():
                 "out_of": new_assignment.out_of,
                 "student_whatsapp": new_assignment.student_whatsapp,
                 "parent_whatsapp": new_assignment.parent_whatsapp,
+                "close_after_deadline": new_assignment.close_after_deadline,
             }
             return jsonify({"success": True, "message": "Assignment added successfully!", "assignment": response_payload})
 

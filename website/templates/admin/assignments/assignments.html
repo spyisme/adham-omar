@@ -532,6 +532,13 @@
                     </label>
                 </div>
 
+                <div>
+                    <label class="form-label">
+                        <input type="checkbox" name="close_after_deadline" value="true">
+                        Close after deadline (Disable submissions after deadline)
+                    </label>
+                </div>
+
 
                 <div>
                     <label class="form-label">Out of (Full Mark)</label>
@@ -1132,6 +1139,12 @@
                 </label>
             </div>
             <div>
+                <label class="form-label">
+                    <input type="checkbox" name="close_after_deadline" value="true" ${assignment.close_after_deadline ? 'checked' : ''}>
+                    Close after deadline (Disable submissions after deadline)
+                </label>
+            </div>
+            <div>
                 <label class="form-label">Out of (Full Mark) (Make it 0 for ungraded assignment)</label>
                 <input type="number" name="out_of" min="0" value="${assignment.out_of || ''}" class="form-input">
             </div>
@@ -1452,7 +1465,7 @@
                             <p class="assignment-due">Due: ${due}</p>
                             <p class="assignment-out_of">Out of: ${a.out_of || 'N/A'}</p>
                             <p class="assignment-points">Points: ${a.points || 'N/A'}</p>
-
+                            <p class="assignment-close_after_deadline">Close after deadline: <span style="color: ${a.close_after_deadline ? 'green' : 'red'}; font-weight: bold;">${a.close_after_deadline ? 'Yes' : 'No'}</span></p>
                             <p class="assignment-student_whatsapp">Messages are sent to students via WhatsApp: <span style="color: ${a.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.student_whatsapp ? 'Yes' : 'No'}</span></p>
                             <p class="assignment-parent_whatsapp">Messages are sent to parents via WhatsApp: <span style="color: ${a.parent_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.parent_whatsapp ? 'Yes' : 'No'}</span></p>
                         </div>
