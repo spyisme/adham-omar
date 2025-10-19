@@ -1376,14 +1376,17 @@ def get_qualified_students_query(target_object, admin_id=None):
 #-----------------------------------------------------------------
 @admin.route('/api/assignments-data', methods=["GET"])
 def assignments_data():
+    # Get optional group_id filter from query params
+    group_id = request.args.get('group_id', type=int)
 
     assignments_query = get_visible_to_admin_query(Assignments, current_user)
-    assignments = (
-        assignments_query
-        .filter(Assignments.type == "Assignment")
-        .order_by(Assignments.creation_date.desc())
-        .all()
-    )
+    assignments_query = assignments_query.filter(Assignments.type == "Assignment")
+    
+    # Filter by group if group_id is provided
+    if group_id:
+        assignments_query = assignments_query.filter(Assignments.groups_mm.any(Groups.id == group_id))
+    
+    assignments = assignments_query.order_by(Assignments.creation_date.desc()).all()
 
     assignments_list = []
     for a in assignments:
@@ -1474,13 +1477,17 @@ def get_assignment_data(assignment_id):
 
 @admin.route('/api/exams-data', methods=["GET"])
 def exams_data():
+    # Get optional group_id filter from query params
+    group_id = request.args.get('group_id', type=int)
+    
     assignments_query = get_visible_to_admin_query(Assignments, current_user)
-    exams = (
-        assignments_query
-        .filter(Assignments.type == "Exam")
-        .order_by(Assignments.creation_date.desc())
-        .all()
-    )
+    assignments_query = assignments_query.filter(Assignments.type == "Exam")
+    
+    # Filter by group if group_id is provided
+    if group_id:
+        assignments_query = assignments_query.filter(Assignments.groups_mm.any(Groups.id == group_id))
+    
+    exams = assignments_query.order_by(Assignments.creation_date.desc()).all()
 
     exams_list = []
     for e in exams:
@@ -1608,15 +1615,31 @@ def assignments():
         out_of = request.form.get("out_of", 0)
         out_of = int(out_of) if str(out_of).isdigit() else 0
 
+        # Check for locked_group_id (from group-specific assignment page)
+        locked_group_id = request.form.get("locked_group_id")
+        if locked_group_id:
+            locked_group_id = int(locked_group_id) if str(locked_group_id).isdigit() else None
+
         group_ids  = parse_multi_ids("groups[]")
 
-        if not group_ids:
-            group_ids = [g.id for g in groups]
-
-        if group_ids:
-            if not can_manage(group_ids, [g.id for g in groups]):
-                flash("You are not allowed to post to one or more selected groups.", "danger")
+        # If locked_group_id is set, enforce it and ignore any other group selections
+        if locked_group_id:
+            # Validate that the user can manage this group
+            if not can_manage([locked_group_id], [g.id for g in groups]):
+                flash("You are not allowed to post to this group.", "danger")
+                wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+                if wants_json:
+                    return jsonify({"success": False, "message": "You are not allowed to post to this group."}), 403
                 return redirect(url_for("admin.assignments"))
+            group_ids = [locked_group_id]
+        else:
+            if not group_ids:
+                group_ids = [g.id for g in groups]
+
+            if group_ids:
+                if not can_manage(group_ids, [g.id for g in groups]):
+                    flash("You are not allowed to post to one or more selected groups.", "danger")
+                    return redirect(url_for("admin.assignments"))
 
         # deadline
         try:
@@ -1752,6 +1775,12 @@ def assignments():
 @admin.route("/assignments/<int:assignment_id>/submissions", methods=["GET", "POST"])
 def view_assignment_submissions(assignment_id):
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    
+    # Get optional group_id from query params for back navigation
+    group_id = request.args.get('group_id', type=int)
+    group = None
+    if group_id:
+        group = Groups.query.get(group_id)
 
     if not assignment:
         flash("Assignment not found or you do not have permission to view its submissions.", "danger")
@@ -1829,7 +1858,9 @@ def view_assignment_submissions(assignment_id):
         submitted_student_ids = submitted_student_ids,
         submissions=submissions,
         not_submitted_students=not_submitted_students,
-        notification_status=notification_status
+        notification_status=notification_status,
+        group_id=group_id,
+        group=group
     )
 
 
@@ -2630,6 +2661,11 @@ def edit_assignment(assignment_id):
         flash("You are not allowed to edit assignments.", "danger")
         return redirect(url_for("admin.assignments"))
 
+    # Get optional group_id from query params for back navigation
+    group_id = request.args.get('group_id', type=int)
+    group = None
+    if group_id:
+        group = Groups.query.get(group_id)
 
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
     if not assignment:
@@ -2851,7 +2887,9 @@ def edit_assignment(assignment_id):
         "admin/assignments/edit_assignment.html",
         assignment=assignment,
         groups=groups,
-        attachments=existing_attachments
+        attachments=existing_attachments,
+        group_id=group_id,
+        group=group
     )
 
 #Delete an assignment 
@@ -4669,16 +4707,31 @@ def online_exam():
         else:
             close_after_deadline = False
 
+        # Check for locked_group_id (from group-specific exam page)
+        locked_group_id = request.form.get("locked_group_id")
+        if locked_group_id:
+            locked_group_id = int(locked_group_id) if str(locked_group_id).isdigit() else None
 
         group_ids = parse_multi_ids("groups[]")
 
-        if not group_ids:
-            group_ids = [g.id for g in groups]
-
-        if group_ids:
-            if not can_manage(group_ids, [g.id for g in groups]):
-                flash("You are not allowed to post to one or more selected groups.", "danger")
+        # If locked_group_id is set, enforce it and ignore any other group selections
+        if locked_group_id:
+            # Validate that the user can manage this group
+            if not can_manage([locked_group_id], [g.id for g in groups]):
+                flash("You are not allowed to post to this group.", "danger")
+                wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+                if wants_json:
+                    return jsonify({"success": False, "message": "You are not allowed to post to this group."}), 403
                 return redirect(url_for("admin.online_exam"))
+            group_ids = [locked_group_id]
+        else:
+            if not group_ids:
+                group_ids = [g.id for g in groups]
+
+            if group_ids:
+                if not can_manage(group_ids, [g.id for g in groups]):
+                    flash("You are not allowed to post to one or more selected groups.", "danger")
+                    return redirect(url_for("admin.online_exam"))
 
         # deadline
         try:
@@ -4816,6 +4869,12 @@ def online_exam():
 @admin.route("/online/exam/submissions/<int:exam_id>", methods=["GET", "POST"])
 def view_exam_submissions(exam_id):
     exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    
+    # Get optional group_id from query params for back navigation
+    group_id = request.args.get('group_id', type=int)
+    group = None
+    if group_id:
+        group = Groups.query.get(group_id)
 
     if not exam:
         flash("Exam not found or you do not have permission to view its submissions.", "danger")
@@ -4887,6 +4946,8 @@ def view_exam_submissions(exam_id):
         submissions=submissions,
         not_submitted_students=not_submitted_students,
         notification_status=notification_status,
+        group_id=group_id,
+        group=group,
         submitted_student_ids = submitted_student_ids,
     )
 
@@ -5009,6 +5070,12 @@ def edit_exam(exam_id):
     if current_user.role != "super_admin":
         flash("You are not allowed to edit exams.", "danger")
         return redirect(url_for("admin.online_exam"))
+    
+    # Get optional group_id from query params for back navigation
+    group_id = request.args.get('group_id', type=int)
+    group = None
+    if group_id:
+        group = Groups.query.get(group_id)
 
 
     exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
@@ -5231,7 +5298,9 @@ def edit_exam(exam_id):
         "admin/online_exam/edit_exam.html",
         exam=exam,
         groups=groups,
-        attachments=existing_attachments
+        attachments=existing_attachments,
+        group_id=group_id,
+        group=group
     )
 
 @admin.route("/online/exam/delete/<int:exam_id>", methods=["POST"])
@@ -6204,3 +6273,23 @@ def temp_activate(user_id):
     db.session.commit()
     flash(f"Student {user.name} has been activated successfully!", "success")
     return redirect(url_for('admin.student' , user_id=user_id))
+
+
+#==================================================================================================
+#Groups (Main route)
+#==================================================================================================
+
+@admin.route('/group/<int:group_id>')
+def group(group_id):
+    group = Groups.query.get_or_404(group_id)
+    return render_template("admin/group.html", group=group)
+
+@admin.route('/group/<int:group_id>/assignments')
+def group_assignments(group_id):
+    group = Groups.query.get_or_404(group_id)
+    return render_template("admin/assignments/assignments.html", filter_group_id=group_id, group=group)
+
+@admin.route('/group/<int:group_id>/exams')
+def group_exams(group_id):
+    group = Groups.query.get_or_404(group_id)
+    return render_template("admin/online_exam/online_exam.html", filter_group_id=group_id, group=group)

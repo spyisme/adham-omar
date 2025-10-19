@@ -122,12 +122,14 @@ def create_app():
 
     @app.context_processor
     def inject_pending_students_count():
-        from .models import Users
+        from .models import Users , Groups
         pending_students_count = Users.query.filter(
             Users.role == 'student',
             (Users.code == 'nth') | (Users.code == 'Nth')
         ).count()
-        return {'pending_students_count': pending_students_count}
+
+        groups = Groups.query.all()
+        return {'pending_students_count': pending_students_count, 'groups': groups}
 
 
 

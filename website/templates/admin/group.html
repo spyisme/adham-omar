@@ -1,0 +1,195 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}{{ group.name }}{% endblock %}
+
+{% block head %}
+{{ super() }}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="group-dashboard-page">
+    <div class="container-fluid py-4 py-md-5">
+        <h1 class="page-title mb-4">{{ group.name }}</h1>
+
+        <div class="row g-4">
+            <div class="col-12 col-lg-6 d-flex flex-column">
+                <div class="card custom-card flex-grow-1">
+                    <div class="card-header custom-card-header header-content">
+                        <h3 class="mb-0">
+                            <i class="fas fa-book-open me-3"></i>Content
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">Manage assignments, announcements, and learning materials.</p>
+                        <ul class="action-list">
+                            <li>
+                                <a href="{{ url_for('admin.group_assignments', group_id=group.id) }}">
+                                    <i class="fas fa-tasks fa-fw me-3"></i>
+                                    <span>Assignments</span>
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin.group_exams', group_id=group.id) }}">
+                                    <i class="fas fa-bullhorn fa-fw me-3"></i>
+                                    <span>Exams</span>
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#">
+                                    <i class="fas fa-file-alt fa-fw me-3"></i>
+                                    <span>Materials</span>
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6 d-flex flex-column">
+                <div class="card custom-card flex-grow-1">
+                    <div class="card-header custom-card-header header-people">
+                        <h3 class="mb-0">
+                            <i class="fas fa-users me-3"></i>People
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-description">View and manage the members of this group.</p>
+                        <ul class="action-list">
+                            <li>
+                                <a href="#">
+                                    <i class="fas fa-user-graduate fa-fw me-3"></i>
+                                    <span>Students</span>
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                            </li>
+                            {% if current_user.role == "super_admin" %}
+                            <li>
+                                <a href="#">
+                                    <i class="fas fa-chalkboard-teacher fa-fw me-3"></i>
+                                    <span>Assistants</span>
+                                    <i class="fas fa-chevron-right ms-auto"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --body-bg: #f5f7fa;
+        --card-bg: #ffffff;
+        --text-color: #2c3e50;
+        --text-muted-color: #7f8c8d;
+        --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --card-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+        --border-radius: 12px;
+        --action-item-hover-bg: #f8f9fa;
+    }
+
+    .group-dashboard-page {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--body-bg);
+    }
+
+    .page-title {
+        font-weight: 600;
+        color: #1a202c;
+    }
+
+    .custom-card {
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--card-shadow);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: var(--card-bg);
+    }
+
+    .custom-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--card-shadow-hover);
+    }
+
+    .custom-card-header {
+        color: white;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        padding: 1.5rem;
+        border-bottom: none;
+    }
+
+    .custom-card-header.header-content {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .custom-card-header.header-people {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .custom-card-header h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .card-description {
+        color: var(--text-muted-color);
+        margin-bottom: 1.5rem;
+        font-size: 0.95rem;
+    }
+
+    .action-list {
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+    }
+
+    .action-list li a {
+        display: flex;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        text-decoration: none;
+        color: var(--text-color);
+        border-radius: 8px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+
+    .action-list li a:hover {
+        background-color: var(--action-item-hover-bg);
+        color: #667eea;
+    }
+
+    .action-list li a i {
+        transition: color 0.2s ease;
+    }
+
+    .action-list li a .fa-chevron-right {
+        font-size: 0.8em;
+        color: #cbd5e0;
+        transition: transform 0.2s ease;
+    }
+
+    .action-list li a:hover .fa-chevron-right {
+        transform: translateX(3px);
+        color: #667eea;
+    }
+</style>
+
+{% endblock %}

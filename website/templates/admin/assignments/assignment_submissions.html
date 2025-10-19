@@ -24,7 +24,12 @@
 
 <header class="page-header">
     <div class="page-header-content">
+        {% if group_id and group %}
+        <a href="{{ url_for('admin.group_assignments', group_id=group_id) }}" class="back-button">← Back to {{
+            group.name }} Assignments</a>
+        {% else %}
         <a href="{{ url_for('admin.assignments') }}" class="back-button">← Back to Assignments</a>
+        {% endif %}
         <h1 class="page-title">Assignment Details</h1>
     </div>
 </header>
@@ -150,15 +155,15 @@
                                 <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
                                     class="btn btn-primary btn-open btn-small">Open Corrected File</a>
                             </td>
-                            {% else %}  
+                            {% else %}
                             <td>
                                 Not Corrected
                                 {{submission.corrected}}
                             </td>
                             {% endif %}
-                        
+
                             {% endif %}
-         
+
                             <td>
                                 <a href="{{ url_for('admin.get_pdf', submission_id=submission.id) }}" target="_blank"
                                     class="btn btn-primary btn-open btn-small">Open Original File</a>

@@ -84,7 +84,12 @@
 {% block content %}
 <header class="page-header">
     <div class="page-header-content">
+        {% if group_id and group %}
+        <a href="{{ url_for('admin.group_assignments', group_id=group_id) }}" class="back-button">← Back to {{
+            group.name }} Assignments</a>
+        {% else %}
         <a href="{{ url_for('admin.assignments') }}" class="back-button">← Back to Assignments</a>
+        {% endif %}
         <h1 class="page-title">Edit Assignment</h1>
     </div>
 </header>

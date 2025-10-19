@@ -420,7 +420,8 @@
 <header class="page-header">
 
     <div class="page-header-content">
-        <h1 class="page-title">All Assignments</h1>
+        <h1 class="page-title">{% if filter_group_id %}{{ group.name }} Assignments{% else %}All Assignments{% endif %}
+        </h1>
         {% if current_user.role == "super_admin" %}
         <button id="openAddAssignmentDesktop" class="btn btn-primary">Create Assignment</button>
         {% endif %}
@@ -434,6 +435,7 @@
                 <input type="text" id="searchInput" class="form-input" placeholder="Search by assignment title..."
                     disabled>
             </div>
+            {% if not filter_group_id %}
             <div class="filters-row-wrapper">
                 <div class="filter-dropdown disabled" id="groupDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Groups
@@ -443,6 +445,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -480,6 +483,9 @@
 <div id="assignmentModal" class="modal-overlay">
     <div class="modal-content">
         <form method="POST" enctype="multipart/form-data">
+            {% if filter_group_id %}
+            <input type="hidden" name="locked_group_id" value="{{ filter_group_id }}">
+            {% endif %}
             <div class="modal-header">
                 <h2>Add New Assignment</h2>
                 <button type="button" class="modal-close">&times;</button>
@@ -524,6 +530,12 @@
 
                 <div>
                     <label class="form-label">Group</label>
+                    {% if filter_group_id %}
+                    <div class="form-input" style="background-color: #f0f0f0; cursor: not-allowed; opacity: 0.7;">
+                        {{ group.name }}
+                    </div>
+                    <input type="hidden" name="groups[]" value="{{ filter_group_id }}">
+                    {% else %}
                     <div class="multi" id="ms-groups">
                         <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Groups
                             ▼</button>
@@ -531,6 +543,7 @@
                             <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
                 <div>
                     <label class="form-label">Deadline Date (Required)</label>
@@ -598,12 +611,13 @@
     </div>
 </div>
 
-<script>
+<script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     // Global state
     let allAssignments = [];
     let groups = [];
     let isLoading = true;
     let currentEditingAssignmentId = null;
+    const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId ? parseInt(document.getElementById('assignmentsScript').dataset.filterGroupId) : null;
 
     // --- Modal Logic ---
     const modal = document.getElementById('assignmentModal');
@@ -778,7 +792,11 @@
     // --- API Calls ---
     async function fetchAssignments() {
         try {
-            const response = await fetch('/admin/api/assignments-data');
+            let url = '/admin/api/assignments-data';
+            if (filterGroupId) {
+                url += `?group_id=${filterGroupId}`;
+            }
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch assignments');
             const data = await response.json();
             return data || [];
@@ -805,7 +823,10 @@
                     filterAssignments();
                     modal.classList.remove('show');
                     form.reset();
-                    document.getElementById('ms-groups-btn').textContent = 'All Groups ▼';
+                    const msGroupsBtn = document.getElementById('ms-groups-btn');
+                    if (msGroupsBtn) {
+                        msGroupsBtn.textContent = 'All Groups ▼';
+                    }
                     showToast(data.message || 'Assignment created successfully', 'success');
                 } else {
                     showToast((data && data.message) || 'Failed to create assignment', 'error');
@@ -1296,8 +1317,8 @@
             const groupStr = (a.groups && a.groups.length) ? a.groups.join(', ') : 'All Groups';
             const due = a.deadline_date ? a.deadline_date : 'Not set';
             const hiddenClass = a.status !== 'Show' ? 'hidden-assignment' : '';
-            const viewHref = `/admin/assignments/${a.id}/submissions`;
-            const editHref = `/admin/assignments/edit/${a.id}`;
+            const viewHref = filterGroupId ? `/admin/assignments/${a.id}/submissions?group_id=${filterGroupId}` : `/admin/assignments/${a.id}/submissions`;
+            const editHref = filterGroupId ? `/admin/assignments/edit/${a.id}?group_id=${filterGroupId}` : `/admin/assignments/edit/${a.id}`;
             const missing = (a.qualified_students_count || 0) - (a.submitted_students_count || 0);
 
             return `
@@ -1382,28 +1403,35 @@
 
     function enableFilters() {
         document.getElementById('searchInput').disabled = false;
-        document.getElementById('groupDropdown').classList.remove('disabled');
+        const groupDropdown = document.getElementById('groupDropdown');
+        if (groupDropdown) {
+            groupDropdown.classList.remove('disabled');
+        }
         isLoading = false;
     }
 
     function populateFilterDropdowns() {
         const groupList = document.getElementById('groupDropdownList');
-        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        if (groupList) {
+            groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+            groups.forEach(group => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+                groupList.appendChild(label);
+            });
+        }
     }
 
     function populateModalDropdowns() {
         const groupList = document.getElementById('ms-groups-list');
-        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        if (groupList) {
+            groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+            groups.forEach(group => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
+                groupList.appendChild(label);
+            });
+        }
     }
 
     async function initializePage() {
@@ -1419,8 +1447,14 @@
             populateFilterDropdowns();
             populateModalDropdowns();
 
-            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Groups', filterAssignments);
-            setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Groups');
+            // Only setup group dropdown if it exists (not present when filtering by specific group)
+            if (document.getElementById('groupDropdown')) {
+                setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Groups', filterAssignments);
+            }
+            // Only setup group multi-select if it exists (not present when filtering by specific group)
+            if (document.getElementById('ms-groups')) {
+                setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Groups');
+            }
 
             renderAssignments(allAssignments);
             enableFilters();

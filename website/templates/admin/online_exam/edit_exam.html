@@ -84,7 +84,12 @@
 {% block content %}
 <header class="page-header">
     <div class="page-header-content">
+        {% if group_id and group %}
+        <a href="{{ url_for('admin.group_exams', group_id=group_id) }}" class="back-button">← Back to {{ group.name }}
+            Exams</a>
+        {% else %}
         <a href="{{ url_for('admin.online_exam') }}" class="back-button">← Back to Exams</a>
+        {% endif %}
         <h1 class="page-title">Edit Exam</h1>
     </div>
 </header>
@@ -106,10 +111,11 @@
 
                 <div>
                     <label for="out_of" class="form-label">Out of</label>
-                    <input type="number" id="out_of" name="out_of" class="form-input" min="1" value="{{ exam.out_of or '' }}" required />
+                    <input type="number" id="out_of" name="out_of" class="form-input" min="1"
+                        value="{{ exam.out_of or '' }}" required />
                 </div>
 
-                
+
                 <div>
                     <label for="deadline_date" class="form-label">Deadline</label>
                     <input type="datetime-local" id="deadline_date" name="deadline_date"

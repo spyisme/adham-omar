@@ -419,7 +419,7 @@
 {% block content %}
 <header class="page-header">
     <div class="page-header-content">
-        <h1 class="page-title">All Exams</h1>
+        <h1 class="page-title">{% if filter_group_id %}{{ group.name }} Exams{% else %}All Exams{% endif %}</h1>
         <button id="openAddExamDesktop" class="btn btn-primary">Create Exam</button>
     </div>
 </header>
@@ -430,6 +430,7 @@
             <div class="search-row-wrapper">
                 <input type="text" id="searchInput" class="form-input" placeholder="Search by exam title..." disabled>
             </div>
+            {% if not filter_group_id %}
             <div class="filters-row-wrapper">
                 <div class="filter-dropdown disabled" id="schoolDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
@@ -439,6 +440,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -476,6 +478,9 @@
 <div id="examModal" class="modal-overlay">
     <div class="modal-content">
         <form method="POST" enctype="multipart/form-data">
+            {% if filter_group_id %}
+            <input type="hidden" name="locked_group_id" value="{{ filter_group_id }}">
+            {% endif %}
             <div class="modal-header">
                 <h2>Add New Exam</h2>
                 <button type="button" class="modal-close">&times;</button>
@@ -517,6 +522,12 @@
                 </div>
                 <div>
                     <label class="form-label">Group</label>
+                    {% if filter_group_id %}
+                    <div class="form-input" style="background-color: #f0f0f0; cursor: not-allowed; opacity: 0.7;">
+                        {{ group.name }}
+                    </div>
+                    <input type="hidden" name="groups[]" value="{{ filter_group_id }}">
+                    {% else %}
                     <div class="multi" id="ms-schools">
                         <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
@@ -524,6 +535,7 @@
                             <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                         </div>
                     </div>
+                    {% endif %}
                 </div>
                 <div>
                     <label class="form-label">Exam Date</label>
@@ -595,12 +607,13 @@
     </div>
 </div>
 
-<script>
+<script id="examsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     // Global state
     let allExams = [];
     let groups = [];
     let isLoading = true;
     let currentEditingExamId = null;
+    const filterGroupId = document.getElementById('examsScript').dataset.filterGroupId ? parseInt(document.getElementById('examsScript').dataset.filterGroupId) : null;
 
     // --- Modal Logic ---
     const modal = document.getElementById('examModal');
@@ -775,7 +788,11 @@
     // --- API Calls ---
     async function fetchExams() {
         try {
-            const response = await fetch('/admin/api/exams-data');
+            let url = '/admin/api/exams-data';
+            if (filterGroupId) {
+                url += `?group_id=${filterGroupId}`;
+            }
+            const response = await fetch(url);
             if (!response.ok) throw new Error('Failed to fetch exams');
             const data = await response.json();
             return data || [];
@@ -804,7 +821,10 @@
                     modal.classList.remove('show');
                     form.reset();
                     // Reset modal dropdown button labels
-                    document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
+                    const msSchoolsBtn = document.getElementById('ms-schools-btn');
+                    if (msSchoolsBtn) {
+                        msSchoolsBtn.textContent = 'All Groups ▼';
+                    }
                     showToast(data.message || 'Exam created successfully', 'success');
                 } else {
                     showToast((data && data.message) || 'Failed to create exam', 'error');
@@ -1295,7 +1315,8 @@
             const groupsstr = (e.groups && e.groups.length) ? e.groups.join(', ') : 'All Groups';
             const due = e.deadline_date ? e.deadline_date : 'Not set';
             const hiddenClass = e.status !== 'Show' ? 'hidden-exam' : '';
-            const viewHref = `/admin/online/exam/submissions/${e.id}`;
+            const viewHref = filterGroupId ? `/admin/online/exam/submissions/${e.id}?group_id=${filterGroupId}` : `/admin/online/exam/submissions/${e.id}`;
+            const editHref = filterGroupId ? `/admin/online/exam/edit/${e.id}?group_id=${filterGroupId}` : `/admin/online/exam/edit/${e.id}`;
             const missing = (e.qualified_students_count || 0) - (e.submitted_students_count || 0);
 
             return `
@@ -1380,28 +1401,35 @@
 
     function enableFilters() {
         document.getElementById('searchInput').disabled = false;
-        document.getElementById('schoolDropdown').classList.remove('disabled');
+        const schoolDropdown = document.getElementById('schoolDropdown');
+        if (schoolDropdown) {
+            schoolDropdown.classList.remove('disabled');
+        }
         isLoading = false;
     }
 
     function populateFilterDropdowns() {
         const schoolList = document.getElementById('schoolDropdownList');
-        schoolList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
-            schoolList.appendChild(label);
-        });
+        if (schoolList) {
+            schoolList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+            groups.forEach(group => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+                schoolList.appendChild(label);
+            });
+        }
     }
 
     function populateModalDropdowns() {
         const schoolList = document.getElementById('ms-schools-list');
-        schoolList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="schools[]" value="${group.id}"> ${group.name}`;
-            schoolList.appendChild(label);
-        });
+        if (schoolList) {
+            schoolList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+            groups.forEach(group => {
+                const label = document.createElement('label');
+                label.innerHTML = `<input type="checkbox" name="schools[]" value="${group.id}"> ${group.name}`;
+                schoolList.appendChild(label);
+            });
+        }
     }
 
     async function initializePage() {
@@ -1417,8 +1445,14 @@
             populateFilterDropdowns();
             populateModalDropdowns();
 
-            setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterExams);
-            setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
+            // Only setup group dropdown if it exists (not present when filtering by specific group)
+            if (document.getElementById('schoolDropdown')) {
+                setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterExams);
+            }
+            // Only setup group multi-select if it exists (not present when filtering by specific group)
+            if (document.getElementById('ms-schools')) {
+                setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
+            }
 
             renderExams(allExams);
             enableFilters();

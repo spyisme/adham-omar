@@ -18,7 +18,12 @@
 
 <header class="page-header">
     <div class="page-header-content">
+        {% if group_id and group %}
+        <a href="{{ url_for('admin.group_exams', group_id=group_id) }}" class="back-button">← Back to {{ group.name }}
+            Exams</a>
+        {% else %}
         <a href="{{ url_for('admin.online_exam') }}" class="back-button">← Back to Exams</a>
+        {% endif %}
         <h1 class="page-title">Exam Details</h1>
     </div>
 </header>
