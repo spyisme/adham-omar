@@ -403,18 +403,18 @@
         <h2 class="card-title">{{ assignment.title }}</h2>
 
         {% set is_completed = assignment.done %}
-        {% set is_completed_late = assignment.done and assignment.past_deadline %}
+        {% set is_completed_late = assignment.done and assignment.submitted_late %}
         {% set is_expired = (not assignment.done) and assignment.past_deadline %}
         {% set status_label = 'Open' %}
         {% set status_class = 'badge-open' %}
-        {% if is_completed %}
+        {% if is_completed and not is_completed_late %}
         {% set status_label = 'Completed' %}
         {% set status_class = 'badge-completed' %}
         {% elif is_completed_late %}
         {% set status_label = 'Completed Late' %}
         {% set status_class = 'badge-late' %}
         {% elif is_expired %}
-        {% set status_label = 'Expired (You can still submit)' %}
+        {% set status_label = 'Expired' %}
         {% set status_class = 'badge-expired' %}
         {% endif %}
 
@@ -513,8 +513,10 @@
         {% endif %}
 
         {% elif assignment.past_deadline and assignment.close_after_deadline %}
-        <h3 class="section-title">Exam Closed</h3>
-        <p class="description-text">This exam is closed and no longer accepts submissions.</p>
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+          <h3 class="section-title">Exam Closed</h3>
+          <p class="description-text">This exam is closed and no longer accepts submissions.</p>
+        </div>
 
         {% else %}
         <h3 class="section-title">Submit Your Exam</h3>
@@ -526,7 +528,8 @@
 
           <div class="file-input-wrapper">
             <input type="file" id="file" name="file" required
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png">
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png"
+              {% if assignment.past_deadline and assignment.close_after_deadline %}disabled{% endif %}>
             <label for="file">📎 Choose File</label>
             <span id="file-name">No file chosen</span>
           </div>
@@ -537,7 +540,7 @@
 
           <div id="status-message"></div>
 
-          <button type="submit" class="btn btn-primary">✅ Submit Exam</button>
+          <button type="submit" class="btn btn-primary" {% if assignment.past_deadline and assignment.close_after_deadline %}disabled{% endif %}>✅ Submit Exam</button>
         </form>
         {% endif %}
       </section>
