@@ -1216,6 +1216,25 @@ def upload_exam_chunk(exam_id):
             "action": "redirect"
         }), 404
 
+    # Check if exam is past deadline and closed
+    current_date = datetime.now(GMT_PLUS_2)
+
+    try:
+        if exam.deadline_date:
+            deadline_date = pytz.timezone('Africa/Cairo').localize(exam.deadline_date)
+            exam.past_deadline = deadline_date < current_date
+        else:
+            exam.past_deadline = False
+    except Exception:
+        exam.past_deadline = False
+
+    if exam.past_deadline and exam.close_after_deadline:
+        return jsonify({
+            "status": "error",
+            "error": "Exam expired",
+            "action": "expired"
+        }), 400
+
     # Update last seen info
     current_user.last_used_user_agent = request.user_agent.string
     current_user.last_used_ip_address = request.headers.get('CF-Connecting-IP', request.remote_addr)
@@ -1639,6 +1658,21 @@ def delete_submission_exam(exam_id):
         return abort(404)       
 
     try:
+        # Check if exam is past deadline and closed
+        current_date = datetime.now(GMT_PLUS_2)
+
+        try:
+            if assignment.deadline_date:
+                deadline_date_aware = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+                assignment.past_deadline = deadline_date_aware < current_date
+            else:
+                assignment.past_deadline = False
+        except Exception:
+            assignment.past_deadline = False
+
+        if assignment.past_deadline and assignment.close_after_deadline:
+            flash("Exam expired you can't delete your submission", "danger")
+            return redirect(url_for("student.view_exam", exam_id=exam_id))
 
         deadline_date = assignment.deadline_date
         upload_time = submission.upload_time

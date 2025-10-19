@@ -5127,7 +5127,81 @@ def send_late_message_for_submission_exam(assignment_id, student_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'message': 'Reminder sent successfully!', 'student_late_message_sent': student_late_message_sent, 'parent_late_message_sent': parent_late_message_sent})
 
+#Delete a submission for student (Admin route for EXAMS)
+@admin.route("/online/exam/delete_submission/<int:submission_id>", methods=["POST"])
+def delete_exam_submission(submission_id):
 
+    if current_user.role != "super_admin":
+        flash("You are not allowed to delete student's submissions.", "danger")
+        submission = Submissions.query.get_or_404(submission_id)
+        return redirect(url_for("admin.view_exam_submissions", exam_id=submission.assignment_id))
+
+
+    submission = Submissions.query.get_or_404(submission_id)
+    exam = Assignments.query.get(submission.assignment_id)
+    if not exam:
+        flash("Exam not found.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", exam_id=submission.assignment_id))
+
+
+    if exam.type != "Exam":
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", exam_id=submission.assignment_id))
+
+    try:
+
+        # Delete all upload status records for this submission
+        Upload_status.query.filter_by(
+            assignment_id=submission.assignment_id,
+            user_id=submission.student_id
+        ).delete()
+
+
+        deadline_date = exam.deadline_date
+        upload_time = submission.upload_time
+
+        if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
+            if upload_time.tzinfo is None:
+                upload_time = GMT_PLUS_2.localize(upload_time)
+        else:
+            if upload_time.tzinfo is not None:
+                upload_time = upload_time.replace(tzinfo=None)
+
+        if deadline_date > upload_time:
+            if exam.points:
+                submission.student.points = (submission.student.points or 0) - exam.points
+        else:
+            if exam.points:
+                submission.student.points = (submission.student.points or 0) - (exam.points / 2)
+
+        local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+        try:
+            filename2 = submission.file_url.replace(".pdf", "_annotated.pdf")
+            local_path2 = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", filename2)
+            if os.path.exists(local_path2):
+                os.remove(local_path2)
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", filename2)
+        except Exception:
+            pass
+
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+        try:
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+        except Exception:
+            pass
+
+        db.session.delete(submission)
+        db.session.commit()
+
+        flash("Exam submission deleted successfully!", "success")
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred while deleting the exam submission: {str(e)}", "danger")
+
+    return redirect(url_for("admin.view_exam_submissions", exam_id=exam.id))
 
 
 
