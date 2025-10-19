@@ -779,6 +779,7 @@ def activate_whatsapp():
     ).first()
     
     is_parent = False # Flag to track how we found them
+    phone_without_code = None
 
     if not target_user:
         # Not found as student, check if they are a parent
@@ -788,6 +789,11 @@ def activate_whatsapp():
         
         if target_user:
             is_parent = True # We found them using the parent_phone_number field
+            # Extract phone number without country code
+            phone_without_code = target_user.parent_phone_number
+    else:
+        # Extract phone number without country code
+        phone_without_code = target_user.phone_number
 
     # 3. Process OTP and activation logic
     
@@ -797,12 +803,12 @@ def activate_whatsapp():
         if is_parent:
             # --- Activate Parent WhatsApp ---
             if target_user.parent_whatsapp is None:
-                target_user.parent_whatsapp = cleaned_number
+                target_user.parent_whatsapp = phone_without_code
                 # target_user.otp = None  # Good practice: clear OTP after use
                 db.session.commit()
                 
                 flash("Parent Whatsapp activated successfully!", "success")
-                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
+                send_whatsapp_message(phone_without_code, "Whatsapp activated successfully!", bypass=True)
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
                 # Already activated
@@ -811,12 +817,12 @@ def activate_whatsapp():
         else:
             # --- Activate Student WhatsApp ---
             if target_user.student_whatsapp is None:
-                target_user.student_whatsapp = cleaned_number
+                target_user.student_whatsapp = phone_without_code
                 # target_user.otp = None  # Good practice: clear OTP after use
                 db.session.commit()
 
                 flash("Student Whatsapp activated successfully!", "success")
-                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
+                send_whatsapp_message(phone_without_code, "Whatsapp activated successfully!", bypass=True)
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
                 # Already activated
