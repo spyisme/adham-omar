@@ -8,23 +8,28 @@
   <meta name="description" content="Subjects with  Adham Omar Login">
   <meta name="keywords" content="Subjects,  Adham Omar, Login, Subjects with  Adham Omar">
   <meta name="author" content=" Adham Omar">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  
   <style>
     :root {
-      --bg-light: #f8f9fa;
-      --bg-panel: #ffffff;
-      --text-primary: #212529;
-      --text-secondary: #6c757d;
-      --text-on-accent: #ffffff;
-      --accent-primary: #28a745;
-      /* A fresh green */
-      --accent-primary-dark: #218838;
+      --primary-color: #007BFF;
+      --secondary-color: #F4F7FC;
+      --accent-color: #FF6B6B;
+      --highlight-color: #FFA000;
+      --text-color: #333;
+      --text-color-light: #555;
+      --bg-color: #F4F7FC;
+      --white-color: #FFFFFF;
       --border-color: #dee2e6;
+      --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --shadow-medium: 0 8px 25px rgba(0, 0, 0, 0.1);
       --error-bg: #f8d7da;
       --error-text: #721c24;
       --error-border: #f5c6cb;
-      --radius-sm: 0.25rem;
       --radius-md: 0.5rem;
-      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --radius-lg: 15px;
     }
 
     /* --- Base & Typography --- */
@@ -35,26 +40,41 @@
     }
 
     body {
-      background-color: var(--bg-light);
-      color: var(--text-primary);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      font-family: 'Montserrat', sans-serif;
       margin: 0;
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+
+    h1, h2, .brand-logo {
+      font-family: 'Playfair Display', serif;
     }
 
     /* --- Main Page Layout --- */
     .page-container {
       display: flex;
-      min-height: 100vh;
+      min-height: 90vh;
+      max-width: 1000px; /* Login panel is narrower */
+      margin: auto;
+      background: var(--white-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-medium);
+      overflow: hidden;
       animation: fade-in 0.8s ease-out;
     }
 
     .welcome-panel {
-      flex-basis: 40%;
-      background: linear-gradient(45deg, var(--accent-primary), var(--accent-primary-dark));
-      color: var(--text-on-accent);
+      flex-basis: 45%; /* Adjusted basis */
+      background: linear-gradient(45deg, var(--primary-color), #4dabff);
+      color: var(--white-color);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -81,26 +101,30 @@
       font-size: 1.1rem;
       max-width: 350px;
       opacity: 0.9;
+      color: var(--white-color);
     }
 
     .form-panel {
-      flex-basis: 60%;
-      background-color: var(--bg-panel);
+      flex-basis: 55%; /* Adjusted basis */
+      background-color: var(--white-color);
       padding: clamp(1.5rem, 5vw, 3rem);
       display: flex;
       flex-direction: column;
       justify-content: center;
+      overflow-y: auto;
     }
 
     .form-header h1 {
-      font-size: 2.25rem;
+      font-size: 2.5rem;
       font-weight: 700;
       margin: 0 0 0.5rem;
+      color: var(--primary-color);
     }
 
     .form-header p {
-      color: var(--text-secondary);
+      color: var(--text-color-light);
       margin: 0 0 2.5rem;
+      font-size: 1.1rem;
     }
 
     /* --- Form Elements --- */
@@ -110,54 +134,59 @@
 
     .form-group label {
       display: block;
-      font-weight: 500;
+      font-weight: 600;
       margin-bottom: 0.5rem;
       font-size: 0.9rem;
+      color: var(--text-color-light);
     }
 
     .form-group input {
       width: 100%;
-      padding: 0.75rem 1rem;
+      padding: 0.85rem 1rem;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       font-size: 1rem;
+      font-family: 'Montserrat', sans-serif;
       transition: border-color 0.2s, box-shadow 0.2s;
-      background-color: #fff;
+      background-color: var(--white-color);
     }
 
     .form-group input:focus {
       outline: none;
-      border-color: var(--accent-primary);
-      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
     }
 
     .form-submit {
       width: 100%;
-      padding: 0.85rem 1.5rem;
-      border: none;
-      border-radius: var(--radius-md);
-      background-color: var(--accent-primary);
-      color: var(--text-on-accent);
+      padding: 14px 35px;
+      border: 2px solid var(--accent-color);
+      border-radius: 50px;
+      background-color: var(--accent-color);
+      color: var(--white-color);
       font-size: 1.1rem;
-      font-weight: 600;
+      font-weight: 700;
+      font-family: 'Montserrat', sans-serif;
       cursor: pointer;
-      transition: background-color 0.2s, transform 0.2s;
+      transition: all 0.3s ease;
       margin-top: 1rem;
     }
 
     .form-submit:hover {
-      background-color: var(--accent-primary-dark);
-      transform: translateY(-2px);
+      background-color: var(--white-color);
+      color: var(--accent-color);
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-medium);
     }
 
     .login-link {
       text-align: center;
       margin-top: 1.5rem;
-      color: var(--text-secondary);
+      color: var(--text-color-light);
     }
 
     .login-link a {
-      color: var(--accent-primary);
+      color: var(--primary-color);
       font-weight: 600;
       text-decoration: none;
     }
@@ -181,21 +210,15 @@
       margin-bottom: 1rem;
       border-radius: var(--radius-md);
       color: #fff;
-      box-shadow: var(--shadow-md);
+      font-weight: 600;
+      box-shadow: var(--shadow-medium);
       animation: flash-slide-in 0.5s ease-out forwards;
       opacity: 0;
     }
 
     @keyframes flash-slide-in {
-      from {
-        opacity: 0;
-        transform: translateX(100%);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
+      from { opacity: 0; transform: translateX(100%); }
+      to { opacity: 1; transform: translateX(0); }
     }
 
     .flash-message.fade-out {
@@ -203,43 +226,30 @@
       opacity: 0;
     }
 
-    .flash-success {
-      background: #28a745;
-    }
-
-    .flash-danger,
-    .flash-error {
-      background: #dc3545;
-    }
-
-    .flash-info,
-    .flash-warning {
-      background: #ffc107;
-      color: #212529;
-    }
+    .flash-success { background: #28a745; }
+    .flash-danger, .flash-error { background: var(--accent-color); }
+    .flash-info, .flash-warning { background: var(--highlight-color); color: var(--text-color); }
 
     @keyframes fade-in {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     /* --- Responsive Design --- */
     @media (max-width: 992px) {
+      body {
+        padding: 0;
+        align-items: stretch;
+      }
       .page-container {
         flex-direction: column;
+        border-radius: 0;
+        min-height: 100vh;
+        max-width: none;
       }
-
-      .welcome-panel {
-        display: none;
-      }
-
-      .form-panel {
-        flex-basis: 100%;
+      .welcome-panel { display: none; }
+      .form-panel { 
+        flex-basis: 100%; 
         min-height: 100vh;
       }
     }
