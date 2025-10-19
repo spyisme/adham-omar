@@ -1509,21 +1509,21 @@
         const filteredAssignments = allAssignments.filter(assignment => {
             const title = (assignment.title || '').toLowerCase();
             const schools = assignment.schools || [];
-            const groups = assignment.groups || [];
-            const stages = assignment.stages || [];
+            // const groups = assignment.groups || [];
+            // const stages = assignment.stages || [];
             const subjectId = String(assignment.subject_id || '');
 
             const searchMatch = title.includes(search);
             const subjectMatch = sSubjects.length === 0 || sSubjects.includes(subjectId);
             const schoolMatch = sSchools.length === 0 || (schools.length > 0 && sSchools.some(val => schools.includes(val)));
-            const groupMatch = sGroups.length === 0 || (groups.length > 0 && sGroups.some(val => groups.includes(val)));
-            const stageMatch = sStages.length === 0 || (stages.length > 0 && sStages.some(val => stages.includes(val)));
+            // const groupMatch = sGroups.length === 0 || (groups.length > 0 && sGroups.some(val => groups.includes(val)));
+            // const stageMatch = sStages.length === 0 || (stages.length > 0 && sStages.some(val => stages.includes(val)));
 
             const schoolCatchAll = sSchools.length === 0 && schools.length === 0;
-            const groupCatchAll = sGroups.length === 0 && groups.length === 0;
-            const stageCatchAll = sStages.length === 0 && stages.length === 0;
+            // const groupCatchAll = sGroups.length === 0 && groups.length === 0;
+            // const stageCatchAll = sStages.length === 0 && stages.length === 0;
 
-            return searchMatch && subjectMatch && (schoolMatch || schoolCatchAll) && (groupMatch || groupCatchAll) && (stageMatch || stageCatchAll);
+            return searchMatch && subjectMatch && (schoolMatch || schoolCatchAll); // && (groupMatch || groupCatchAll) && (stageMatch || stageCatchAll);
         });
 
         renderAssignments(filteredAssignments);
@@ -1598,8 +1598,8 @@
     function enableFilters() {
         document.getElementById('searchInput').disabled = false;
         document.getElementById('subjectDropdown').classList.remove('disabled');
-        document.getElementById('stageDropdown').classList.remove('disabled');
-        document.getElementById('groupDropdown').classList.remove('disabled');
+        // document.getElementById('stageDropdown').classList.remove('disabled');
+        // document.getElementById('groupDropdown').classList.remove('disabled');
         isLoading = false;
     }
 
@@ -1612,21 +1612,21 @@
             subjectList.appendChild(label);
         });
 
-        const stageList = document.getElementById('stageDropdownList');
-        stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        stages.forEach(stage => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
-            stageList.appendChild(label);
-        });
+        // const stageList = document.getElementById('stageDropdownList');
+        // stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        // stages.forEach(stage => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
+        //     stageList.appendChild(label);
+        // });
 
-        const groupList = document.getElementById('groupDropdownList');
-        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        // const groupList = document.getElementById('groupDropdownList');
+        // groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        // groups.forEach(group => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+        //     groupList.appendChild(label);
+        // });
     }
 
     function populateModalDropdowns() {
@@ -1666,8 +1666,8 @@
             populateFilterDropdowns();
             populateModalDropdowns();
 
-            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterAssignments);
-            setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterAssignments);
+            // setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterAssignments);
+            // setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterAssignments);
             setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Boards', function () {
                 populateSchoolDropdowns();
                 filterAssignments();
