@@ -521,7 +521,7 @@
                 <div>
                     <label class="form-label">Subject</label>
                     <div class="multi" id="ms-subjects">
-                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Board
                             ▼</button>
                         <div class="multi-list" id="ms-subjects-list"></div>
                     </div>
@@ -837,7 +837,7 @@
                     modal.classList.remove('show');
                     form.reset();
                     // Reset modal dropdown button labels
-                    document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
+                    document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
                     document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
@@ -1104,7 +1104,7 @@
                 <label class="form-label">Subject</label>
                 <div class="multi" id="edit-ms-subjects">
                     <button type="button" class="btn form-input multi-btn" id="edit-ms-subjects-btn">
-                        ${exam.subject && exam.subject.name ? escapeHtml(exam.subject.name) : 'Choose Subject'} ▼
+                        ${exam.subject && exam.subject.name ? escapeHtml(exam.subject.name) : 'Choose Board'} ▼
                     </button>
                     <div class="multi-list" id="edit-ms-subjects-list"></div>
                 </div>
