@@ -4,9 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Subjects with Adham Omar - Register</title>
-  <meta name="description" content="Subjects with  Adham Omar Registration">
-  <meta name="keywords" content="Subjects,  Adham Omar, Register, Subjects with  Adham Omar">
+  <title>English with Adham Omar - Register</title>
+  <meta name="description" content="English with  Adham Omar Registration">
+  <meta name="keywords" content="English,  Adham Omar, Register, English with  Adham Omar">
   <meta name="author" content=" Adham Omar">
   <style>
     :root {
@@ -408,7 +408,7 @@
         </svg>
         <span> Adham Omar</span>
       </div>
-      <p>Unlock your potential in subjects. Join a community of dedicated learners today.</p>
+      <p>Unlock your potential in English. Join a community of dedicated learners today.</p>
     </aside>
 
     <main class="form-panel">
@@ -450,9 +450,9 @@
 
 
           <div class="form-group">
-            <label for="subject">Subject</label>
+            <label for="subject">Board</label>
             <select name="subject" id="subject" required>
-              <option value="" disabled selected>Select Subject</option>
+              <option value="" disabled selected>Select Board</option>
               {% for subject in subjects %}<option value="{{ subject.id }}">{{ subject.name }}</option>{% endfor %}
             </select>
           </div>
@@ -460,9 +460,9 @@
 
           <div class="form-row">
             <div class="form-group">
-              <label for="school">School</label>
+              <label for="school">Group</label>
               <select name="school" id="school" required disabled>
-                <option value="" disabled selected>Select your school</option>
+                <option value="" disabled selected>Select your group</option>
               </select>
             </div>
 
@@ -500,9 +500,9 @@
               });
             </script>
             <div class="form-group">
-              <label for="stage">Grade</label>
+              <label for="stage">Stage</label>
               <select name="stage" id="stage" required>
-                <option value="" disabled selected>Select your grade</option>
+                <option value="" disabled selected>Select your stage</option>
                 {% for stage in stages %}<option value="{{ stage.id }}">{{ stage.name }}</option>{% endfor %}
               </select>
             </div>
