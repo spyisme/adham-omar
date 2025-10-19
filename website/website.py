@@ -259,7 +259,7 @@ def send_whatsapp_message(phone_number, message, country_code , bypass = False):
             
             if not user:
                 return False, "User not found"
-                
+
             if not country_code:
                 # Determine which country code to use based on which phone number matches
                 if user.student_whatsapp and str(user.student_whatsapp) == str(phone_number):
@@ -576,6 +576,10 @@ def register():
             group = request.form.get("group", "")
 
 
+            if str(student_phone_country_code) == "0" or str(student_phone_country_code) == "":
+                student_phone_country_code = "2"
+            if str(parent_phone_country_code) == "0" or str(parent_phone_country_code) == "":
+                parent_phone_country_code = "2"
 
 
 
