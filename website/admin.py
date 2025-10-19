@@ -1941,7 +1941,7 @@ def view_assignment_submissions(assignment_id):
     )
 
 
-#Get original Pdf
+#Get original Pdff
 @admin.route("/assignments/annotate/<int:submission_id>")
 def edit_pdf(submission_id):
     submission = Submissions.query.get_or_404(submission_id)
