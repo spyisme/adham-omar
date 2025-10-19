@@ -60,10 +60,10 @@
         <div>
           <label class="form-label">Schools</label>
           <div class="multi" id="ms-schools">
-            <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools ▼</button>
+            <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups ▼</button>
             <div class="multi-list" id="ms-schools-list">
               <label class="multi-all"><input type="checkbox" value="" {% if not quiz.schools_mm %}checked{% endif
-                  %}>All Schools</label>
+                  %}>All Groups</label>
               {% for school in schools %}
               <label>
                 <input type="checkbox" name="schools_mm[]" value="{{ school.id }}" {% if quiz.schools_mm and school in
@@ -176,7 +176,7 @@
   });
 
   // Setup for multi-selects
-  setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+  setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
   setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
   setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
 

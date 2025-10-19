@@ -13,6 +13,7 @@
         box-shadow: 0 2px 12px var(--card-shadow);
         padding: 32px 24px;
     }
+
     .announcements-container h1 {
         text-align: center;
         color: var(--heading-color);
@@ -20,11 +21,13 @@
         font-size: 2rem;
         font-weight: 700;
     }
+
     .announcement-list {
         list-style: none;
         padding: 0;
         margin: 0;
     }
+
     .announcement-card {
         background: var(--card-bg);
         border-radius: 8px;
@@ -32,33 +35,39 @@
         padding: 22px 20px 18px 20px;
         box-shadow: 0 1px 6px var(--card-shadow);
         border-left: 5px solid var(--accent);
-        transition: box-shadow 0.2s; 
+        transition: box-shadow 0.2s;
         border-top: 1px solid var(--accent);
     }
+
     .announcement-card:last-child {
         margin-bottom: 0;
     }
+
     .announcement-title {
         font-size: 1.25rem;
         font-weight: 600;
         color: var(--accent);
         margin-bottom: 8px;
     }
+
     .announcement-content {
         color: var(--text-color);
         font-size: 1rem;
         margin-bottom: 10px;
         white-space: pre-line;
     }
+
     .announcement-meta {
         font-size: 0.95rem;
         color: var(--muted);
         margin-top: 6px;
     }
+
     @media (max-width: 600px) {
         .announcements-container {
             padding: 16px 4vw;
         }
+
         .announcement-card {
             padding: 14px 10px 12px 12px;
         }
@@ -68,55 +77,55 @@
 <div class="announcements-container">
     <h1>Announcements</h1>
     {% if announcements|length == 0 %}
-        <p style="text-align:center; color:var(--muted); font-size:1.1rem;">No announcements available.</p>
+    <p style="text-align:center; color:var(--muted); font-size:1.1rem;">No announcements available.</p>
     {% else %}
-        <ul class="announcement-list">
-            {% for announcement in announcements %}
-                <li class="announcement-card">
-                    <div class="announcement-title">{{ announcement.title }}</div>
-                    <div class="announcement-content">{{ announcement.content | safe }}</div>
-                    <div class="announcement-meta">
-                        <span>Class: 
-                            {%- if announcement.groups_mm -%}
-                                {%- for group in announcement.groups_mm -%}
-                                    {{ group.name }}{{ ', ' if not loop.last }}
-                                {%- endfor -%}
-                            {%- elif announcement.group -%}
-                                {{ announcement.group.name }}
-                            {%- else -%}
-                                All Classes
-                            {%- endif -%}
-                        </span>
-                        &nbsp;|&nbsp;
-                        <span>Year: 
-                            {%- if announcement.stages_mm -%}
-                                {%- for stage in announcement.stages_mm -%}
-                                    {{ stage.name }}{{ ', ' if not loop.last }}
-                                {%- endfor -%}
-                            {%- elif announcement.stage -%}
-                                {{ announcement.stage.name }}
-                            {%- else -%}
-                                All Years
-                            {%- endif -%}
-                        </span>
-                        &nbsp;|&nbsp;
-                        <span>School: 
-                            {%- if announcement.schools_mm -%}
-                                {%- for school in announcement.schools_mm -%}
-                                    {{ school.name }}{{ ', ' if not loop.last }}
-                                {%- endfor -%}
-                            {%- elif announcement.school -%}
-                                {{ announcement.school.name }}
-                            {%- else -%}
-                                All Schools
-                            {%- endif -%}
-                        </span>
-                        &nbsp;|&nbsp;
-                        <span>Posted: {{ announcement.creation_date.strftime('%Y-%m-%d %I:%M %p') }}</span>
-                    </div>
-                </li>
-            {% endfor %}
-        </ul>
+    <ul class="announcement-list">
+        {% for announcement in announcements %}
+        <li class="announcement-card">
+            <div class="announcement-title">{{ announcement.title }}</div>
+            <div class="announcement-content">{{ announcement.content | safe }}</div>
+            <div class="announcement-meta">
+                <span>Class:
+                    {%- if announcement.groups_mm -%}
+                    {%- for group in announcement.groups_mm -%}
+                    {{ group.name }}{{ ', ' if not loop.last }}
+                    {%- endfor -%}
+                    {%- elif announcement.group -%}
+                    {{ announcement.group.name }}
+                    {%- else -%}
+                    All Classes
+                    {%- endif -%}
+                </span>
+                &nbsp;|&nbsp;
+                <span>Year:
+                    {%- if announcement.stages_mm -%}
+                    {%- for stage in announcement.stages_mm -%}
+                    {{ stage.name }}{{ ', ' if not loop.last }}
+                    {%- endfor -%}
+                    {%- elif announcement.stage -%}
+                    {{ announcement.stage.name }}
+                    {%- else -%}
+                    All Years
+                    {%- endif -%}
+                </span>
+                &nbsp;|&nbsp;
+                <span>School:
+                    {%- if announcement.schools_mm -%}
+                    {%- for school in announcement.schools_mm -%}
+                    {{ school.name }}{{ ', ' if not loop.last }}
+                    {%- endfor -%}
+                    {%- elif announcement.school -%}
+                    {{ announcement.school.name }}
+                    {%- else -%}
+                    All Groups
+                    {%- endif -%}
+                </span>
+                &nbsp;|&nbsp;
+                <span>Posted: {{ announcement.creation_date.strftime('%Y-%m-%d %I:%M %p') }}</span>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
     {% endif %}
 </div>
 

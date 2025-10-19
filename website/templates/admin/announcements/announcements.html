@@ -323,15 +323,15 @@
                     <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
                         Subjects ▼</button>
                     <div class="filter-dropdown-list" id="subjectDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                     </div>
                 </div>
 
                 <div class="filter-dropdown disabled" id="schoolDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
                     </div>
                 </div>
                 <div class="filter-dropdown disabled" id="stageDropdown">
@@ -425,10 +425,10 @@
                 <div>
                     <label class="form-label">School</label>
                     <div class="multi disabled" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                         </div>
                     </div>
                 </div>
@@ -597,7 +597,7 @@
 
         container.innerHTML = announcements.map(ann => {
             const subjectName = ann.subject || 'N/A';
-            const schoolsDisplay = ann.schools || 'All Schools';
+            const schoolsDisplay = ann.schools || 'All Groups';
             const stagesDisplay = ann.stages || 'All Stages';
             const groupsDisplay = ann.groups || 'All Classes';
             const subjectId = ann.subject ? ann.subject.toLowerCase() : '';
@@ -793,7 +793,7 @@
             label.innerHTML = `<input type="checkbox" value="${school.name}"> ${school.name}`;
             schoolDropdownList.appendChild(label);
         });
-        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterAnnouncements);
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterAnnouncements);
 
         // Populate modal dropdown
         const msSchoolsList = document.getElementById('ms-schools-list');
@@ -803,7 +803,7 @@
             label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
             msSchoolsList.appendChild(label);
         });
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
     }
 
     // Populate filter dropdowns
@@ -937,9 +937,9 @@
             <div>
                 <label class="form-label">School</label>
                 <div class="multi" id="edit-ms-schools">
-                    <button type="button" class="btn form-input multi-btn" id="edit-ms-schools-btn">All Schools ▼</button>
+                    <button type="button" class="btn form-input multi-btn" id="edit-ms-schools-btn">All Groups ▼</button>
                     <div class="multi-list" id="edit-ms-schools-list">
-                        <label class="multi-all"><input type="checkbox" value="" ${!announcement.schools_mm || announcement.schools_mm.length === 0 ? 'checked' : ''}>All Schools</label>
+                        <label class="multi-all"><input type="checkbox" value="" ${!announcement.schools_mm || announcement.schools_mm.length === 0 ? 'checked' : ''}>All Groups</label>
                     </div>
                 </div>
             </div>
@@ -1000,7 +1000,7 @@
         // Setup dropdowns
         setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
         setupDropdown('edit-ms-groups', 'edit-ms-groups-btn', 'edit-ms-groups-list', 'All Classes');
-        setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Schools');
+        setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Groups');
 
         // Setup subject dropdown
         const subjectDropdown = document.getElementById('edit-ms-subjects');
@@ -1028,7 +1028,7 @@
                     label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
                     msSchoolsList.appendChild(label);
                 });
-                setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Schools');
+                setupDropdown('edit-ms-schools', 'edit-ms-schools-btn', 'edit-ms-schools-list', 'All Groups');
 
                 const schoolMulti = document.getElementById('edit-ms-schools');
                 if (availableSchools.length > 0) {
@@ -1068,7 +1068,7 @@
             // Initialize filter dropdowns
             setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterAnnouncements);
             setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterAnnouncements);
-            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Boards', function () {
                 populateSchoolDropdowns();
                 filterAnnouncements();
                 toggleSchoolFilterDropdown();
@@ -1106,7 +1106,7 @@
                         label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
-                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
                     toggleModalSchoolDropdown();
                 };
             });
@@ -1233,7 +1233,7 @@
 
             // Reset dropdowns
             document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-            document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+            document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
             document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
             document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
 

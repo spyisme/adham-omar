@@ -378,15 +378,15 @@
                     <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
                         Subjects ▼</button>
                     <div class="filter-dropdown-list" id="subjectDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                     </div>
                 </div>
 
                 <div class="filter-dropdown disabled" id="schoolDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
                     </div>
                 </div>
 
@@ -469,10 +469,10 @@
                 <div>
                     <label class="form-label">School</label>
                     <div class="multi disabled" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                         </div>
                     </div>
                 </div>
@@ -727,7 +727,7 @@
                     form.reset();
                     // Reset modal dropdown button labels
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-                    document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Session created successfully', 'success');
@@ -1081,7 +1081,7 @@
         }
 
         const sessionsHTML = sessions.map(s => {
-            const schoolStr = s.schools || 'All Schools';
+            const schoolStr = s.schools || 'All Groups';
             const stageStr = s.stages || 'All Stages';
             const groupStr = s.groups || 'All Classes';
             const viewHref = `/admin/session/${s.id}`;
@@ -1216,8 +1216,8 @@
             msSchoolsList.appendChild(label);
         });
 
-        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterSessions);
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterSessions);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
     }
 
     function enableFilters() {
@@ -1293,7 +1293,7 @@
 
             setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterSessions);
             setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterSessions);
-            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Boards', function () {
                 populateSchoolDropdowns();
                 filterSessions();
                 toggleSchoolFilterDropdown();
@@ -1323,7 +1323,7 @@
                         label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
-                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
                     toggleModalSchoolDropdown();
                 };
             });
