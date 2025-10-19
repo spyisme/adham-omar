@@ -1430,6 +1430,8 @@
                             <p class="exam-due">Date: ${due}</p>
                             <p class="exam-out-of">Out of: ${e.out_of || 'N/A'}</p>
                             <p class="exam-points">Points: ${e.points || 'N/A'}</p>
+                            <p class="exam-student_whatsapp">Messages are sent to students via WhatsApp: <span style="color: ${e.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${e.student_whatsapp ? 'Yes' : 'No'}</span></p>
+                            <p class="exam-parent_whatsapp">Messages are sent to parents via WhatsApp: <span style="color: ${e.parent_whatsapp ? 'green' : 'red'}; font-weight: bold;">${e.parent_whatsapp ? 'Yes' : 'No'}</span></p>
                         </div>
                         <div class="card-actions">
                             <div class="action-buttons">
@@ -1444,10 +1446,10 @@
                         </div>
                     </div>
                     <div class="card-details">
-                        <div class="detail-item"><strong>Subject</strong> ${e.subject || 'N/A'}</div>
-                        <div class="detail-item"><strong>School(s)</strong> ${schoolStr}</div>
-                        <div class="detail-item"><strong>Grade(s)</strong> ${stageStr}</div>
-                        <div class="detail-item"><strong>Class(es)</strong> ${groupStr}</div>
+                        <div class="detail-item"><strong>Board</strong> ${e.subject || 'N/A'}</div>
+                        <div class="detail-item"><strong>Group(s)</strong> ${schoolStr}</div>
+                        <!--  <div class="detail-item"><strong>Grade(s)</strong> ${stageStr}</div>
+                        <div class="detail-item"><strong>Class(es)</strong> ${groupStr}</div> -->
                     </div>
                 </div>
                 <div class="card-footer">
