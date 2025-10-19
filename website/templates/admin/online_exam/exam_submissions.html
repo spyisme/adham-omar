@@ -211,7 +211,7 @@
                                             target="_blank" class="actions-menu-item">
                                             📝 Correct Online
                                         </a>
-                                        {% if submission.mark %}
+                                        {% if submission.corrected %}
                                         <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}"
                                             target="_blank" class="actions-menu-item">
                                             📄 Open Corrected PDF
