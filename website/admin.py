@@ -6597,6 +6597,15 @@ def temp_activate(user_id):
     return redirect(url_for('admin.student' , user_id=user_id))
 
 
+@admin.route('/temp/deactivate/<int:user_id>')
+def temp_deactivate(user_id):
+    user = Users.query.get_or_404(user_id)
+    user.student_whatsapp = None
+    user.parent_whatsapp = None
+    db.session.commit()
+    flash(f"Student {user.name} has been deactivated successfully!", "success")
+    return redirect(url_for('admin.student' , user_id=user_id))
+
 #==================================================================================================
 #Groups (Main route)
 #==================================================================================================
