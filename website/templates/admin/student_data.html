@@ -276,7 +276,7 @@ tbody tr:hover {
 
             <tr><th>Name</th><td>{{ student.name }}</td></tr>
             <tr><th>Student ID</th><td>{{ student.code }}</td></tr>
-            <tr><th>Phone Number</th><td>{{ student.phone_number }}</td></tr>
+            <tr><th>Phone Number</th><td> +{{ student.phone_number_country_code }}{{ student.phone_number }}</td></tr>
             <tr><th>Email</th><td>{{ student.email }}</td></tr>
             {% if student.last_website_access %}
             <tr><th>Student Last Access</th><td>{{ student.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
@@ -288,7 +288,7 @@ tbody tr:hover {
             <tr><th colspan="2" style="text-align: center;">Parent Information</th></tr>
 
             <tr><th>Parent Type</th><td>{{ student.parent_type.capitalize() }}</td></tr>
-            <tr><th>Parent Number</th><td>{{ student.parent_phone_number }}</td></tr>
+            <tr><th>Parent Number</th><td> +{{ student.parent_phone_number_country_code }}{{ student.parent_phone_number }}</td></tr>
             {% if parent.last_website_access %}
             <tr><th>Parent Last Access</th><td>{{ parent.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
             {% else %}
