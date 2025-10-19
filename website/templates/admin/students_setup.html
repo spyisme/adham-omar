@@ -292,14 +292,14 @@
         <div class="col-lg-4 col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary">
-                    <h5 class="mb-0">Schools</h5>
+                    <h5 class="mb-0">Groups</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" class="mb-3">
                         <input type="hidden" name="entity_type" value="school">
-                        <input type="text" name="name" class="form-control mb-2" placeholder="Enter school name..."
+                        <input type="text" name="name" class="form-control mb-2" placeholder="Enter group name..."
                             required>
-                        <button type="submit" class="btn btn-primary w-100">Add School</button>
+                        <button type="submit" class="btn btn-primary w-100">Add Group</button>
                     </form>
                     {% if schools %}
                     <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
@@ -341,7 +341,7 @@
         <div class="col-lg-4 col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-success">
-                    <h5 class="mb-0">Stages</h5>
+                    <h5 class="mb-0">Stages (Doesnt make a difference)</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" class="mb-3">
@@ -390,7 +390,7 @@
         <div class="col-lg-4 col-md-12">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-info">
-                    <h5 class="mb-0">Classes</h5>
+                    <h5 class="mb-0">Classes (Doesnt make a difference)</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" class="mb-3">
@@ -441,14 +441,14 @@
         <div class="col-lg-4 col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-warning">
-                    <h5 class="mb-0">Subjects</h5>
+                    <h5 class="mb-0">Boards</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" class="mb-3">
                         <input type="hidden" name="entity_type" value="subject">
-                        <input type="text" name="name" class="form-control mb-2" placeholder="Enter subject name..."
+                        <input type="text" name="name" class="form-control mb-2" placeholder="Enter board name..."
                             required>
-                        <button type="submit" class="btn btn-primary w-100">Add Subject</button>
+                        <button type="submit" class="btn btn-primary w-100">Add Board</button>
                     </form>
                     {% if subjects %}
                     <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
@@ -457,7 +457,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
-                                    <th>Schools</th>
+                                    <th>Groups</th>
                                     <th>Delete</th>
                                 </tr>
                             </thead>
@@ -496,21 +496,21 @@
         <div class="col-lg-8 col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-primary">
-                    <h5 class="mb-0">Schools Subjects</h5>
+                    <h5 class="mb-0">Groups Boards</h5>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ url_for('admin.assign_subjects_to_school') }}">
                         <div class="mb-3">
-                            <label for="schoolSelect" class="form-label fw-bold">1. Select a School</label>
+                            <label for="schoolSelect" class="form-label fw-bold">1. Select a Group</label>
                             <select class="form-control" id="schoolSelect" name="school_id" required>
-                                <option value="" disabled selected>-- Choose a school --</option>
+                                <option value="" disabled selected>-- Choose a group --</option>
                                 {% for school in schools %}
                                 <option value="{{ school.id }}">{{ school.name }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">2. Select Subjects</label>
+                            <label class="form-label fw-bold">2. Select Boards</label>
                             <div class="dropdown">
                                 <div id="multiSelect" class="multi-select" onclick="toggleDropdown()">
                                     <input type="text" id="multiInput" placeholder="Type or select..."
