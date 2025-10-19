@@ -28,11 +28,10 @@ function lookupContact(jid) {
   };
 }
 
-// --- Helper: forward incoming messages to backend ---
-async function processIncomingMessage({ jid, messageContent }) {
+// --- Helper: forward incoming messages to backend (no reply) ---
+async function processIncomingMessage({ jid, messageContent, phoneNumber }) {
   const [wa_idRaw] = jid.split('@');
   const wa_id = wa_idRaw.split(':')[0];
-  const phone_number = wa_id;
 
   const meta = lookupContact(jid);
   const payload = {
@@ -40,18 +39,20 @@ async function processIncomingMessage({ jid, messageContent }) {
     wa_id,
     message: messageContent,
     display_name: meta.displayName || meta.verifiedName || null,
-    phone_number,
+    phone_number: phoneNumber,
+    from: phoneNumber,
   };
 
   console.log('➡️ Sending payload:', payload);
 
   try {
     const response = await axios.post(
-      'https://sallymahfouzigcse.com/backend/whatsapp',
+      'https://adhamomaresl.com/backend/whatsapp',
       payload,
       { headers: { 'Content-Type': 'application/json' } }
     );
     console.log('✅ Backend ACK:', response.data);
+    // Note: Not sending any reply back to the user
   } catch (error) {
     console.error('❌ Backend error:', error.message);
   }
@@ -144,6 +145,7 @@ const sendSseUpdate = (data) => {
       const cleanJid = jidNormalizedUser(rawJid);
       const [userPart] = cleanJid.split('@');
       const wa_id = userPart.split(':')[0];
+      const phoneNumber = wa_id;
 
       console.log('\n🟢 --- INCOMING MESSAGE DEBUG ---');
       console.log('Raw JID:', msg.key.remoteJid);
@@ -151,6 +153,7 @@ const sendSseUpdate = (data) => {
       console.log('Using JID:', rawJid);
       console.log('Normalized JID:', cleanJid);
       console.log('WA_ID:', wa_id);
+      console.log('Phone Number:', phoneNumber);
 
       const meta = lookupContact(cleanJid);
       console.log('Matched Contact:', meta);
@@ -166,7 +169,8 @@ const sendSseUpdate = (data) => {
       console.log('Message Content:', messageContent);
 
       if (messageContent) {
-        await processIncomingMessage({ jid: cleanJid, messageContent });
+        await processIncomingMessage({ jid: cleanJid, messageContent, phoneNumber });
+        // No automatic reply sent to the user
       }
 
       sendSseUpdate({ event: 'new_message', data: msg });

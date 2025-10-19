@@ -745,6 +745,7 @@ def forget_password_otp():
 def activate_whatsapp():
     data = request.get_json()
     phone_number = data.get("phone_number")
+    message_content = data.get("message", "")
 
     # Normalize phone number - remove spaces and leading '2' if present
     if phone_number:
@@ -752,26 +753,43 @@ def activate_whatsapp():
         if phone_number.startswith("2"):
             phone_number = phone_number[1:]
 
-
+    # First, try to find user by phone number
     user = Users.query.filter(Users.phone_number == phone_number).first()
-    if user:
-        user.student_whatsapp = phone_number
-        db.session.commit()
-        flash("Whatsapp activated successfully!", "success")
-        send_whatsapp_message(phone_number, "Whatsapp activated successfully!" , bypass = True)
-        return jsonify({"message": "Whatsapp activated successfully!"})
-    else:
+    parent_user = None
+    
+    if not user:
         parent_user = Users.query.filter(Users.parent_phone_number == phone_number).first()
-        if parent_user:
-            parent_user.parent_whatsapp = phone_number
+    
+    # Check if message contains OTP
+    target_user = user or parent_user
+    
+    if target_user and target_user.otp and message_content.strip() == target_user.otp:
+        # OTP matches - activate WhatsApp
+        if user and user.student_whatsapp is None:
+            user.student_whatsapp = phone_number
+            # user.otp = None  # Clear OTP after successful verification
             db.session.commit()
             flash("Whatsapp activated successfully!", "success")
             send_whatsapp_message(phone_number, "Whatsapp activated successfully!" , bypass = True)
             return jsonify({"message": "Whatsapp activated successfully!"})
-        else:
-            flash("User not found!", "danger")
-            send_whatsapp_message(phone_number, "User not found!" , bypass = True)
-            return jsonify({"message": "User not found!"})
+        elif parent_user and parent_user.parent_whatsapp is None:
+            parent_user.parent_whatsapp = phone_number
+            # parent_user.otp = None  # Clear OTP after successful verification
+            db.session.commit()
+            flash("Whatsapp activated successfully!", "success")
+            send_whatsapp_message(phone_number, "Whatsapp activated successfully!" , bypass = True)
+            return jsonify({"message": "Whatsapp activated successfully!"})
+        else :
+            return jsonify({"message": "Whatsapp already activated!"})
+    elif target_user and target_user.otp:
+        # User exists but OTP doesn't match
+        send_whatsapp_message(phone_number, "Invalid OTP. Please try again." , bypass = True)
+        return jsonify({"message": "Invalid OTP"})
+    else:
+        # No user found or no OTP set
+        flash("User not found!", "danger")
+        send_whatsapp_message(phone_number, "User not found! Please register first." , bypass = True)
+        return jsonify({"message": "User not found!"})
 
 
 @website.route("/whatsapp" , methods=["GET" , "POST"])
