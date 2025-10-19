@@ -3,417 +3,587 @@
 {% block content %}
 
 <style>
-:root {
-    --shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
-    --border: #e3e8f0;
-    --radius: 16px;
-    --bg: #f7fafd;
-    --card-bg: #fff;
-    --accent: #2d7ff9;
-    --accent-hover: #1a5fc2;
-    --danger: #e53e3e;
-    --danger-hover: #b91c1c;
-    --muted: #6b7280;
-    --label: #374151;
-}
+    :root {
+        --shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+        --border: #e3e8f0;
+        --radius: 16px;
+        --bg: #f7fafd;
+        --card-bg: #fff;
+        --accent: #2d7ff9;
+        --accent-hover: #1a5fc2;
+        --danger: #e53e3e;
+        --danger-hover: #b91c1c;
+        --muted: #6b7280;
+        --label: #374151;
+    }
 
-/* Global (identical to assignments) */
-body { background: var(--bg); }
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 32px 16px;
-}
-h1 {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 24px;
-    color: #222;
-    gap: 10px;
-}
+    /* Global (identical to assignments) */
+    body {
+        background: var(--bg);
+    }
 
-/* Buttons (identical to assignments) */
-.btn {
-    padding: 10px 22px;
-    border: none;
-    border-radius: 8px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
-    white-space: nowrap;
-}
-.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(45,127,249,0.08); }
-.btn-primary:hover { background: var(--accent-hover); box-shadow: 0 4px 16px rgba(45,127,249,0.13); }
-.btn-secondary { background: #003d99; color: #fff; }
-.btn-secondary:hover { background: #002366; }
-.btn-warning { background: #fbbf24; color: #222; }
-.btn-warning:hover { background: #f59e0b; color: #fff; }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { background: var(--danger-hover); }
-.btn-light { background: #f0f0f0; color: #333; border: 1px solid #ccc; }
-.btn-light:hover { background: #e0e0e0; }
+    .container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 32px 16px;
+    }
 
-/* Filters (identical to assignments) */
-.filter-section {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    background: #fff;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
-    padding: 14px;
-    margin-bottom: 20px;
-    align-items: flex-start;
-}
-.filter-input {
-    padding: 10px 14px;
-    border-radius: 7px;
-    border: 1.5px solid #d1d5db;
-    background: #f9fafb;
-    font-size: 1rem;
-    outline: none;
-    flex: 1 1 180px;
-    min-width: 180px;
-}
-.filter-input:focus {
-    border-color: var(--accent);
-    background: #fff;
-}
-.filter-dropdown {
-    position: relative;
-    min-width: 140px;
-    flex: 1 1 180px;
-}
-.filter-dropdown-btn {
-    width: 100%;
-    padding: 10px 14px;
-    border-radius: 7px;
-    border: 1.5px solid #d1d5db;
-    background: #f9fafb;
-    font-size: 1rem;
-    text-align: left;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: border-color 0.2s, background 0.2s;
-}
-.filter-dropdown-btn:focus, .filter-dropdown-btn.active {
-    border-color: var(--accent);
-    background: #fff;
-}
-.filter-dropdown-list {
-    display: none;
-    position: absolute;
-    top: 110%;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border: 1.5px solid #d1d5db;
-    border-radius: 7px;
-    box-shadow: 0 4px 16px rgba(44,62,80,0.10);
-    z-index: 10;
-    max-height: 260px;
-    overflow-y: auto;
-    padding: 8px 0;
-}
-.filter-dropdown.open .filter-dropdown-list {
-    display: block;
-}
-.filter-dropdown-list label {
-    display: flex;
-    align-items: center;
-    padding: 6px 16px;
-    font-size: 1rem;
-    cursor: pointer;
-    gap: 8px;
-    user-select: none;
-}
-.filter-dropdown-list label:hover {
-    background: #f1f5fb;
-}
-.filter-dropdown-list input[type="checkbox"] {
-    accent-color: var(--accent);
-    margin-right: 8px;
-}
-.filter-dropdown-list .dropdown-all {
-    font-weight: 600;
-    color: var(--accent);
-}
+    h1 {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 24px;
+        color: #222;
+        gap: 10px;
+    }
 
-/* Match assignments’ responsive rules */
-@media (max-width: 700px) {
-    h1 { font-size: 1.5rem; flex-direction: column; align-items: flex-start; }
-    .assignment-grid { grid-template-columns: 1fr !important; }
-    .actions { flex-direction: column; align-items: stretch; }
-    .filter-section { flex-direction: column; gap: 10px; }
-    .filter-dropdown, .filter-input { min-width: 0; width: 100%; }
-    .filter-dropdown-list { max-height: 200px; }
-}
+    /* Buttons (identical to assignments) */
+    .btn {
+        padding: 10px 22px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+        white-space: nowrap;
+    }
 
-/* --- Card Grid and Card Styles (identical class names as assignments) --- */
-.assignment-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* exactly 2 per row */
-    gap: 28px;
-    margin-bottom: 32px;
-}
+    .btn-primary {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 2px 8px rgba(45, 127, 249, 0.08);
+    }
 
-.assignment-card {
-    background: var(--card-bg);
-    border-radius: var(--radius);
-    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.10);
-    border: 1.5px solid var(--border);
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    transition: box-shadow 0.18s, border-color 0.18s, transform 0.12s;
-    position: relative;
-    overflow: hidden;
-    min-height: 220px;
-    cursor: pointer;
-    text-decoration: none;
-}
-.assignment-card:hover {
-    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.16);
-    border-color: var(--accent);
-    transform: translateY(-2px) scale(1.012);
-}
-/* No overdue/done badges for videos by default; can add later if needed */
-.assignment-card .card-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 22px 24px 10px 24px;
-    background: linear-gradient(90deg, #f7fafd 60%, #eaf2fd 100%);
-    border-bottom: 1px solid #f0f4fa;
-}
-.assignment-card .card-header .badge {
-    background: var(--danger);
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: 700;
-    border-radius: 6px;
-    padding: 3px 10px;
-    margin-right: 0;
-    letter-spacing: 0.01em;
-}
-.assignment-card .card-header .assignment-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1a202c;
-    margin: 0 0 2px 0;
-    flex: 1;
-    line-height: 1.2;
-}
-.assignment-card .card-header .assignment-id {
-    font-size: 0.92rem;
-    color: var(--muted);
-    font-weight: 500;
-    margin-top: 2px;
-    margin-left: 12px;
-    white-space: nowrap;
-}
+    .btn-primary:hover {
+        background: var(--accent-hover);
+        box-shadow: 0 4px 16px rgba(45, 127, 249, 0.13);
+    }
 
-.assignment-card .card-body {
-    padding: 16px 24px 0 24px;
-    flex: 1 1 auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.assignment-card .assignment-desc {
-    color: #374151;
-    font-size: 1.04rem;
-    margin-bottom: 6px;
-    margin-top: 2px;
-    min-height: 32px;
-    word-break: break-word;
-}
-.assignment-card .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px 18px;
-    font-size: 0.98rem;
-    color: #4b5563;
-    margin-bottom: 2px;
-    margin-top: 2px;
-}
-.assignment-card .meta span {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-    background: #f3f6fa;
-    border-radius: 5px;
-    padding: 2px 8px;
-    font-size: 0.97em;
-}
-.assignment-card .meta .points {
-    color: var(--accent);
-    font-weight: 600;
-}
-.assignment-card .actions {
-    display: flex;
-    gap: 10px;
-    padding: 16px 24px 18px 24px;
-    border-top: 1px solid #f0f4fa;
-    background: #f9fafb;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
-.assignment-card .actions form { margin: 0; }
-.assignment-card .actions .btn {
-    min-width: 90px;
-    font-size: 0.98rem;
-    padding: 8px 16px;
-}
+    .btn-secondary {
+        background: #003d99;
+        color: #fff;
+    }
 
-/* --- Modal (use exact assignments classes for parity) --- */
-.assignment-modal {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(17,24,39,.5);
-  z-index: 1000;
-  transition: background 0.2s;
-  overflow-y: auto;
-}
-.assignment-modal.show { display: flex; }
+    .btn-secondary:hover {
+        background: #002366;
+    }
 
-.assignment-modal-content {
-  width: 100%;
-  max-width: 520px;
-  background: var(--card-bg);
-  border-radius: var(--radius);
-  box-shadow: 0 20px 60px rgba(0,0,0,.22);
-  padding: 32px 32px 24px 32px;
-  position: relative;
-  max-height: 90vh;
-  overflow-y: auto;
-  margin: 48px 0;
-  animation: modalPopIn 0.18s cubic-bezier(.4,1.4,.6,1) 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-@keyframes modalPopIn {
-  from { transform: translateY(32px) scale(.98); opacity: 0; }
-  to   { transform: none; opacity: 1; }
-}
-.assignment-close-popup {
-  position: absolute;
-  right: 18px;
-  top: 14px;
-  font-size: 32px;
-  line-height: 1;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  color: #888;
-  transition: color 0.15s;
-  z-index: 2;
-}
-.assignment-close-popup:hover { color: #222; }
+    .btn-warning {
+        background: #fbbf24;
+        color: #222;
+    }
 
-.assignment-modal-content form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.assignment-modal-content h2 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  font-size: 1.45rem;
-  font-weight: 700;
-  color: #1a202c;
-}
-.assignment-modal-content label {
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 2px;
-  margin-top: 2px;
-}
-.assignment-modal-content input,
-.assignment-modal-content textarea,
-.assignment-modal-content select {
-  border: 1.5px solid #d1d5db;
-  border-radius: 7px;
-  padding: 10px 14px;
-  font-size: 1rem;
-  background: #f9fafb;
-  outline: none;
-  transition: border-color 0.2s, background 0.2s;
-}
-.assignment-modal-content input:focus,
-.assignment-modal-content textarea:focus,
-.assignment-modal-content select:focus {
-  border-color: var(--accent);
-  background: #fff;
-}
-.assignment-modal-content input[type="file"] {
-  padding: 6px 0;
-  background: none;
-  border: none;
-}
-.assignment-modal-content button[type="submit"] {
-  margin-top: 10px;
-  align-self: flex-end;
-  min-width: 140px;
-}
+    .btn-warning:hover {
+        background: #f59e0b;
+        color: #fff;
+    }
 
-/* Same responsive modal tweaks */
-@media (max-width: 900px) {
-  .assignment-modal-content {
-    max-width: 98vw;
-    padding: 20px 8vw 18px 8vw;
-  }
-}
-@media (max-width: 700px) {
-  .assignment-modal-content {
-    max-width: 99vw;
-    width: 99vw;
-    padding: 14px 4vw 12px 4vw;
-    margin: 16px 0;
-    border-radius: 10px;
-    font-size: 1rem;
-  }
-  .assignment-modal-content h2 { font-size: 1.1rem; }
-  .assignment-close-popup { right: 8px; top: 8px; font-size: 28px; }
-}
+    .btn-danger {
+        background: var(--danger);
+        color: #fff;
+    }
 
-/* --- Reusable dropdown-multiselect (identical) --- */
-.multi{ position: relative; }
-.multi-btn{
-  width: 100%; padding: 10px 14px; border-radius: 7px;
-  border: 1.5px solid #d1d5db; background: #f9fafb;
-  font-size: 1rem; text-align: left; cursor: pointer;
-  display: flex; align-items: center; justify-content: space-between;
-  transition: border-color .2s, background .2s;
-}
-.multi.open .multi-btn, .multi-btn:focus{ border-color: var(--accent); background: #fff; outline: none; }
-.multi-list{
-  position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-  background: #fff; border: 1.5px solid #d1d5db; border-radius: 7px;
-  box-shadow: 0 8px 24px rgba(17,24,39,.12);
-  max-height: 260px; overflow: auto; padding: 8px 0; display: none; z-index: 1001;
-}
-.multi.open .multi-list{ display: block; }
-.multi-list label{
-  display: flex; align-items: center; gap: 8px; padding: 8px 14px; cursor: pointer;
-}
-.multi-list label:hover{ background: #f1f5fb; }
-.multi-list input[type="checkbox"]{ accent-color: var(--accent); }
-.multi-all{ font-weight: 600; color: var(--accent); }
-@media (max-width: 700px){
-  .multi-list{ max-height: 220px; }
-}
+    .btn-danger:hover {
+        background: var(--danger-hover);
+    }
+
+    .btn-light {
+        background: #f0f0f0;
+        color: #333;
+        border: 1px solid #ccc;
+    }
+
+    .btn-light:hover {
+        background: #e0e0e0;
+    }
+
+    /* Filters (identical to assignments) */
+    .filter-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        background: #fff;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 14px;
+        margin-bottom: 20px;
+        align-items: flex-start;
+    }
+
+    .filter-input {
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #d1d5db;
+        background: #f9fafb;
+        font-size: 1rem;
+        outline: none;
+        flex: 1 1 180px;
+        min-width: 180px;
+    }
+
+    .filter-input:focus {
+        border-color: var(--accent);
+        background: #fff;
+    }
+
+    .filter-dropdown {
+        position: relative;
+        min-width: 140px;
+        flex: 1 1 180px;
+    }
+
+    .filter-dropdown-btn {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #d1d5db;
+        background: #f9fafb;
+        font-size: 1rem;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .filter-dropdown-btn:focus,
+    .filter-dropdown-btn.active {
+        border-color: var(--accent);
+        background: #fff;
+    }
+
+    .filter-dropdown-list {
+        display: none;
+        position: absolute;
+        top: 110%;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1.5px solid #d1d5db;
+        border-radius: 7px;
+        box-shadow: 0 4px 16px rgba(44, 62, 80, 0.10);
+        z-index: 10;
+        max-height: 260px;
+        overflow-y: auto;
+        padding: 8px 0;
+    }
+
+    .filter-dropdown.open .filter-dropdown-list {
+        display: block;
+    }
+
+    .filter-dropdown-list label {
+        display: flex;
+        align-items: center;
+        padding: 6px 16px;
+        font-size: 1rem;
+        cursor: pointer;
+        gap: 8px;
+        user-select: none;
+    }
+
+    .filter-dropdown-list label:hover {
+        background: #f1f5fb;
+    }
+
+    .filter-dropdown-list input[type="checkbox"] {
+        accent-color: var(--accent);
+        margin-right: 8px;
+    }
+
+    .filter-dropdown-list .dropdown-all {
+        font-weight: 600;
+        color: var(--accent);
+    }
+
+    /* Match assignments’ responsive rules */
+    @media (max-width: 700px) {
+        h1 {
+            font-size: 1.5rem;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .assignment-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        .actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-section {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .filter-dropdown,
+        .filter-input {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .filter-dropdown-list {
+            max-height: 200px;
+        }
+    }
+
+    /* --- Card Grid and Card Styles (identical class names as assignments) --- */
+    .assignment-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        /* exactly 2 per row */
+        gap: 28px;
+        margin-bottom: 32px;
+    }
+
+    .assignment-card {
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        box-shadow: 0 4px 24px rgba(44, 62, 80, 0.10);
+        border: 1.5px solid var(--border);
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.18s, border-color 0.18s, transform 0.12s;
+        position: relative;
+        overflow: hidden;
+        min-height: 220px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .assignment-card:hover {
+        box-shadow: 0 8px 32px rgba(44, 62, 80, 0.16);
+        border-color: var(--accent);
+        transform: translateY(-2px) scale(1.012);
+    }
+
+    /* No overdue/done badges for videos by default; can add later if needed */
+    .assignment-card .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 22px 24px 10px 24px;
+        background: linear-gradient(90deg, #f7fafd 60%, #eaf2fd 100%);
+        border-bottom: 1px solid #f0f4fa;
+    }
+
+    .assignment-card .card-header .badge {
+        background: var(--danger);
+        color: #fff;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border-radius: 6px;
+        padding: 3px 10px;
+        margin-right: 0;
+        letter-spacing: 0.01em;
+    }
+
+    .assignment-card .card-header .assignment-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin: 0 0 2px 0;
+        flex: 1;
+        line-height: 1.2;
+    }
+
+    .assignment-card .card-header .assignment-id {
+        font-size: 0.92rem;
+        color: var(--muted);
+        font-weight: 500;
+        margin-top: 2px;
+        margin-left: 12px;
+        white-space: nowrap;
+    }
+
+    .assignment-card .card-body {
+        padding: 16px 24px 0 24px;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .assignment-card .assignment-desc {
+        color: #374151;
+        font-size: 1.04rem;
+        margin-bottom: 6px;
+        margin-top: 2px;
+        min-height: 32px;
+        word-break: break-word;
+    }
+
+    .assignment-card .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 18px;
+        font-size: 0.98rem;
+        color: #4b5563;
+        margin-bottom: 2px;
+        margin-top: 2px;
+    }
+
+    .assignment-card .meta span {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        background: #f3f6fa;
+        border-radius: 5px;
+        padding: 2px 8px;
+        font-size: 0.97em;
+    }
+
+    .assignment-card .meta .points {
+        color: var(--accent);
+        font-weight: 600;
+    }
+
+    .assignment-card .actions {
+        display: flex;
+        gap: 10px;
+        padding: 16px 24px 18px 24px;
+        border-top: 1px solid #f0f4fa;
+        background: #f9fafb;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+
+    .assignment-card .actions form {
+        margin: 0;
+    }
+
+    .assignment-card .actions .btn {
+        min-width: 90px;
+        font-size: 0.98rem;
+        padding: 8px 16px;
+    }
+
+    /* --- Modal (use exact assignments classes for parity) --- */
+    .assignment-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(17, 24, 39, .5);
+        z-index: 1000;
+        transition: background 0.2s;
+        overflow-y: auto;
+    }
+
+    .assignment-modal.show {
+        display: flex;
+    }
+
+    .assignment-modal-content {
+        width: 100%;
+        max-width: 520px;
+        background: var(--card-bg);
+        border-radius: var(--radius);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .22);
+        padding: 32px 32px 24px 32px;
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
+        margin: 48px 0;
+        animation: modalPopIn 0.18s cubic-bezier(.4, 1.4, .6, 1) 1;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    @keyframes modalPopIn {
+        from {
+            transform: translateY(32px) scale(.98);
+            opacity: 0;
+        }
+
+        to {
+            transform: none;
+            opacity: 1;
+        }
+    }
+
+    .assignment-close-popup {
+        position: absolute;
+        right: 18px;
+        top: 14px;
+        font-size: 32px;
+        line-height: 1;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        color: #888;
+        transition: color 0.15s;
+        z-index: 2;
+    }
+
+    .assignment-close-popup:hover {
+        color: #222;
+    }
+
+    .assignment-modal-content form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .assignment-modal-content h2 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #1a202c;
+    }
+
+    .assignment-modal-content label {
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 2px;
+        margin-top: 2px;
+    }
+
+    .assignment-modal-content input,
+    .assignment-modal-content textarea,
+    .assignment-modal-content select {
+        border: 1.5px solid #d1d5db;
+        border-radius: 7px;
+        padding: 10px 14px;
+        font-size: 1rem;
+        background: #f9fafb;
+        outline: none;
+        transition: border-color 0.2s, background 0.2s;
+    }
+
+    .assignment-modal-content input:focus,
+    .assignment-modal-content textarea:focus,
+    .assignment-modal-content select:focus {
+        border-color: var(--accent);
+        background: #fff;
+    }
+
+    .assignment-modal-content input[type="file"] {
+        padding: 6px 0;
+        background: none;
+        border: none;
+    }
+
+    .assignment-modal-content button[type="submit"] {
+        margin-top: 10px;
+        align-self: flex-end;
+        min-width: 140px;
+    }
+
+    /* Same responsive modal tweaks */
+    @media (max-width: 900px) {
+        .assignment-modal-content {
+            max-width: 98vw;
+            padding: 20px 8vw 18px 8vw;
+        }
+    }
+
+    @media (max-width: 700px) {
+        .assignment-modal-content {
+            max-width: 99vw;
+            width: 99vw;
+            padding: 14px 4vw 12px 4vw;
+            margin: 16px 0;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+
+        .assignment-modal-content h2 {
+            font-size: 1.1rem;
+        }
+
+        .assignment-close-popup {
+            right: 8px;
+            top: 8px;
+            font-size: 28px;
+        }
+    }
+
+    /* --- Reusable dropdown-multiselect (identical) --- */
+    .multi {
+        position: relative;
+    }
+
+    .multi-btn {
+        width: 100%;
+        padding: 10px 14px;
+        border-radius: 7px;
+        border: 1.5px solid #d1d5db;
+        background: #f9fafb;
+        font-size: 1rem;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: border-color .2s, background .2s;
+    }
+
+    .multi.open .multi-btn,
+    .multi-btn:focus {
+        border-color: var(--accent);
+        background: #fff;
+        outline: none;
+    }
+
+    .multi-list {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1.5px solid #d1d5db;
+        border-radius: 7px;
+        box-shadow: 0 8px 24px rgba(17, 24, 39, .12);
+        max-height: 260px;
+        overflow: auto;
+        padding: 8px 0;
+        display: none;
+        z-index: 1001;
+    }
+
+    .multi.open .multi-list {
+        display: block;
+    }
+
+    .multi-list label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        cursor: pointer;
+    }
+
+    .multi-list label:hover {
+        background: #f1f5fb;
+    }
+
+    .multi-list input[type="checkbox"] {
+        accent-color: var(--accent);
+    }
+
+    .multi-all {
+        font-weight: 600;
+        color: var(--accent);
+    }
+
+    @media (max-width: 700px) {
+        .multi-list {
+            max-height: 220px;
+        }
+    }
 </style>
 
 <div class="container">
@@ -429,11 +599,17 @@ h1 {
         <input type="text" id="searchInput" class="filter-input" placeholder="Search videos...">
 
         <div class="filter-dropdown" id="schoolDropdown">
+<<<<<<< HEAD
             <button type="button" class="filter-dropdown-btn" id="schoolDropdownBtn">All Boards ▼</button>
             <div class="filter-dropdown-list" id="schoolDropdownList">
                 <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
+=======
+            <button type="button" class="filter-dropdown-btn" id="schoolDropdownBtn">All Groups ▼</button>
+            <div class="filter-dropdown-list" id="schoolDropdownList">
+                <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                 {% for school in schools %}
-                    <label><input type="checkbox" value="{{ school.name|e }}"> {{ school.name }}</label>
+                <label><input type="checkbox" value="{{ school.name|e }}"> {{ school.name }}</label>
                 {% endfor %}
             </div>
         </div>
@@ -443,7 +619,7 @@ h1 {
             <div class="filter-dropdown-list" id="groupDropdownList">
                 <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
                 {% for group in groups %}
-                    <label><input type="checkbox" value="{{ group.name|e }}"> {{ group.name }}</label>
+                <label><input type="checkbox" value="{{ group.name|e }}"> {{ group.name }}</label>
                 {% endfor %}
             </div>
         </div>
@@ -453,7 +629,7 @@ h1 {
             <div class="filter-dropdown-list" id="stageDropdownList">
                 <label class="dropdown-all"><input type="checkbox" value="" checked>All Stages</label>
                 {% for stage in stages %}
-                    <label><input type="checkbox" value="{{ stage.name|e }}"> {{ stage.name }}</label>
+                <label><input type="checkbox" value="{{ stage.name|e }}"> {{ stage.name }}</label>
                 {% endfor %}
             </div>
         </div>
@@ -463,12 +639,11 @@ h1 {
     <!-- Use the exact same grid/card classes for 1:1 styling -->
     <div id="videoGrid" class="assignment-grid">
         {% for video in videos %}
-        <a href="{{ url_for('admin.play_videos', video_id=video.id) }}"
-           class="assignment-card"
-           data-school="{% if video.schools_mm %}{{ video.schools_mm|map(attribute='name')|join(',') }}{% elif video.school %}{{ video.school.name }}{% else %}{% endif %}"
-           data-class="{% if video.groups_mm %}{{ video.groups_mm|map(attribute='name')|join(',') }}{% elif video.group %}{{ video.group.name }}{% else %}{% endif %}"
-           data-year="{% if video.stages_mm %}{{ video.stages_mm|map(attribute='name')|join(',') }}{% elif video.stage %}{{ video.stage.name }}{% else %}{% endif %}"
-           style="text-decoration: none; color: inherit;">
+        <a href="{{ url_for('admin.play_videos', video_id=video.id) }}" class="assignment-card"
+            data-school="{% if video.schools_mm %}{{ video.schools_mm|map(attribute='name')|join(',') }}{% elif video.school %}{{ video.school.name }}{% else %}{% endif %}"
+            data-class="{% if video.groups_mm %}{{ video.groups_mm|map(attribute='name')|join(',') }}{% elif video.group %}{{ video.group.name }}{% else %}{% endif %}"
+            data-year="{% if video.stages_mm %}{{ video.stages_mm|map(attribute='name')|join(',') }}{% elif video.stage %}{{ video.stage.name }}{% else %}{% endif %}"
+            style="text-decoration: none; color: inherit;">
             <div class="card-header">
                 <div style="display:flex;align-items:center;gap:10px;">
                     <!-- Optional: badge if you ever hide videos; kept for parity -->
@@ -478,7 +653,8 @@ h1 {
             </div>
             <div class="card-body">
                 <div class="video-thumbnail">
-                    <img src="{{ url_for('student.video_thumbnail', video_id=video.id) }}" alt="Video Thumbnail" style="width: 100%; max-width: 200px; display: block; margin: 0 auto 12px auto; border-radius: 10px; box-shadow: 0 2px 12px rgba(30, 48, 90, 0.10); object-fit: cover; background: #f3f6fa;">
+                    <img src="{{ url_for('student.video_thumbnail', video_id=video.id) }}" alt="Video Thumbnail"
+                        style="width: 100%; max-width: 200px; display: block; margin: 0 auto 12px auto; border-radius: 10px; box-shadow: 0 2px 12px rgba(30, 48, 90, 0.10); object-fit: cover; background: #f3f6fa;">
                 </div>
                 <div class="assignment-desc">
                     {{ video.description or 'No description' }}
@@ -487,31 +663,35 @@ h1 {
                     <span title="School">
                         🏫
                         {% if video.schools_mm %}
-                            {{ video.schools_mm|map(attribute='name')|join(', ') }}
+                        {{ video.schools_mm|map(attribute='name')|join(', ') }}
                         {% elif video.school %}
-                            {{ video.school.name }}
+                        {{ video.school.name }}
                         {% else %}
+<<<<<<< HEAD
                             All Boards
+=======
+                        All Groups
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                         {% endif %}
                     </span>
                     <span title="Stage/Year">
                         🎓
                         {% if video.stages_mm %}
-                            {{ video.stages_mm|map(attribute='name')|join(', ') }}
+                        {{ video.stages_mm|map(attribute='name')|join(', ') }}
                         {% elif video.stage %}
-                            {{ video.stage.name }}
+                        {{ video.stage.name }}
                         {% else %}
-                            All Years
+                        All Years
                         {% endif %}
                     </span>
                     <span title="Class/Group">
                         🏷️
                         {% if video.groups_mm %}
-                            {{ video.groups_mm|map(attribute='name')|join(', ') }}
+                        {{ video.groups_mm|map(attribute='name')|join(', ') }}
                         {% elif video.group %}
-                            {{ video.group.name }}
+                        {{ video.group.name }}
                         {% else %}
-                            All Classes
+                        All Classes
                         {% endif %}
                     </span>
                     {% if video.category %}
@@ -520,10 +700,13 @@ h1 {
                 </div>
             </div>
             <div class="actions" style="pointer-events: none;">
-                <form method="GET" action="{{ url_for('admin.edit_video', video_id=video.id) }}" style="pointer-events: auto;">
+                <form method="GET" action="{{ url_for('admin.edit_video', video_id=video.id) }}"
+                    style="pointer-events: auto;">
                     <button class="btn btn-primary" type="submit">Edit</button>
                 </form>
-                <form method="POST" action="{{ url_for('admin.delete_video', video_id=video.id) }}" onsubmit="return confirmAction(event , 'Delete video: {{ video.title }}?')" style="pointer-events: auto;">
+                <form method="POST" action="{{ url_for('admin.delete_video', video_id=video.id) }}"
+                    onsubmit="return confirmAction(event , 'Delete video: {{ video.title }}?')"
+                    style="pointer-events: auto;">
                     <button class="btn btn-danger" type="submit">Delete</button>
                 </form>
             </div>
@@ -555,6 +738,7 @@ h1 {
 
             <label>Schools</label>
             <div class="multi" id="ms-schools">
+<<<<<<< HEAD
               <button type="button" class="multi-btn" id="ms-schools-btn">All Boards ▼</button>
               <div class="multi-list" id="ms-schools-list">
                 <label class="multi-all"><input type="checkbox" value="" checked>All Boards</label>
@@ -562,28 +746,37 @@ h1 {
                   <label><input type="checkbox" name="schools_mm[]" value="{{ school.id }}">{{ school.name }}</label>
                 {% endfor %}
               </div>
+=======
+                <button type="button" class="multi-btn" id="ms-schools-btn">All Groups ▼</button>
+                <div class="multi-list" id="ms-schools-list">
+                    <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
+                    {% for school in schools %}
+                    <label><input type="checkbox" name="schools_mm[]" value="{{ school.id }}">{{ school.name }}</label>
+                    {% endfor %}
+                </div>
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
             </div>
 
             <label>Stages</label>
             <div class="multi" id="ms-stages">
-              <button type="button" class="multi-btn" id="ms-stages-btn">All Stages ▼</button>
-              <div class="multi-list" id="ms-stages-list">
-                <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
-                {% for stage in stages %}
-                  <label><input type="checkbox" name="stages_mm[]" value="{{ stage.id }}">{{ stage.name }}</label>
-                {% endfor %}
-              </div>
+                <button type="button" class="multi-btn" id="ms-stages-btn">All Stages ▼</button>
+                <div class="multi-list" id="ms-stages-list">
+                    <label class="multi-all"><input type="checkbox" value="" checked>All Stages</label>
+                    {% for stage in stages %}
+                    <label><input type="checkbox" name="stages_mm[]" value="{{ stage.id }}">{{ stage.name }}</label>
+                    {% endfor %}
+                </div>
             </div>
 
             <label>Classes</label>
             <div class="multi" id="ms-groups">
-              <button type="button" class="multi-btn" id="ms-groups-btn">All Classes ▼</button>
-              <div class="multi-list" id="ms-groups-list">
-                <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
-                {% for group in groups %}
-                  <label><input type="checkbox" name="groups_mm[]" value="{{ group.id }}">{{ group.name }}</label>
-                {% endfor %}
-              </div>
+                <button type="button" class="multi-btn" id="ms-groups-btn">All Classes ▼</button>
+                <div class="multi-list" id="ms-groups-list">
+                    <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
+                    {% for group in groups %}
+                    <label><input type="checkbox" name="groups_mm[]" value="{{ group.id }}">{{ group.name }}</label>
+                    {% endfor %}
+                </div>
             </div>
 
             <label>Category</label>
@@ -603,123 +796,137 @@ h1 {
 </div>
 
 <script>
-// Open/close modal (identical behavior to assignments)
-const videoModal = document.getElementById('videoModal');
-const openAddVideoBtn = document.getElementById('openAddVideo');
-const closeVideoBtn = document.getElementById('closeVideoModal');
-if (openAddVideoBtn) openAddVideoBtn.onclick = () => videoModal.style.display = 'flex';
-if (closeVideoBtn) closeVideoBtn.onclick = () => videoModal.style.display = 'none';
-if (videoModal) videoModal.onclick = e => { if (e.target === videoModal) videoModal.style.display = 'none'; };
+    // Open/close modal (identical behavior to assignments)
+    const videoModal = document.getElementById('videoModal');
+    const openAddVideoBtn = document.getElementById('openAddVideo');
+    const closeVideoBtn = document.getElementById('closeVideoModal');
+    if (openAddVideoBtn) openAddVideoBtn.onclick = () => videoModal.style.display = 'flex';
+    if (closeVideoBtn) closeVideoBtn.onclick = () => videoModal.style.display = 'none';
+    if (videoModal) videoModal.onclick = e => { if (e.target === videoModal) videoModal.style.display = 'none'; };
 
-// Dropdown logic for filters (copied exactly from assignments)
-function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
-    const dropdown = document.getElementById(dropdownId);
-    const btn = document.getElementById(btnId);
-    const list = document.getElementById(listId);
-    const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
-    const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
+    // Dropdown logic for filters (copied exactly from assignments)
+    function setupDropdown(dropdownId, btnId, listId, labelAll, updateCallback) {
+        const dropdown = document.getElementById(dropdownId);
+        const btn = document.getElementById(btnId);
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+        const checkboxes = Array.from(list.querySelectorAll('input[type="checkbox"]')).filter(cb => cb !== allCheckbox);
 
-    // Open/close dropdown
-    btn.onclick = function(e) {
-        e.stopPropagation();
-        document.querySelectorAll('.filter-dropdown').forEach(d => {
-            if (d !== dropdown) d.classList.remove('open');
-        });
-        dropdown.classList.toggle('open');
-        btn.classList.toggle('active');
-    };
+        // Open/close dropdown
+        btn.onclick = function (e) {
+            e.stopPropagation();
+            document.querySelectorAll('.filter-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.remove('open');
+            });
+            dropdown.classList.toggle('open');
+            btn.classList.toggle('active');
+        };
 
-    // Close dropdown on outside click
-    document.addEventListener('click', function(e) {
-        if (!dropdown.contains(e.target)) {
-            dropdown.classList.remove('open');
-            btn.classList.remove('active');
-        }
-    });
-
-    // All checkbox logic
-    allCheckbox.onchange = function() {
-        if (allCheckbox.checked) {
-            checkboxes.forEach(cb => cb.checked = false);
-        }
-        updateBtnLabel();
-        updateCallback();
-    };
-
-    // Individual checkbox logic
-    checkboxes.forEach(cb => {
-        cb.onchange = function() {
-            if (cb.checked) {
-                allCheckbox.checked = false;
+        // Close dropdown on outside click
+        document.addEventListener('click', function (e) {
+            if (!dropdown.contains(e.target)) {
+                dropdown.classList.remove('open');
+                btn.classList.remove('active');
             }
-            // If none checked, check "All"
-            if (!checkboxes.some(c => c.checked)) {
-                allCheckbox.checked = true;
+        });
+
+        // All checkbox logic
+        allCheckbox.onchange = function () {
+            if (allCheckbox.checked) {
+                checkboxes.forEach(cb => cb.checked = false);
             }
             updateBtnLabel();
             updateCallback();
         };
-    });
 
-    function updateBtnLabel() {
-        let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
-        if (allCheckbox.checked || selected.length === 0) {
-            btn.textContent = labelAll + " ▼";
-        } else if (selected.length === 1) {
-            btn.textContent = selected[0] + " ▼";
-        } else {
-            btn.textContent = selected.length + " selected ▼";
+        // Individual checkbox logic
+        checkboxes.forEach(cb => {
+            cb.onchange = function () {
+                if (cb.checked) {
+                    allCheckbox.checked = false;
+                }
+                // If none checked, check "All"
+                if (!checkboxes.some(c => c.checked)) {
+                    allCheckbox.checked = true;
+                }
+                updateBtnLabel();
+                updateCallback();
+            };
+        });
+
+        function updateBtnLabel() {
+            let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
+            if (allCheckbox.checked || selected.length === 0) {
+                btn.textContent = labelAll + " ▼";
+            } else if (selected.length === 1) {
+                btn.textContent = selected[0] + " ▼";
+            } else {
+                btn.textContent = selected.length + " selected ▼";
+            }
         }
+        updateBtnLabel();
     }
-    updateBtnLabel();
-}
 
-function getCheckedValues(listId) {
-    const list = document.getElementById(listId);
-    const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
-    if (allCheckbox.checked) return [];
-    return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value.toLowerCase()).filter(Boolean);
-}
+    function getCheckedValues(listId) {
+        const list = document.getElementById(listId);
+        const allCheckbox = list.querySelector('label input[type="checkbox"][value=""]');
+        if (allCheckbox.checked) return [];
+        return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value.toLowerCase()).filter(Boolean);
+    }
 
+<<<<<<< HEAD
 setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterVideos);
 setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterVideos);
 setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterVideos);
+=======
+    setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterVideos);
+    setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterVideos);
+    setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterVideos);
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
 
-document.getElementById('searchInput').addEventListener('input', filterVideos);
+    document.getElementById('searchInput').addEventListener('input', filterVideos);
 
-// Filtering logic identical to assignments (title-only + dataset attrs)
-function filterVideos(){
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const sSchools = getCheckedValues('schoolDropdownList');
-    const sGroups = getCheckedValues('groupDropdownList');
-    const sStages = getCheckedValues('stageDropdownList');
+    // Filtering logic identical to assignments (title-only + dataset attrs)
+    function filterVideos() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const sSchools = getCheckedValues('schoolDropdownList');
+        const sGroups = getCheckedValues('groupDropdownList');
+        const sStages = getCheckedValues('stageDropdownList');
 
-    document.querySelectorAll('#videoGrid .assignment-card').forEach(card => {
-        const titleElem = card.querySelector('.assignment-title');
-        const title = titleElem ? titleElem.textContent.toLowerCase() : '';
-        const schools = card.dataset.school ? card.dataset.school.toLowerCase().split(',') : [];
-        const groups = card.dataset.class ? card.dataset.class.toLowerCase().split(',') : [];
-        const years  = card.dataset.year ? card.dataset.year.toLowerCase().split(',') : [];
+        document.querySelectorAll('#videoGrid .assignment-card').forEach(card => {
+            const titleElem = card.querySelector('.assignment-title');
+            const title = titleElem ? titleElem.textContent.toLowerCase() : '';
+            const schools = card.dataset.school ? card.dataset.school.toLowerCase().split(',') : [];
+            const groups = card.dataset.class ? card.dataset.class.toLowerCase().split(',') : [];
+            const years = card.dataset.year ? card.dataset.year.toLowerCase().split(',') : [];
 
-        const schoolMatch = !sSchools.length || sSchools.some(val => schools.includes(val));
-        const groupMatch  = !sGroups.length  || sGroups.some(val => groups.includes(val));
-        const stageMatch  = !sStages.length  || sStages.some(val => years.includes(val));
-        const match = title.includes(search) && schoolMatch && groupMatch && stageMatch;
-        card.style.display = match ? '' : 'none';
-    });
-}
+            const schoolMatch = !sSchools.length || sSchools.some(val => schools.includes(val));
+            const groupMatch = !sGroups.length || sGroups.some(val => groups.includes(val));
+            const stageMatch = !sStages.length || sStages.some(val => years.includes(val));
+            const match = title.includes(search) && schoolMatch && groupMatch && stageMatch;
+            card.style.display = match ? '' : 'none';
+        });
+    }
 
-// Optional helper used in delete buttons (safe no-op if not used)
-function confirmAction(e , msg){
-  if(!confirm(msg)){ e.preventDefault(); return false; }
-  return true;
-}
+    // Optional helper used in delete buttons (safe no-op if not used)
+    function confirmAction(e, msg) {
+        if (!confirm(msg)) { e.preventDefault(); return false; }
+        return true;
+    }
 
+<<<<<<< HEAD
 // Modal Multi-selects (same helpers/classes as assignments)
 function setupModalMulti(id, btn, list, label){ setupDropdown(id, btn, list, label, () => {}); }
 setupModalMulti('ms-schools','ms-schools-btn','ms-schools-list','All Boards');
 setupModalMulti('ms-stages','ms-stages-btn','ms-stages-list','All Stages');
 setupModalMulti('ms-groups','ms-groups-btn','ms-groups-list','All Classes');
+=======
+    // Modal Multi-selects (same helpers/classes as assignments)
+    function setupModalMulti(id, btn, list, label) { setupDropdown(id, btn, list, label, () => { }); }
+    setupModalMulti('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
+    setupModalMulti('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+    setupModalMulti('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
 </script>
 
 {% endblock %}

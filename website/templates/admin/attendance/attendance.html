@@ -372,14 +372,21 @@
                     <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
                         Subjects ▼</button>
                     <div class="filter-dropdown-list" id="subjectDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                     </div>
                 </div>
                 <div class="filter-dropdown disabled" id="schoolDropdown">
+<<<<<<< HEAD
                     <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Boards
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
                         <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
+=======
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
+                        ▼</button>
+                    <div class="filter-dropdown-list" id="schoolDropdownList">
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     </div>
                 </div>
                 <div class="filter-dropdown disabled" id="stageDropdown">
@@ -452,7 +459,7 @@
                 <div>
                     <label class="form-label">Subject</label>
                     <div class="multi" id="ms-subjects">
-                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Board
                             ▼</button>
                         <div class="multi-list" id="ms-subjects-list"></div>
                     </div>
@@ -460,10 +467,17 @@
                 <div>
                     <label class="form-label">School</label>
                     <div class="multi disabled" id="ms-schools">
+<<<<<<< HEAD
                         <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Boards
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
                             <label class="multi-all"><input type="checkbox" value="" checked>All Boards</label>
+=======
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
+                            ▼</button>
+                        <div class="multi-list" id="ms-schools-list">
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                         </div>
                     </div>
                 </div>
@@ -722,8 +736,13 @@
                     modal.classList.remove('show');
                     form.reset();
                     // Reset modal dropdown button labels
+<<<<<<< HEAD
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
                     document.getElementById('ms-schools-btn').textContent = 'All Boards ▼';
+=======
+                    document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Attendance session created successfully', 'success');
@@ -800,7 +819,7 @@
                 <label class="form-label">Subject</label>
                 <div class="multi" id="edit-ms-subjects">
                     <button type="button" class="btn form-input multi-btn" id="edit-ms-subjects-btn">
-                        ${session.subject && session.subject.name ? escapeHtml(session.subject.name) : 'Choose Subject'} ▼
+                        ${session.subject && session.subject.name ? escapeHtml(session.subject.name) : 'Choose Board'} ▼
                     </button>
                     <div class="multi-list" id="edit-ms-subjects-list"></div>
                 </div>
@@ -1073,7 +1092,11 @@
         }
 
         const sessionsHTML = sessions.map(s => {
+<<<<<<< HEAD
             const schoolStr = s.schools || 'All Boards';
+=======
+            const schoolStr = s.schools || 'All Groups';
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
             const stageStr = s.stages || 'All Stages';
             const groupStr = s.groups || 'All Classes';
             const viewHref = `/admin/attendance/${s.id}`;
@@ -1217,8 +1240,13 @@
             msSchoolsList.appendChild(label);
         });
 
+<<<<<<< HEAD
         setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterSessions);
         setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
+=======
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterSessions);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
     }
 
     function enableFilters() {
@@ -1294,7 +1322,7 @@
 
             setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterSessions);
             setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterSessions);
-            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Subjects', function () {
+            setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Boards', function () {
                 populateSchoolDropdowns();
                 filterSessions();
                 toggleSchoolFilterDropdown();
@@ -1324,7 +1352,11 @@
                         label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
+<<<<<<< HEAD
                     setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
+=======
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
+>>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     toggleModalSchoolDropdown();
                 };
             });
