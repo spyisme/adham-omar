@@ -447,7 +447,7 @@
                     </div>
                 </div>
 
-                <div class="filter-dropdown disabled" id="stageDropdown">
+                <!-- <div class="filter-dropdown disabled" id="stageDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
                         ▼</button>
                     <div class="filter-dropdown-list" id="stageDropdownList">
@@ -461,7 +461,7 @@
                     <div class="filter-dropdown-list" id="groupDropdownList">
                         <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -530,7 +530,8 @@
 
                 <div>
                     <label class="form-label">Out of</label>
-                    <input type="number" name="out_of" placeholder="e.g., 100 (leave empty for ungraded exam)" class="form-input">
+                    <input type="number" name="out_of" placeholder="e.g., 100 (leave empty for ungraded exam)"
+                        class="form-input">
                 </div>
                 <div>
                     <label class="form-label">Board</label>
@@ -550,7 +551,7 @@
                         </div>
                     </div>
                 </div>
-                <div>
+                <!-- <div>
                     <label class="form-label">Stage</label>
                     <div class="multi" id="ms-stages">
                         <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
@@ -568,7 +569,7 @@
                             <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 <div>
                     <label class="form-label">Exam Date</label>
                     <input type="datetime-local" name="deadline_date" required class="form-input">
@@ -853,8 +854,8 @@
                     // Reset modal dropdown button labels
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
                     document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
-                    document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
-                    document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
+                    // document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+                    // document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Exam created successfully', 'success');
                 } else {
                     showToast((data && data.message) || 'Failed to create exam', 'error');
@@ -1146,7 +1147,7 @@
                 <div id="edit-ms-schools-container" style="position: relative;"></div>
                 <input type="hidden" name="school_ids" id="edit-school-ids">
             </div>
-            <div>
+            <!-- <div>
                 <label class="form-label">Stage</label>
                 <div class="multi" id="edit-ms-stages">
                     <button type="button" class="btn form-input multi-btn" id="edit-ms-stages-btn">All Stages ▼</button>
@@ -1163,7 +1164,7 @@
                         <label class="multi-all"><input type="checkbox" value="" ${!exam.groups_mm || exam.groups_mm.length === 0 ? 'checked' : ''}>All Classes</label>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div>
                 <label class="form-label">Exam Date</label>
                 <input type="datetime-local" name="deadline_date" required value="${exam.deadline_date || ''}" class="form-input">
@@ -1192,21 +1193,21 @@
             <label><input type="radio" name="subject_id" value="${subject.id}" required ${exam.subject && exam.subject.id === subject.id ? 'checked' : ''}>${escapeHtml(subject.name)}</label>
         `).join('');
 
-        // Populate stages
-        const stageList = document.getElementById('edit-ms-stages-list');
-        const stageCheckboxes = stages.map(stage => {
-            const isChecked = exam.stages_mm && exam.stages_mm.some(s => s.id === stage.id);
-            return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
-        }).join('');
-        stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
+        // // Populate stages
+        // const stageList = document.getElementById('edit-ms-stages-list');
+        // const stageCheckboxes = stages.map(stage => {
+        //     const isChecked = exam.stages_mm && exam.stages_mm.some(s => s.id === stage.id);
+        //     return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
+        // }).join('');
+        // stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
 
-        // Populate groups
-        const groupList = document.getElementById('edit-ms-classes-list');
-        const groupCheckboxes = groups.map(group => {
-            const isChecked = exam.groups_mm && exam.groups_mm.some(g => g.id === group.id);
-            return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
-        }).join('');
-        groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
+        // // Populate groups
+        // const groupList = document.getElementById('edit-ms-classes-list');
+        // const groupCheckboxes = groups.map(group => {
+        //     const isChecked = exam.groups_mm && exam.groups_mm.some(g => g.id === group.id);
+        //     return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
+        // }).join('');
+        // groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
 
         // Populate schools and set hidden field
         if (exam.schools_mm && exam.schools_mm.length > 0) {
@@ -1218,8 +1219,8 @@
         setupEditSchoolMultiSelect(exam.schools_mm || [], availableSchools);
 
         // Setup dropdowns
-        setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
-        setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
+        // setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
+        // setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
 
         // Setup subject dropdown
         const subjectDropdown = document.getElementById('edit-ms-subjects');
@@ -1497,28 +1498,28 @@
     function filterExams() {
         const search = document.getElementById('searchInput').value.toLowerCase();
         const sSchools = getCheckedValues('schoolDropdownList');
-        const sGroups = getCheckedValues('groupDropdownList');
-        const sStages = getCheckedValues('stageDropdownList');
+        // const sGroups = getCheckedValues('groupDropdownList');
+        // const sStages = getCheckedValues('stageDropdownList');
         const sSubjects = getCheckedValues('subjectDropdownList');
 
         const filteredExams = allExams.filter(exam => {
             const title = (exam.title || '').toLowerCase();
             const schools = exam.schools || [];
-            const groups = exam.groups || [];
-            const stages = exam.stages || [];
+            // const groups = exam.groups || [];
+            // const stages = exam.stages || [];
             const subjectId = String(exam.subject_id || '');
 
             const searchMatch = title.includes(search);
             const subjectMatch = sSubjects.length === 0 || sSubjects.includes(subjectId);
             const schoolMatch = sSchools.length === 0 || (schools.length > 0 && sSchools.some(val => schools.includes(val)));
-            const groupMatch = sGroups.length === 0 || (groups.length > 0 && sGroups.some(val => groups.includes(val)));
-            const stageMatch = sStages.length === 0 || (stages.length > 0 && sStages.some(val => stages.includes(val)));
+            // const groupMatch = sGroups.length === 0 || (groups.length > 0 && sGroups.some(val => groups.includes(val)));
+            // const stageMatch = sStages.length === 0 || (stages.length > 0 && sStages.some(val => stages.includes(val)));
 
             const schoolCatchAll = sSchools.length === 0 && schools.length === 0;
-            const groupCatchAll = sGroups.length === 0 && groups.length === 0;
-            const stageCatchAll = sStages.length === 0 && stages.length === 0;
+            // const groupCatchAll = sGroups.length === 0 && groups.length === 0;
+            // const stageCatchAll = sStages.length === 0 && stages.length === 0;
 
-            return searchMatch && subjectMatch && (schoolMatch || schoolCatchAll) && (groupMatch || groupCatchAll) && (stageMatch || stageCatchAll);
+            return searchMatch && subjectMatch && (schoolMatch || schoolCatchAll); // && (groupMatch || groupCatchAll) && (stageMatch || stageCatchAll);
         });
 
         renderExams(filteredExams);
@@ -1593,8 +1594,8 @@
     function enableFilters() {
         document.getElementById('searchInput').disabled = false;
         document.getElementById('subjectDropdown').classList.remove('disabled');
-        document.getElementById('stageDropdown').classList.remove('disabled');
-        document.getElementById('groupDropdown').classList.remove('disabled');
+        // document.getElementById('stageDropdown').classList.remove('disabled');
+        // document.getElementById('groupDropdown').classList.remove('disabled');
         isLoading = false;
     }
 
@@ -1607,42 +1608,42 @@
             subjectList.appendChild(label);
         });
 
-        const stageList = document.getElementById('stageDropdownList');
-        stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        stages.forEach(stage => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
-            stageList.appendChild(label);
-        });
+        // const stageList = document.getElementById('stageDropdownList');
+        // stageList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        // stages.forEach(stage => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" value="${stage.name}"> ${stage.name}`;
+        //     stageList.appendChild(label);
+        // });
 
-        const groupList = document.getElementById('groupDropdownList');
-        groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        // const groupList = document.getElementById('groupDropdownList');
+        // groupList.querySelectorAll('label:not(.dropdown-all)').forEach(l => l.remove());
+        // groups.forEach(group => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" value="${group.name}"> ${group.name}`;
+        //     groupList.appendChild(label);
+        // });
     }
 
     function populateModalDropdowns() {
         const subjectList = document.getElementById('ms-subjects-list');
         subjectList.innerHTML = subjects.map(subject => `<label><input type="radio" name="subject_id" value="${subject.id}" required>${subject.name}</label>`).join('');
 
-        const stageList = document.getElementById('ms-stages-list');
-        stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        stages.forEach(stage => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
-            stageList.appendChild(label);
-        });
+        // const stageList = document.getElementById('ms-stages-list');
+        // stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        // stages.forEach(stage => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
+        //     stageList.appendChild(label);
+        // });
 
-        const groupList = document.getElementById('ms-classes-list');
-        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        // const groupList = document.getElementById('ms-classes-list');
+        // groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        // groups.forEach(group => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
+        //     groupList.appendChild(label);
+        // });
     }
 
     async function initializePage() {
@@ -1661,15 +1662,15 @@
             populateFilterDropdowns();
             populateModalDropdowns();
 
-            setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterExams);
-            setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterExams);
+            // setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterExams);
+            // setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterExams);
             setupDropdown('subjectDropdown', 'subjectDropdownBtn', 'subjectDropdownList', 'All Boards', function () {
                 populateSchoolDropdowns();
                 filterExams();
                 toggleSchoolFilterDropdown();
             });
-            setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
-            setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
+            // setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+            // setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
 
             const subjectDropdown = document.getElementById('ms-subjects');
             const subjectBtn = document.getElementById('ms-subjects-btn');
