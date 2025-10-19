@@ -237,7 +237,7 @@
                                          class="actions-menu-item">
                                             🖊️ Edit on Corrected PDF
                                         </a>
-                                        <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}"
+                                        <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
                                          class="actions-menu-item">
                                             👁️ Open Corrected PDF
                                         </a>
@@ -245,9 +245,9 @@
                                         <form method="POST"
                                             action="{{ url_for('admin.delete_submission', submission_id=submission.id) }}"
                                             style="display:inline; margin: 0;"
-                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission?');">
+                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission? <br> <p style=&quot;color: red;&quot;>This can\'t be undone</p>');">
                                             <button type="submit" class="actions-menu-item actions-menu-item-danger">
-                                                🗑️ Delete Submission
+                                                🗑️ Delete Student Submission
                                             </button>
                                         </form>
                                         {% endif %}
