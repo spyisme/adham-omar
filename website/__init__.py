@@ -114,7 +114,7 @@ def create_app():
         and current_user.student_whatsapp != full_phone_number \
         and current_user.code.lower() != 'nth':
             
-            return f"{full_phone_number} vs {current_user.student_whatsapp} vs {current_user.phone_number}"
+            return redirect(url_for('student.whatsapp'))
 
 
 
