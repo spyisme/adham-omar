@@ -3204,12 +3204,23 @@ def edit_assignment(assignment_id):
             parent_whatsapp = True
         else:
             parent_whatsapp = False
+
+        #close after deadline
+        close_after_deadline = request.form.get("close_after_deadline", False)
+        if close_after_deadline == "true":
+            close_after_deadline = True
+        else:
+            close_after_deadline = False
+
+
+
         # out of (full mark)
         out_of = request.form.get("out_of", 0)
         out_of = int(out_of) if str(out_of).isdigit() else 0
         assignment.student_whatsapp = student_whatsapp
         assignment.parent_whatsapp = parent_whatsapp
         assignment.out_of = out_of
+        assignment.close_after_deadline = close_after_deadline
 
 
 
@@ -3315,6 +3326,7 @@ def edit_assignment(assignment_id):
                     "student_whatsapp": assignment.student_whatsapp,
                     "parent_whatsapp": assignment.parent_whatsapp,
                     "out_of": assignment.out_of,
+                    "close_after_deadline": assignment.close_after_deadline,
                 }
             }
         )
@@ -3355,6 +3367,7 @@ def edit_assignment(assignment_id):
                 "student_whatsapp": assignment.student_whatsapp,
                 "parent_whatsapp": assignment.parent_whatsapp,
                 "out_of": assignment.out_of,
+                "close_after_deadline": assignment.close_after_deadline,
             }
             
             return jsonify({"success": True, "message": "Assignment updated successfully!", "assignment": updated_assignment})
