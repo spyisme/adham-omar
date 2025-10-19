@@ -5,9 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Subjects with Adham Omar - Login</title>
-  <meta name="description" content="Subjects with  Adham Omar Login">
-  <meta name="keywords" content="Subjects,  Adham Omar, Login, Subjects with  Adham Omar">
-  <meta name="author" content=" Adham Omar">
+  <meta name="description" content="Subjects with Adham Omar Login">
+  <meta name="keywords" content="Subjects, Adham Omar, Login, Subjects with Adham Omar">
+  <meta name="author" content="Adham Omar">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -25,11 +25,7 @@
       --border-color: #dee2e6;
       --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.05);
       --shadow-medium: 0 8px 25px rgba(0, 0, 0, 0.1);
-      --error-bg: #f8d7da;
-      --error-text: #721c24;
-      --error-border: #f5c6cb;
       --radius-md: 0.5rem;
-      --radius-lg: 15px;
     }
 
     /* --- Base & Typography --- */
@@ -47,32 +43,23 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 1.5rem;
     }
 
     h1, h2, .brand-logo {
       font-family: 'Playfair Display', serif;
     }
 
-    /* --- Main Page Layout --- */
+    /* --- Main Full Page Layout --- */
     .page-container {
       display: flex;
-      min-height: 90vh;
-      max-width: 1000px; /* Login panel is narrower */
-      margin: auto;
+      width: 100vw;
+      height: 100vh;
       background: var(--white-color);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-medium);
-      overflow: hidden;
       animation: fade-in 0.8s ease-out;
     }
 
     .welcome-panel {
-      flex-basis: 45%; /* Adjusted basis */
+      flex-basis: 45%;
       background: linear-gradient(45deg, var(--primary-color), #4dabff);
       color: var(--white-color);
       display: flex;
@@ -105,13 +92,19 @@
     }
 
     .form-panel {
-      flex-basis: 55%; /* Adjusted basis */
+      flex-basis: 55%;
       background-color: var(--white-color);
-      padding: clamp(1.5rem, 5vw, 3rem);
+      padding: clamp(2rem, 8vw, 4rem);
       display: flex;
       flex-direction: column;
       justify-content: center;
       overflow-y: auto;
+    }
+
+    .form-wrapper {
+        max-width: 450px;
+        margin: 0 auto;
+        width: 100%;
     }
 
     .form-header h1 {
@@ -237,20 +230,13 @@
 
     /* --- Responsive Design --- */
     @media (max-width: 992px) {
-      body {
-        padding: 0;
-        align-items: stretch;
-      }
       .page-container {
         flex-direction: column;
-        border-radius: 0;
-        min-height: 100vh;
-        max-width: none;
       }
       .welcome-panel { display: none; }
       .form-panel { 
-        flex-basis: 100%; 
-        min-height: 100vh;
+        flex-basis: 100%;
+        padding: 2rem;
       }
     }
   </style>
@@ -281,7 +267,7 @@
     </aside>
 
     <main class="form-panel">
-      <div>
+      <div class="form-wrapper">
         <div class="form-header">
           <h1>Welcome Back!</h1>
           <p>Please enter your credentials to log in.</p>
