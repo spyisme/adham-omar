@@ -421,7 +421,7 @@ class Assignments(db.Model):
     subjectid = db.Column(db.Integer, db.ForeignKey('subjects.id'), nullable=True)
 
 
-    attachments = db.Column(db.Text, nullable=True)
+    attachments = db.Column(db.JSON, nullable=True)
     status = db.Column(db.String(50), nullable=False, server_default="Show")
     points = db.Column(db.Integer, nullable=False, default=0)
 
