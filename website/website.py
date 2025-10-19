@@ -781,14 +781,14 @@ def activate_whatsapp():
             return jsonify({"message": "Whatsapp activated successfully!"})
         else :
             return jsonify({"message": "Whatsapp already activated!"})
-    elif target_user and target_user.otp:
+    elif target_user and target_user.otp and target_user.student_whatsapp is None and target_user.parent_whatsapp is None:
         # User exists but OTP doesn't match
         send_whatsapp_message(phone_number, "Invalid OTP. Please try again." , bypass = True)
         return jsonify({"message": "Invalid OTP"})
     else:
         # No user found or no OTP set
         flash("User not found!", "danger")
-        send_whatsapp_message(phone_number, "User not found! Please register first." , bypass = True)
+        # send_whatsapp_message(phone_number, "User not found! Please register first." , bypass = True)
         return jsonify({"message": "User not found!"})
 
 
