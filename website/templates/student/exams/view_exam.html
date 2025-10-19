@@ -5,50 +5,39 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-
-  /* Cards & badges */
-  .card {
-    transition: all .3s ease;
-    transform: translateY(0);
+  :root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: #eef2ff;
+    --success: #10b981;
+    --success-light: #d1fae5;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --text-primary: #1f2937;
+    --text-secondary: #6b7280;
+    --border-color: #e5e7eb;
+    --bg-card: #ffffff;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
-  .card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, .1), 0 10px 10px -5px rgba(0, 0, 0, .04);
+  * {
+    box-sizing: border-box;
   }
 
-  .badge {
-    font-weight: 600;
-    border-radius: 9999px;
-    padding: .25rem .625rem;
-    font-size: .75rem;
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: var(--text-primary);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
   }
 
-  .badge-open {
-    background: rgba(99, 102, 241, .12);
-    color: #4f46e5;
-    border: 1px solid rgba(99, 102, 241, .35);
-  }
-
-  .badge-completed {
-    background: rgba(16, 185, 129, .12);
-    color: #059669;
-    border: 1px solid rgba(16, 185, 129, .35);
-  }
-
-  .badge-late {
-    background: rgba(249, 115, 22, .12);
-    color: #c2410c;
-    border: 1px solid rgba(249, 115, 22, .35);
-  }
-
-  .badge-expired {
-    background: rgba(239, 68, 68, .12);
-    color: #b91c1c;
-    border: 1px solid rgba(239, 68, 68, .35);
-  }
-
-  /* Layout */
   .container {
     max-width: 896px;
     margin: 0 auto;
@@ -58,194 +47,140 @@
   .page-header {
     text-align: center;
     margin-bottom: 2rem;
+    color: white;
   }
 
   .page-title {
     font-size: 2.25rem;
     font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .page-subtitle {
-    color: #6b7280;
+    font-size: 1.125rem;
+    opacity: 0.95;
   }
 
   .card {
-    background: white;
+    background: var(--bg-card);
     border-radius: 1rem;
-    border: 1px solid #f3f4f6;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, .05), 0 4px 6px -2px rgba(0, 0, 0, .05);
+    box-shadow: var(--shadow-lg);
     overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
 
   .card-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #f3f4f6;
-  }
-
-  .card-body {
-    padding: 1.5rem;
+    padding: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(to bottom, #fafafa, #ffffff);
   }
 
   .card-header-flex {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    flex-wrap: wrap;
     gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .card-title {
-    font-size: 1.5rem;
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+    word-wrap: break-word;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.375rem 0.875rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: #1f2937;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    overflow: hidden;
-    word-break: break-word;
+    white-space: nowrap;
+  }
+
+  .badge-open {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4338ca;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .badge-completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .badge-late {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .badge-expired {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239, 68, 68, 0.3);
   }
 
   .card-meta {
-    margin-top: 0.75rem;
-    font-size: 0.875rem;
-    color: #6b7280;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-top: 1rem;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
   }
 
   .card-mark {
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
+    margin-top: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
   }
 
   .card-mark-value {
     font-weight: 600;
-    color: #4f46e5;
+    color: var(--primary);
+    font-size: 1.125rem;
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .card-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .card-section:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
   }
 
   .section-title {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 0.75rem;
-  }
-
-  .card-divider {
-    border: 0;
-    border-top: 1px solid #e5e7eb;
-    margin: 2rem 0;
-  }
-
-  .submission-info {
-    font-size: 0.875rem;
-    color: #6b7280;
+    color: var(--text-primary);
     margin-bottom: 1rem;
   }
 
-  .submission-info strong {
-    color: #1f2937;
-    font-weight: 500;
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.75rem;
-    font-weight: 600;
-    font-size: 0.875rem;
-    border: 1px solid transparent;
-    transition: all 0.2s ease-in-out;
-    cursor: pointer;
-    text-decoration: none;
-  }
-
-  .btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
-  .btn-primary {
-    background-color: #4f46e5;
-    color: white;
-    border-color: #4f46e5;
-  }
-
-  .btn-primary:hover:not(:disabled) {
-    background-color: white;
-    color: #4338ca;
-    border-color: #4f46e5;
-  }
-
-  .btn-secondary {
-    background-color: white;
-    color: #374151;
-    border-color: #e5e7eb;
-  }
-
-  .btn-secondary:hover {
-    border-color: #d1d5db;
-    color: #111827;
-  }
-
-  .btn-danger {
-    background-color: #dc2626;
-    color: white;
-    border-color: #dc2626;
-  }
-
-  .btn-danger:hover {
-    background-color: white;
-    color: #b91c1c;
-    border-color: #fca5a5;
-  }
-
-  .file-upload-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-  }
-
-  .file-upload-label {
-    background-color: white;
-    color: #4338ca;
-    border-color: #c7d2fe;
-  }
-
-  .file-upload-label:hover {
-    border-color: #a5b4fc;
-    color: #3730a3;
-  }
-
-  .file-name-display {
-    font-size: 0.875rem;
-    color: #6b7280;
-  }
-
-  .progress-container {
-    width: 100%;
-    background-color: #e5e7eb;
-    border-radius: 9999px;
-    height: 0.625rem;
-  }
-
-  .progress-bar {
-    background-color: #4f46e5;
-    height: 0.625rem;
-    border-radius: 9999px;
-    width: 0%;
-    transition: width 0.3s ease;
-  }
-
-  .status-message {
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
+  .description-text {
+    color: var(--text-secondary);
+    line-height: 1.7;
+    white-space: pre-wrap;
   }
 
   .attachments-list {
@@ -254,46 +189,178 @@
     margin: 0;
   }
 
-  .attachments-list li:not(:last-child) {
-    margin-bottom: 0.5rem;
+  .attachments-list li {
+    margin-bottom: 0.75rem;
   }
 
   .attachments-list a {
-    color: #4f46e5;
-    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
     word-break: break-all;
   }
 
   .attachments-list a:hover {
-    color: #3730a3;
+    color: var(--primary-hover);
+    text-decoration: underline;
   }
 
-  .hidden {
-    display: none;
+  .attachments-list a::before {
+    content: '📎';
+    font-size: 1.125rem;
   }
 
-  .space-y-3>*+* {
-    margin-top: 0.75rem;
+  .submission-info {
+    background: var(--primary-light);
+    border-left: 4px solid var(--primary);
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
   }
 
-  .space-y-4>*+* {
+  .submission-info strong {
+    font-weight: 600;
+  }
+
+  .actions-group {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
     margin-top: 1rem;
   }
 
-  .space-y-8>*+* {
-    margin-top: 2rem;
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.3);
+  }
+
+  .btn-secondary {
+    background: white;
+    color: var(--text-primary);
+    border-color: var(--border-color);
+  }
+
+  .btn-secondary:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
+  .btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
+  }
+
+  .file-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .file-input-wrapper input[type="file"] {
+    display: none;
+  }
+
+  .file-input-wrapper label {
+    background: white;
+    color: var(--primary);
+    border: 2px dashed var(--primary);
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .file-input-wrapper label:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-hover);
+  }
+
+  #file-name {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  #progress-container {
+    width: 100%;
+    height: 0.75rem;
+    background: var(--border-color);
+    border-radius: 9999px;
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--primary-hover));
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 9999px;
+  }
+
+  #status-message {
+    font-size: 0.9375rem;
+    margin: 1rem 0;
+    font-weight: 500;
+  }
+
+  .hidden {
+    display: none !important;
   }
 
   .browser-warning {
-    background-color: #fef3c7;
-    border: 1px solid #fbbf24;
+    background: var(--warning-light);
+    border: 1px solid var(--warning);
     border-radius: 0.75rem;
     padding: 1rem 1.5rem;
     margin-bottom: 1.5rem;
     display: none;
     color: #92400e;
-    font-size: 0.875rem;
-    line-height: 1.5;
+    font-size: 0.9375rem;
+    line-height: 1.6;
   }
 
   .browser-warning strong {
@@ -301,69 +368,87 @@
     color: #78350f;
   }
 
-  @media (min-width: 640px) {
+  @media (max-width: 640px) {
+    .container {
+      padding: 1rem;
+    }
+
     .page-title {
-      font-size: 3rem;
+      font-size: 1.875rem;
     }
 
     .card-header,
     .card-body {
-      padding: 2rem;
+      padding: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+    }
+
+    .actions-group {
+      flex-direction: column;
+    }
+
+    .btn {
+      width: 100%;
     }
   }
 </style>
 
-<div>
-  <main class="detail-container">
-    <div class="page-header">
-      <h1 class="page-title">📝 Exam Details</h1>
-      <p class="page-subtitle">Everything you need to submit successfully</p>
-    </div>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">📝 Exam Details</h1>
+    <p class="page-subtitle">Everything you need to submit successfully</p>
+  </div>
 
-    <div id="browser-warning" class="browser-warning">
-      ⚠️ <strong>Browser Compatibility Notice:</strong> Uploads may fail on your current browser. For the best
-      experience and reliable uploads, please use the latest version of <strong>Google Chrome</strong>.
-    </div>
+  <div id="browser-warning" class="browser-warning">
+    ⚠️ <strong>Browser Compatibility Notice:</strong> Uploads may fail on your current browser. For the best
+    experience and reliable uploads, please use the latest version of <strong>Google Chrome</strong>.
+  </div>
 
-    <div class="detail-card">
-      <section class="card-section">
-        <div class="card-header-content">
-          <h2 class="assignment-title">{{ assignment.title }}</h2>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-flex">
+        <h2 class="card-title">{{ assignment.title }}</h2>
 
-          {% set is_completed = assignment.done %}
-          {% set is_completed_late = assignment.done and assignment.past_deadline %}
-          {% set is_expired = (not assignment.done) and assignment.past_deadline %}
-          {% set status_label = 'Open' %}
-          {% set status_class = 'badge-open' %}
-          {% if is_completed %}
-          {% set status_label = 'Completed' %}
-          {% set status_class = 'badge-completed' %}
-          {% elif is_completed_late %}
-          {% set status_label = 'Completed Late' %}
-          {% set status_class = 'badge-late' %}
-          {% elif is_expired %}
-          {% set status_label = 'Expired' %}
-          {% set status_class = 'badge-expired' %}
-          {% endif %}
-
-          <span class="status-badge {{ status_class }}">{{ status_label }}</span>
-        </div>
-
-        {% if assignment.deadline_date %}
-        <div class="meta-info">
-          🗓️ Deadline: <span>{{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
-        </div>
+        {% set is_completed = assignment.done %}
+        {% set is_completed_late = assignment.done and assignment.past_deadline %}
+        {% set is_expired = (not assignment.done) and assignment.past_deadline %}
+        {% set status_label = 'Open' %}
+        {% set status_class = 'badge-open' %}
+        {% if is_completed %}
+        {% set status_label = 'Completed' %}
+        {% set status_class = 'badge-completed' %}
+        {% elif is_completed_late %}
+        {% set status_label = 'Completed Late' %}
+        {% set status_class = 'badge-late' %}
+        {% elif is_expired %}
+        {% set status_label = 'Expired (You can still submit)' %}
+        {% set status_class = 'badge-expired' %}
         {% endif %}
 
-        {% if assignment.submission and assignment.submission.mark is not none %}
-        <div class="meta-info">
-          Mark: <span>{{ assignment.submission.mark }}</span>
-        </div>
-        {% endif %}
-      </section>
+        <span class="badge {{ status_class }}">{{ status_label }}</span>
+      </div>
 
+      {% if assignment.deadline_date %}
+      <div class="card-meta">
+        <span>🗓️</span>
+        <span>Deadline: {{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
+      </div>
+      {% endif %}
+
+      {% if assignment.submission and assignment.submission.mark is not none %}
+      <div class="card-mark">
+        Mark:
+        <span class="card-mark-value">{{ assignment.submission.mark }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card-body">
       {% if assignment.description %}
-      <section class="card-section">
+      <section>
         <h3 class="section-title">Description</h3>
         <p class="description-text">{{ assignment.description }}</p>
       </section>
@@ -396,7 +481,7 @@
         {% if submission %}
         <h3 class="section-title">Your Submission</h3>
         <div class="submission-info">
-          Submitted on: <span>{{ submission.upload_time.strftime('%B %d, %Y at %I:%M %p') }}</span>
+          <strong>Submitted on:</strong> {{ submission.upload_time.strftime('%B %d, %Y at %I:%M %p') }}
         </div>
         <div class="actions-group">
           <a href="{{ url_for('student.student_submission_media_exam', exam_id=assignment.id) }}" target="_blank"
@@ -404,9 +489,9 @@
             📄 View Submission
           </a>
           <form method="POST" action="{{ url_for('student.delete_submission_exam', exam_id=assignment.id) }}"
-            style="margin:0;">
+            style="margin: 0;">
             <button type="submit" class="btn btn-danger"
-              onclick="return confirmAction(event,'Are you sure you want to delete your submission?')">
+              onclick="return confirm('Are you sure you want to delete your submission?')">
               🗑️ Delete Submission
             </button>
           </form>
@@ -414,11 +499,11 @@
 
         {% if submission.mark is not none and submission.mark != "Not marked yet" and submission.assignment.out_of > 0 %}
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-          <div class="submission-info">
-            Mark: <span>{{ submission.mark }}</span>
+          <div style="margin-bottom: 1rem;">
+            <strong>Mark:</strong> <span style="color: var(--primary); font-weight: 600;">{{ submission.mark }}</span>
           </div>
           {% if submission.show_corrected %}
-          <h3 class="section-title">Correction</h3>
+          <h4 class="section-title" style="font-size: 1.125rem;">Correction</h4>
           <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
             class="btn btn-secondary">
             📄 View Correction
@@ -429,16 +514,18 @@
 
         {% if submission.show_corrected and submission.assignment.out_of == 0 %}
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-          <h3 class="section-title">Correction</h3>
+          <h4 class="section-title" style="font-size: 1.125rem;">Correction</h4>
           <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
             class="btn btn-secondary">
             📄 View Correction
           </a>
         </div>
         {% endif %}
+
         {% elif assignment.past_deadline and assignment.close_after_deadline %}
         <h3 class="section-title">Exam Closed</h3>
         <p class="description-text">This exam is closed and no longer accepts submissions.</p>
+
         {% else %}
         <h3 class="section-title">Submit Your Exam</h3>
 
@@ -448,23 +535,25 @@
             value="{{ csrf_token() if csrf_token is defined else '' }}">
 
           <div class="file-input-wrapper">
-            <input type="file" id="file" name="file" class="hidden" required
+            <input type="file" id="file" name="file" required
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png">
-            <label for="file" class="btn btn-secondary">📎 Choose File</label>
+            <label for="file">📎 Choose File</label>
             <span id="file-name">No file chosen</span>
           </div>
 
           <div id="progress-container" class="hidden">
-            <div id="progress-bar" style="width: 0%"></div>
+            <div id="progress-bar"></div>
           </div>
 
           <div id="status-message"></div>
+
           <button type="submit" class="btn btn-primary">✅ Submit Exam</button>
         </form>
         {% endif %}
       </section>
     </div>
-  </main>
+  </div>
+</div>
 
 <script>
   // Browser detection - show warning if not Chrome
@@ -491,14 +580,6 @@
     }
   })();
 
-  function confirmAction(event, message) {
-    if (!confirm(message)) {
-      event.preventDefault();
-      return false;
-    }
-    return true;
-  }
-
   document.addEventListener('DOMContentLoaded', function () {
     const uploadForm = document.getElementById('upload-form');
     if (!uploadForm) return;
@@ -521,6 +602,7 @@
       statusMessage.textContent = msg;
       statusMessage.style.color = colorVar || 'var(--text-secondary)';
     }
+
     function resetUploadUI() {
       submitButton.disabled = false;
       submitButton.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -529,20 +611,27 @@
       fileInput.value = '';
       fileNameSpan.textContent = 'No file chosen';
     }
+
     function getExt(name) {
       const dot = name.lastIndexOf('.');
       return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
     }
+
     function humanSize(bytes) {
       const units = ['B', 'KB', 'MB', 'GB', 'TB'];
       let i = 0, n = bytes;
-      while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+      while (n >= 1024 && i < units.length - 1) {
+        n /= 1024;
+        i++;
+      }
       return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${units[i]}`;
     }
+
     function chooseChunkSize(totalBytes) {
       if (totalBytes <= 2 * 1024 * 1024) return 512 * 1024; // <=2MB → 512KB
-      return 1024 * 1024;                                   // default 1MB
+      return 1024 * 1024; // default 1MB
     }
+
     function getCSRFToken() {
       if (csrfTokenInput && csrfTokenInput.value) return csrfTokenInput.value;
       const meta = document.querySelector('meta[name="csrf-token"]');
@@ -602,7 +691,9 @@
           xhr.timeout = timeout;
 
           for (const [k, v] of Object.entries(headers)) {
-            try { xhr.setRequestHeader(k, v); } catch (_) { }
+            try {
+              xhr.setRequestHeader(k, v);
+            } catch (_) { }
           }
 
           xhr.upload.onprogress = function (e) {
@@ -636,8 +727,12 @@
             }
           };
 
-          xhr.onerror = function () { reject(new Error('Network error.')); };
-          xhr.ontimeout = function () { reject(new Error('Request timed out.')); };
+          xhr.onerror = function () {
+            reject(new Error('Network error.'));
+          };
+          xhr.ontimeout = function () {
+            reject(new Error('Request timed out.'));
+          };
 
           xhr.send(formData);
         });
