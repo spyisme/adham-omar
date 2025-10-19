@@ -167,22 +167,65 @@ def get_item_if_admin_can_manage(model, item_id, admin_user):
 #=================================================================
 #Dashboard
 #=================================================================
+
 @admin.route('/dashboard')
 def dashboard():
     student_count = None
-    try :
+    groups_with_counts = []
+    
+    try:
         if current_user.role == "admin":
             group_ids = get_user_scope_ids()
-            query = Users.query.filter_by(role='student')
-            if group_ids :
-                query = query.filter(Users.groupid.in_(group_ids))
-                student_count = query.distinct().count()
+            groups = Groups.query.filter(Groups.id.in_(group_ids)).all()
+            
+            # Add student count for each group
+            for group in groups:
+                # Count students using both legacy groupid and new many-to-many relationship
+                student_count_for_group = Users.query.filter(
+                    Users.role == 'student',
+                    or_(
+                        Users.groupid == group.id,  # Legacy single group
+                        Users.groups.any(Groups.id == group.id)  # New many-to-many
+                    )
+                ).count()
+                groups_with_counts.append({
+                    'id': group.id,
+                    'name': group.name,
+                    'student_count': student_count_for_group
+                })
+
         elif current_user.role == "super_admin":
             students = Users.query.filter_by(role='student').all()
             student_count = len(students)
-    except :
-        pass
-    return render_template('admin/dashboard.html', student_count=student_count)
+            groups = Groups.query.all()
+            
+            # Add student count and admin count for each group
+            for group in groups:
+                # Count students using both legacy groupid and new many-to-many relationship
+                student_count_for_group = Users.query.filter(
+                    Users.role == 'student',
+                    or_(
+                        Users.groupid == group.id,  # Legacy single group
+                        Users.groups.any(Groups.id == group.id)  # New many-to-many
+                    )
+                ).count()
+                
+                # Count admins managing this group
+                admin_count_for_group = Users.query.filter(
+                    Users.role == 'admin',
+                    Users.managed_groups.any(Groups.id == group.id)
+                ).count()
+                
+                groups_with_counts.append({
+                    'id': group.id,
+                    'name': group.name,
+                    'student_count': student_count_for_group,
+                    'admin_count': admin_count_for_group
+                })
+    except Exception as e:
+        return f"{e}"
+  
+    return render_template('admin/dashboard.html', student_count=student_count, groups=groups_with_counts)
 
 
 #Filter for all admin routes

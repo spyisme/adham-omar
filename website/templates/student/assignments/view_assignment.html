@@ -424,6 +424,11 @@
         </a>
       </div>
       {% endif %}
+      {% elif assignment.past_deadline and assignment.close_after_deadline %}
+      <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <h3 class="section-title">Assignment Closed</h3>
+        <p class="description-text">This assignment is closed and no longer accepts submissions.</p>
+      </div>
       {% else %}
       <h3 class="section-title">Submit Your Assignment</h3>
 

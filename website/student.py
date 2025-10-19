@@ -2,7 +2,7 @@
 from flask import Blueprint, redirect, render_template, request, url_for, flash, send_from_directory, abort, jsonify
 from .models import (
     Users,   Assignments, Submissions, Announcements, Videos, Sessions,
-      Materials, Materials_folder,   NextQuiz, Attendance_student, Attendance_session , Upload_status , Groups)
+      Materials, Materials_folder,   NextQuiz, Attendance_student, Attendance_session , Upload_status , Groups, assignment_groups)
 from sqlalchemy.sql import exists
 from sqlalchemy import or_, false, exists, and_ , not_
 
@@ -412,7 +412,6 @@ def assignments():
         total_count=len(processed_assignments)
     )
     
-
 @student.route("/assignments/<int:assignment_id>", methods=["GET", "POST"])
 def view_assignment(assignment_id):
     current_date = datetime.now(GMT_PLUS_2)
@@ -457,7 +456,8 @@ def view_assignment(assignment_id):
         "student/assignments/view_assignment.html",
         assignment=assignment,
         attachments=attachments,
-        submission=submission
+        submission=submission,
+        current_date=current_date
     )
 
 #New uploaded file for assignments
@@ -499,6 +499,27 @@ def upload_chunk(assignment_id):
     
     # Get assignment
     assignment = Assignments.query.get_or_404(assignment_id)
+
+    #if assignment is pastdeadline and assignment.close_after_deadline is true return expired 
+    current_date = datetime.now(GMT_PLUS_2)
+
+    try:
+        if assignment.deadline_date:
+            deadline_date = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+            assignment.past_deadline = deadline_date < current_date
+        else:
+            assignment.past_deadline = False
+    except Exception:
+        assignment.past_deadline = False
+
+    if assignment.past_deadline and assignment.close_after_deadline :
+        return jsonify({
+            "status": "error",
+            "error": "Assignment expired",
+            "action": "expired"
+        }), 400
+
+
 
     # Update last seen info
     current_user.last_used_user_agent = request.user_agent.string
@@ -893,9 +914,17 @@ def student_submission_media(assignment_id):
 def delete_submission(assignment_id):
     # Only allow deletion if the assignment status is "Show"
     assignment = Assignments.query.filter_by(id=assignment_id, status="Show").first()
+
     if not assignment:
         flash("Assignment not found", "danger")
         return redirect(url_for("student.assignments", assignment_id=assignment_id))
+
+    #if assignment is pastdeadline and assignment.close_after_deadline is true return expired 
+    current_date = datetime.now(GMT_PLUS_2)
+
+
+
+
 
     if assignment.type == "Exam":
         flash("You can't delete a submission for an exam.", "danger")
@@ -909,8 +938,27 @@ def delete_submission(assignment_id):
 
     try:
 
+        try:
+            if assignment.deadline_date:
+                deadline_date = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+                assignment.past_deadline = deadline_date < current_date
+            else:
+                assignment.past_deadline = False
+        except Exception:
+            assignment.past_deadline = False
+
+        if assignment.past_deadline and assignment.close_after_deadline :
+          flash("Assignment expired you can't delete your submission", "danger")
+          return redirect(url_for("student.view_assignment", assignment_id=assignment_id))
+
+
+
         deadline_date = assignment.deadline_date
         upload_time = submission.upload_time
+
+
+
+
 
 
         if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
