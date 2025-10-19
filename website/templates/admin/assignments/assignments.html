@@ -451,7 +451,7 @@
                     </div>
                 </div>
 
-                <div class="filter-dropdown disabled" id="stageDropdown">
+                <!-- <div class="filter-dropdown disabled" id="stageDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="stageDropdownBtn">All Stages
                         ▼</button>
                     <div class="filter-dropdown-list" id="stageDropdownList">
@@ -465,7 +465,7 @@
                     <div class="filter-dropdown-list" id="groupDropdownList">
                         <label class="dropdown-all"><input type="checkbox" value="" checked>All Classes</label>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </div>
@@ -557,7 +557,7 @@
                         </div>
                     </div>
                 </div>
-                <div>
+                <!-- <div>
                     <label class="form-label">Stage</label>
                     <div class="multi" id="ms-stages">
                         <button type="button" class="btn form-input multi-btn" id="ms-stages-btn">All Stages ▼</button>
@@ -575,7 +575,7 @@
                             <label class="multi-all"><input type="checkbox" value="" checked>All Classes</label>
                         </div>
                     </div>
-                </div>
+                </div> -->
                 <div>
                     <label class="form-label">Deadline Date (Required)</label>
                     <input type="datetime-local" name="deadline_date" required class="form-input">
@@ -858,8 +858,8 @@
                     // Reset modal dropdown button labels
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
                     document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
-                    document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
-                    document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
+                    // document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
+                    // document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Assignment created successfully', 'success');
                 } else {
                     showToast((data && data.message) || 'Failed to create assignment', 'error');
@@ -1149,7 +1149,7 @@
                 <div id="edit-ms-schools-container" style="position: relative;"></div>
                 <input type="hidden" name="school_ids" id="edit-school-ids">
             </div>
-            <div>
+            <!-- <div>
                 <label class="form-label">Stage</label>
                 <div class="multi" id="edit-ms-stages">
                     <button type="button" class="btn form-input multi-btn" id="edit-ms-stages-btn">All Stages ▼</button>
@@ -1166,7 +1166,7 @@
                         <label class="multi-all"><input type="checkbox" value="" ${!assignment.groups_mm || assignment.groups_mm.length === 0 ? 'checked' : ''}>All Classes</label>
                     </div>
                 </div>
-            </div>
+            </div> -->
             <div>
                 <label class="form-label">Deadline Date</label>
                 <input type="datetime-local" name="deadline_date" required value="${assignment.deadline_date || ''}" class="form-input">
@@ -1196,21 +1196,21 @@
             <label><input type="radio" name="subject" value="${subject.id}" required ${assignment.subject && assignment.subject.id === subject.id ? 'checked' : ''}>${escapeHtml(subject.name)}</label>
         `).join('');
 
-        // Populate stages
-        const stageList = document.getElementById('edit-ms-stages-list');
-        const stageCheckboxes = stages.map(stage => {
-            const isChecked = assignment.stages_mm && assignment.stages_mm.some(s => s.id === stage.id);
-            return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
-        }).join('');
-        stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
+        // // Populate stages
+        // const stageList = document.getElementById('edit-ms-stages-list');
+        // const stageCheckboxes = stages.map(stage => {
+        //     const isChecked = assignment.stages_mm && assignment.stages_mm.some(s => s.id === stage.id);
+        //     return `<label><input type="checkbox" name="stages[]" value="${stage.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(stage.name)}</label>`;
+        // }).join('');
+        // stageList.innerHTML = stageList.querySelector('.multi-all').outerHTML + stageCheckboxes;
 
-        // Populate groups
-        const groupList = document.getElementById('edit-ms-classes-list');
-        const groupCheckboxes = groups.map(group => {
-            const isChecked = assignment.groups_mm && assignment.groups_mm.some(g => g.id === group.id);
-            return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
-        }).join('');
-        groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
+        // // Populate groups
+        // const groupList = document.getElementById('edit-ms-classes-list');
+        // const groupCheckboxes = groups.map(group => {
+        //     const isChecked = assignment.groups_mm && assignment.groups_mm.some(g => g.id === group.id);
+        //     return `<label><input type="checkbox" name="groups[]" value="${group.id}" ${isChecked ? 'checked' : ''}>${escapeHtml(group.name)}</label>`;
+        // }).join('');
+        // groupList.innerHTML = groupList.querySelector('.multi-all').outerHTML + groupCheckboxes;
 
         // Populate schools and set hidden field
         if (assignment.schools_mm && assignment.schools_mm.length > 0) {
@@ -1222,8 +1222,8 @@
         setupEditSchoolMultiSelect(assignment.schools_mm || [], availableSchools);
 
         // Setup dropdowns
-        setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
-        setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
+        // setupDropdown('edit-ms-stages', 'edit-ms-stages-btn', 'edit-ms-stages-list', 'All Stages');
+        // setupDropdown('edit-ms-classes', 'edit-ms-classes-btn', 'edit-ms-classes-list', 'All Classes');
 
         // Setup subject dropdown
         const subjectDropdown = document.getElementById('edit-ms-subjects');
@@ -1502,8 +1502,8 @@
     function filterAssignments() {
         const search = document.getElementById('searchInput').value.toLowerCase();
         const sSchools = getCheckedValues('schoolDropdownList');
-        const sGroups = getCheckedValues('groupDropdownList');
-        const sStages = getCheckedValues('stageDropdownList');
+        // const sGroups = getCheckedValues('groupDropdownList');
+        // const sStages = getCheckedValues('stageDropdownList');
         const sSubjects = getCheckedValues('subjectDropdownList');
 
         const filteredAssignments = allAssignments.filter(assignment => {
@@ -1633,21 +1633,21 @@
         const subjectList = document.getElementById('ms-subjects-list');
         subjectList.innerHTML = subjects.map(subject => `<label><input type="radio" name="subject_id" value="${subject.id}" required>${subject.name}</label>`).join('');
 
-        const stageList = document.getElementById('ms-stages-list');
-        stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        stages.forEach(stage => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
-            stageList.appendChild(label);
-        });
+        // const stageList = document.getElementById('ms-stages-list');
+        // stageList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        // stages.forEach(stage => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" name="stages[]" value="${stage.id}"> ${stage.name}`;
+        //     stageList.appendChild(label);
+        // });
 
-        const groupList = document.getElementById('ms-classes-list');
-        groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
-        groups.forEach(group => {
-            const label = document.createElement('label');
-            label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
-            groupList.appendChild(label);
-        });
+        // const groupList = document.getElementById('ms-classes-list');
+        // groupList.querySelectorAll('label:not(.multi-all)').forEach(l => l.remove());
+        // groups.forEach(group => {
+        //     const label = document.createElement('label');
+        //     label.innerHTML = `<input type="checkbox" name="groups[]" value="${group.id}"> ${group.name}`;
+        //     groupList.appendChild(label);
+        // });
     }
 
     async function initializePage() {
@@ -1673,8 +1673,8 @@
                 filterAssignments();
                 toggleSchoolFilterDropdown();
             });
-            setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
-            setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
+            // setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
+            // setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
 
             const subjectDropdown = document.getElementById('ms-subjects');
             const subjectBtn = document.getElementById('ms-subjects-btn');
