@@ -314,8 +314,7 @@
 </style>
 
 <div>
-  <div class="container">
-
+  <main class="detail-container">
     <div class="page-header">
       <h1 class="page-title">📝 Exam Details</h1>
       <p class="page-subtitle">Everything you need to submit successfully</p>
@@ -326,12 +325,10 @@
       experience and reliable uploads, please use the latest version of <strong>Google Chrome</strong>.
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <div class="card-header-flex">
-          <h2 class="card-title" title="{{ assignment.title }}">
-            {{ assignment.title }}
-          </h2>
+    <div class="detail-card">
+      <section class="card-section">
+        <div class="card-header-content">
+          <h2 class="assignment-title">{{ assignment.title }}</h2>
 
           {% set is_completed = assignment.done %}
           {% set is_completed_late = assignment.done and assignment.past_deadline %}
@@ -345,139 +342,129 @@
           {% set status_label = 'Completed Late' %}
           {% set status_class = 'badge-late' %}
           {% elif is_expired %}
-          {% set status_label = 'Expired (You can still submit)' %}
+          {% set status_label = 'Expired' %}
           {% set status_class = 'badge-expired' %}
           {% endif %}
 
-          <span class="badge {{ status_class }}">{{ status_label }}</span>
+          <span class="status-badge {{ status_class }}">{{ status_label }}</span>
         </div>
 
         {% if assignment.deadline_date %}
-        <div class="card-meta">
-          <span aria-hidden="true">🗓️</span>
-          <span>Deadline: {{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
+        <div class="meta-info">
+          🗓️ Deadline: <span>{{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
         </div>
         {% endif %}
 
         {% if assignment.submission and assignment.submission.mark is not none %}
-        <div class="card-mark">
-          Mark:
-          <span class="card-mark-value">{{ assignment.submission.mark }}</span>
+        <div class="meta-info">
+          Mark: <span>{{ assignment.submission.mark }}</span>
         </div>
         {% endif %}
-      </div>
+      </section>
 
-      <div class="card-body">
+      {% if assignment.description %}
+      <section class="card-section">
+        <h3 class="section-title">Description</h3>
+        <p class="description-text">{{ assignment.description }}</p>
+      </section>
+      {% endif %}
 
-        {% if assignment.description %}
-        <section>
-          <h3 class="section-title">Description</h3>
-          <p>{{ assignment.description }}</p>
-        </section>
+      <section class="card-section">
+        <h3 class="section-title">Attachments</h3>
+        {% if attachments %}
+        <ul class="attachments-list">
+          {% for attachment in attachments %}
+          {% if "http" in attachment %}
+          <li>
+            <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a>
+          </li>
+          {% else %}
+          <li>
+            <a href="{{ url_for('student.exam_media', filename=attachment) }}" target="_blank" rel="noopener">
+              {{ attachment }}
+            </a>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="description-text">No attachments provided.</p>
+        {% endif %}
+      </section>
+
+      <section class="card-section">
+        {% if submission %}
+        <h3 class="section-title">Your Submission</h3>
+        <div class="submission-info">
+          Submitted on: <span>{{ submission.upload_time.strftime('%B %d, %Y at %I:%M %p') }}</span>
+        </div>
+        <div class="actions-group">
+          <a href="{{ url_for('student.student_submission_media_exam', exam_id=assignment.id) }}" target="_blank"
+            rel="noopener" class="btn btn-secondary">
+            📄 View Submission
+          </a>
+          <form method="POST" action="{{ url_for('student.delete_submission_exam', exam_id=assignment.id) }}"
+            style="margin:0;">
+            <button type="submit" class="btn btn-danger"
+              onclick="return confirmAction(event,'Are you sure you want to delete your submission?')">
+              🗑️ Delete Submission
+            </button>
+          </form>
+        </div>
+
+        {% if submission.mark is not none and submission.mark != "Not marked yet" and submission.assignment.out_of > 0 %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+          <div class="submission-info">
+            Mark: <span>{{ submission.mark }}</span>
+          </div>
+          {% if submission.show_corrected %}
+          <h3 class="section-title">Correction</h3>
+          <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
+            class="btn btn-secondary">
+            📄 View Correction
+          </a>
+          {% endif %}
+        </div>
         {% endif %}
 
-        <section>
-          <h3 class="section-title">Attachments</h3>
-          {% if attachments %}
-          <ul class="attachments-list">
-            {% for attachment in attachments %}
-            {% if "http" in attachment %}
-            <li>
-              <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a>
-            </li>
-            {% else %}
-            <li>
-              <a href="{{ url_for('student.exam_media', filename=attachment) }}" target="_blank" rel="noopener">
-                {{ attachment }}
-              </a>
-            </li>
-            {% endif %}
-            {% endfor %}
-          </ul>
-          {% else %}
-          <p style="color: #6b7280;">No attachments provided.</p>
-          {% endif %}
-        </section>
+        {% if submission.show_corrected and submission.assignment.out_of == 0 %}
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+          <h3 class="section-title">Correction</h3>
+          <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
+            class="btn btn-secondary">
+            📄 View Correction
+          </a>
+        </div>
+        {% endif %}
+        {% elif assignment.past_deadline and assignment.close_after_deadline %}
+        <h3 class="section-title">Exam Closed</h3>
+        <p class="description-text">This exam is closed and no longer accepts submissions.</p>
+        {% else %}
+        <h3 class="section-title">Submit Your Exam</h3>
 
-        <section class="card-section">
-          {% if submission %}
-          <h3 class="section-title">Your Submission</h3>
-          <div class="submission-info">
-            Submitted on: <span>{{ submission.upload_time.strftime('%B %d, %Y at %I:%M %p') }}</span>
-          </div>
-          <div class="actions-group">
-            <a href="{{ url_for('student.student_submission_media_exam', exam_id=assignment.id) }}" target="_blank"
-              rel="noopener" class="btn btn-secondary">
-              📄 View Submission
-            </a>
-            <form method="POST" action="{{ url_for('student.delete_submission_exam', exam_id=assignment.id) }}"
-              style="margin:0;">
-              <button type="submit" class="btn btn-danger"
-                onclick="return confirmAction(event,'Are you sure you want to delete your submission?')">
-                🗑️ Delete Submission
-              </button>
-            </form>
+        <form id="upload-form" action="{{ url_for('student.upload_exam_chunk', exam_id=assignment.id) }}" method="POST"
+          enctype="multipart/form-data" novalidate>
+          <input type="hidden" id="csrf-token" name="csrf_token"
+            value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+          <div class="file-input-wrapper">
+            <input type="file" id="file" name="file" class="hidden" required
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png">
+            <label for="file" class="btn btn-secondary">📎 Choose File</label>
+            <span id="file-name">No file chosen</span>
           </div>
 
-          {% if submission.mark is not none and submission.mark != "Not marked yet" and submission.assignment.out_of > 0 %}
-          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-            <div>
-              Mark: <span style="color: var(--primary);">{{ submission.mark }}</span>
-            </div>
-            {% if submission.show_corrected %}
-            <h3 class="section-title">Correction</h3>
-            <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
-              class="btn btn-secondary">
-              📄 View Correction
-            </a>
-            {% endif %}
+          <div id="progress-container" class="hidden">
+            <div id="progress-bar" style="width: 0%"></div>
           </div>
-          {% endif %}
 
-
-          {% if submission.show_corrected and submission.assignment.out_of == 0 %}
-          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-            <h3 class="section-title">Correction</h3>
-            <a href="{{ url_for('student.corrected_pdf', submission_id=submission.id) }}" target="_blank" rel="noopener"
-              class="btn btn-secondary">
-              📄 View Correction
-            </a>
-          </div>
-          {% endif %}
-          {% elif assignment.past_deadline and assignment.close_after_deadline %}
-          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
-            <h3 class="section-title">Exam Closed</h3>
-            <p class="description-text">This exam is closed and no longer accepts submissions.</p>
-          </div>
-          {% else %}
-          <h3 class="section-title">Submit Your Exam</h3>
-
-          <form id="upload-form" action="{{ url_for('student.upload_exam_chunk', exam_id=assignment.id) }}" method="POST"
-            enctype="multipart/form-data" novalidate>
-            <input type="hidden" id="csrf-token" name="csrf_token"
-              value="{{ csrf_token() if csrf_token is defined else '' }}">
-
-            <div class="file-input-wrapper">
-              <input type="file" id="file" name="file" class="hidden" required
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.jpg,.jpeg,.png,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png">
-              <label for="file" class="btn btn-secondary">📎 Choose File</label>
-              <span id="file-name">No file chosen</span>
-            </div>
-
-            <div id="progress-container" class="hidden">
-              <div id="progress-bar" style="width: 0%"></div>
-            </div>
-
-            <div id="status-message"></div>
-            <button type="submit" class="btn btn-primary">✅ Submit Exam</button>
-          </form>
-          {% endif %}
-        </section>
-      </div>
+          <div id="status-message"></div>
+          <button type="submit" class="btn btn-primary">✅ Submit Exam</button>
+        </form>
+        {% endif %}
+      </section>
     </div>
-
-  </div>
-</div>
+  </main>
 
 <script>
   // Browser detection - show warning if not Chrome
