@@ -5660,7 +5660,20 @@ def edit_pdf_exam(submission_id):
     submission = Submissions.query.get_or_404(submission_id)
     pdfurl = f"/admin/getpdf/{submission_id}"
     filename = submission.file_url
-    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id)
+
+
+    assignment = Assignments.query.get(submission.assignment_id)
+    student_name = submission.student.name
+    #take only first 2 names then truntcate 
+    student_name = student_name.split(" ")[0] + " " + student_name.split(" ")[1]
+    student_name = student_name[:20] + "..."
+    if assignment.out_of > 0:
+        show_grade = True
+    else:
+        show_grade = False
+
+
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade, student_name=student_name)
 
 
 @admin.route("/online/exam/annotate2/<int:submission_id>")
