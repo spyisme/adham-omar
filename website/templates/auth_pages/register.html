@@ -423,7 +423,7 @@
           <h2>Student Information</h2>
           <div class="form-group">
             <label for="student_name">Student Name</label>
-            <input type="text" id="student_name" name="student_name" required placeholder="Enter first 3 names" />
+            <input type="text" id="student_name" name="student_name" required placeholder="Enter first 4 names" />
           </div>
 
           <div class="form-group">
@@ -660,8 +660,8 @@
           }
         };
 
-        if (document.getElementById("student_name").value.trim().split(/\s+/).length < 3) {
-          addError("Student name must contain at least 3 names.");
+        if (document.getElementById("student_name").value.trim().split(/\s+/).length < 4) {
+          addError("Student name must contain at least 4 names.");
         }
 
         // Validate student phone based on checkbox

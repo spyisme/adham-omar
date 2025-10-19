@@ -270,11 +270,11 @@
                 <thead>
                     <tr>
                         <th>Meeting ID</th>
-                        <th>Subject</th>
+                        <th>Boards</th>
                         <th>Creator</th>
-                        <th>Groups</th>
+                        <th>Classes</th>
                         <th>Stages</th>
-                        <th>Schools</th>
+                        <th>Groups</th>
                         <th>Participants</th>
                         <th>Actions</th>
                     </tr>
@@ -350,9 +350,9 @@
                     </small>
                 </div>
                 <div>
-                    <label class="form-label">Subject</label>
+                    <label class="form-label">Board</label>
                     <div class="multi" id="ms-subjects">
-                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Board
                             ▼</button>
                         <div class="multi-list" id="ms-subjects-list">
                             {% for subject in subjects %}
@@ -364,12 +364,12 @@
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">Schools</label>
+                    <label class="form-label">Groups</label>
                     <div class="multi" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                             {% for school in schools %}
                             <label>
                                 <input type="checkbox" name="schools[]" value="{{ school.id }}"> {{ school.name }}
@@ -425,8 +425,8 @@
         document.getElementById('createMeetingModal').classList.remove('show');
         document.getElementById('createMeetingForm').reset();
         // Reset button labels
-        document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-        document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+        document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
+        document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
         document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
         document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
     }
@@ -511,7 +511,7 @@
 
     // Setup other dropdowns
     document.addEventListener('DOMContentLoaded', function () {
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
         setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
         setupDropdown('ms-classes', 'ms-classes-btn', 'ms-classes-list', 'All Classes');
 

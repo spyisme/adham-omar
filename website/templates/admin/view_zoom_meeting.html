@@ -241,7 +241,7 @@
     <div class="meeting-section">
         <div class="section-title">Meeting Information</div>
         <div class="meeting-info">
-            <div class="info-label">Subject:</div>
+            <div class="info-label">Board:</div>
             <div class="info-value">{{ meeting.subject.name if meeting.subject else 'N/A' }}</div>
 
             <div class="info-label">Creator:</div>
@@ -283,7 +283,7 @@
                 {% endif %}
             </div>
 
-            <div class="info-label">Schools:</div>
+            <div class="info-label">Groups:</div>
             <div class="info-value">
                 {% if meeting.schools %}
                 <div class="scope-tags">
@@ -292,7 +292,7 @@
                     {% endfor %}
                 </div>
                 {% else %}
-                <span>All Schools</span>
+                <span>All Groups</span>
                 {% endif %}
             </div>
         </div>

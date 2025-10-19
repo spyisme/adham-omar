@@ -2,250 +2,351 @@
 {% block title %}Approve Students{% endblock %}
 {% block content %}
 <style>
-/* General Styles */
-.approve-container {
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 24px 10px;
-    font-family: 'Inter', sans-serif; /* Modern font */
-}
-.approve-title {
-    text-align: center;
-    margin-bottom: 24px;
-    font-size: 2.25rem;
-    font-weight: 700;
-    color: #1a202c;
-}
-
-/* Filter Section */
-.filter-section {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.filter-input, .sort-select {
-    padding: 10px 14px;
-    border-radius: 8px;
-    border: 1px solid #e2e8f0;
-    font-size: 16px;
-    background: #fff;
-    color: #2d3748;
-    min-width: 180px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-.filter-input:focus, .sort-select:focus {
-    outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
-}
-
-/* Student Cards */
-.student-cards-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-.student-card {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-    padding: 20px 18px;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    width: 100%;
-    cursor: pointer;
-    transition: box-shadow 0.2s, transform 0.2s;
-}
-.student-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-.student-pfp {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: #f0f4f8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    font-weight: 600;
-    color: #4a5568;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-.student-info {
-    flex: 1;
-    min-width: 0;
-}
-.student-name {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-    color: #2d3748;
-}
-.student-name a {
-    text-decoration: none;
-    color: inherit;
-    transition: color 0.2s;
-}
-.student-name a:hover {
-    color: #4a90e2;
-}
-.student-meta {
-    font-size: 0.9rem;
-    color: #718096;
-    line-height: 1.5;
-}
-.student-meta span {
-    margin-right: 12px;
-}
-.student-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-width: 120px;
-}
-.code-input {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 15px;
-    width: 100%;
-    margin-bottom: 6px;
-    background: #fafafa;
-}
-.approve-btn, .reject-btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    font-size: 15px;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.2s;
-    width: 100%;
-    font-weight: 500;
-}
-.approve-btn { background: #4caf50; color: #fff; }
-.approve-btn:hover { background: #388e3c; transform: scale(1.03); }
-.reject-btn { background: #f44336; color: #fff; }
-.reject-btn:hover { background: #d32f2f; transform: scale(1.03); }
-
-/* Modal Styles */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(5px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0s 0.3s;
-}
-.modal-overlay.active {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 0.3s ease;
-}
-.modal-content {
-    background: #ffffff;
-    padding: 2.5rem;
-    border-radius: 16px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    position: relative;
-    width: 90%;
-    max-width: 450px;
-    text-align: center;
-    transform: scale(0.95) translateY(10px);
-    transition: transform 0.3s ease;
-}
-.modal-overlay.active .modal-content {
-    transform: scale(1) translateY(0);
-}
-.modal-close {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    font-size: 2.5rem;
-    line-height: 1;
-    color: #a0aec0;
-    cursor: pointer;
-    transition: color 0.2s, transform 0.2s;
-}
-.modal-close:hover {
-    color: #2d3748;
-    transform: rotate(90deg);
-}
-#modalBody .student-pfp {
-    width: 128px;
-    height: 128px;
-    margin: 0 auto 1.5rem auto;
-    font-size: 4rem;
-}
-#modalBody .student-name { font-size: 2rem; margin-bottom: 0.75rem; }
-#modalBody .student-meta { font-size: 1rem; line-height: 1.7; }
-#modalBody .student-meta span { display: block; margin: 0.25rem 0; }
-body.modal-open { overflow: hidden; }
-
-/* Pagination */
-.pagination { display: flex; justify-content: center; align-items: center; margin: 32px 0 0 0; gap: 8px; flex-wrap: wrap; }
-.pagination a, .pagination span { border: 1px solid #e2e8f0; background: #fff; color: #4a90e2; padding: 8px 16px; border-radius: 8px; font-size: 1rem; cursor: pointer; text-decoration: none; transition: background 0.2s, color 0.2s; }
-.pagination .disabled { color: #a0aec0; background: #f7fafc; cursor: not-allowed; }
-.pagination a:hover, .pagination .active { background: #4a90e2; color: #fff; border-color: #4a90e2; font-weight: bold; }
-
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .student-card { flex-direction: column; align-items: stretch; gap: 16px; padding: 16px; }
-    .student-pfp { margin: 0 auto 10px auto; }
-    .student-info { text-align: center; }
-    .student-actions {
-        flex-direction: row;
-        gap: 12px;
-        align-items: flex-end;
+    /* General Styles */
+    .approve-container {
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 24px 10px;
+        font-family: 'Inter', sans-serif;
+        /* Modern font */
     }
-    .student-actions form {
+
+    .approve-title {
+        text-align: center;
+        margin-bottom: 24px;
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1a202c;
+    }
+
+    /* Filter Section */
+    .filter-section {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .filter-input,
+    .sort-select {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+        font-size: 16px;
+        background: #fff;
+        color: #2d3748;
+        min-width: 180px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .filter-input:focus,
+    .sort-select:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    }
+
+    /* Student Cards */
+    .student-cards-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .student-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        padding: 20px 18px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        width: 100%;
+        cursor: pointer;
+        transition: box-shadow 0.2s, transform 0.2s;
+    }
+
+    .student-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .student-pfp {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #f0f4f8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        font-weight: 600;
+        color: #4a5568;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .student-info {
         flex: 1;
+        min-width: 0;
     }
-}
+
+    .student-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: #2d3748;
+    }
+
+    .student-name a {
+        text-decoration: none;
+        color: inherit;
+        transition: color 0.2s;
+    }
+
+    .student-name a:hover {
+        color: #4a90e2;
+    }
+
+    .student-meta {
+        font-size: 0.9rem;
+        color: #718096;
+        line-height: 1.5;
+    }
+
+    .student-meta span {
+        margin-right: 12px;
+    }
+
+    .student-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 120px;
+    }
+
+    .code-input {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 15px;
+        width: 100%;
+        margin-bottom: 6px;
+        background: #fafafa;
+    }
+
+    .approve-btn,
+    .reject-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: none;
+        font-size: 15px;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.2s;
+        width: 100%;
+        font-weight: 500;
+    }
+
+    .approve-btn {
+        background: #4caf50;
+        color: #fff;
+    }
+
+    .approve-btn:hover {
+        background: #388e3c;
+        transform: scale(1.03);
+    }
+
+    .reject-btn {
+        background: #f44336;
+        color: #fff;
+    }
+
+    .reject-btn:hover {
+        background: #d32f2f;
+        transform: scale(1.03);
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0s 0.3s;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.3s ease;
+    }
+
+    .modal-content {
+        background: #ffffff;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        position: relative;
+        width: 90%;
+        max-width: 450px;
+        text-align: center;
+        transform: scale(0.95) translateY(10px);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: scale(1) translateY(0);
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 20px;
+        font-size: 2.5rem;
+        line-height: 1;
+        color: #a0aec0;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.2s;
+    }
+
+    .modal-close:hover {
+        color: #2d3748;
+        transform: rotate(90deg);
+    }
+
+    #modalBody .student-pfp {
+        width: 128px;
+        height: 128px;
+        margin: 0 auto 1.5rem auto;
+        font-size: 4rem;
+    }
+
+    #modalBody .student-name {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+
+    #modalBody .student-meta {
+        font-size: 1rem;
+        line-height: 1.7;
+    }
+
+    #modalBody .student-meta span {
+        display: block;
+        margin: 0.25rem 0;
+    }
+
+    body.modal-open {
+        overflow: hidden;
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 32px 0 0 0;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .pagination a,
+    .pagination span {
+        border: 1px solid #e2e8f0;
+        background: #fff;
+        color: #4a90e2;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 0.2s, color 0.2s;
+    }
+
+    .pagination .disabled {
+        color: #a0aec0;
+        background: #f7fafc;
+        cursor: not-allowed;
+    }
+
+    .pagination a:hover,
+    .pagination .active {
+        background: #4a90e2;
+        color: #fff;
+        border-color: #4a90e2;
+        font-weight: bold;
+    }
+
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .student-card {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+            padding: 16px;
+        }
+
+        .student-pfp {
+            margin: 0 auto 10px auto;
+        }
+
+        .student-info {
+            text-align: center;
+        }
+
+        .student-actions {
+            flex-direction: row;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .student-actions form {
+            flex: 1;
+        }
+    }
 </style>
 
 <div class="approve-container">
     <h1 class="approve-title">Approve Students</h1>
 
     <div class="filter-section">
-        <input type="text" id="searchInput" class="filter-input" placeholder="Search students..." style="flex-grow: 1; min-width: 250px;" />
+        <input type="text" id="searchInput" class="filter-input" placeholder="Search students..."
+            style="flex-grow: 1; min-width: 250px;" />
         <select id="sortSchool" class="sort-select" name="sortSchool">
-            <option value="">All Schools</option>
+            <option value="">All Groups</option>
             {% for school in schools|sort(attribute='name') %}
-                <option value="{{ school.name|e }}">{{ school.name }}</option>
+            <option value="{{ school.name|e }}">{{ school.name }}</option>
             {% endfor %}
         </select>
         <select id="sortGrade" class="sort-select" name="sortGrade">
             <option value="">All Years</option>
             {% for grade in stages|sort(attribute='name') %}
-                <option value="{{ grade.name|e }}">{{ grade.name }}</option>
+            <option value="{{ grade.name|e }}">{{ grade.name }}</option>
             {% endfor %}
         </select>
         <select id="sortClass" class="sort-select" name="sortClass">
             <option value="">All Classes</option>
             {% for group in groups|sort(attribute='name') %}
-                <option value="{{ group.name|e }}">{{ group.name }}</option>
+            <option value="{{ group.name|e }}">{{ group.name }}</option>
             {% endfor %}
         </select>
         <select id="sortSubject" class="sort-select" name="sortSubject">
-            <option value="">All Subjects</option>
+            <option value="">All Boards</option>
             {% for subject in subjects|sort(attribute='name') %}
-                <option value="{{ subject.name|e }}">{{ subject.name }}</option>
+            <option value="{{ subject.name|e }}">{{ subject.name }}</option>
             {% endfor %}
         </select>
     </div>
@@ -257,41 +358,42 @@ body.modal-open { overflow: hidden; }
         {% set last_index = last_school_indices[school_key] %}
         {% set next_index = "%03d"|format(last_index + 1) %}
         {% set suggested_code = school_code ~ '-' ~ next_index %}
-        <div class="student-card"
-            data-name="{{ user.name|lower }}"
-            data-phone="{{ user.phone_number|lower }}"
-            data-school="{{ user.school.name|lower }}"
-            data-grade="{{ user.stage.name|lower }}"
-            data-class="{{ user.group.name|lower }}"
-            data-subject="{{ user.subject.name|lower }}"
-        >
+        <div class="student-card" data-name="{{ user.name|lower }}" data-phone="{{ user.phone_number|lower }}"
+            data-school="{{ user.school.name|lower }}" data-grade="{{ user.stage.name|lower }}"
+            data-class="{{ user.group.name|lower }}" data-subject="{{ user.subject.name|lower }}">
             <div class="student-pfp">
                 {% if user.profile_picture %}
-                    <img src="{{ url_for('website.profile_picture', user_id=user.id) }}" alt="Profile" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'; this.parentElement.innerHTML = '{{ user.name[0]|upper }}';">
+                <img src="{{ url_for('website.profile_picture', user_id=user.id) }}" alt="Profile" loading="lazy"
+                    style="width:100%;height:100%;object-fit:cover;"
+                    onerror="this.style.display='none'; this.parentElement.innerHTML = '{{ user.name[0]|upper }}';">
                 {% else %}
-                    {{ user.name[0]|upper }}
+                {{ user.name[0]|upper }}
                 {% endif %}
             </div>
             <div class="student-info">
-                <div class="student-name"><a href="{{ url_for('admin.student', user_id=user.id) }}" target="_blank">{{ user.name }}</a></div>
+                <div class="student-name"><a href="{{ url_for('admin.student', user_id=user.id) }}" target="_blank">{{
+                        user.name }}</a></div>
                 <div class="student-meta">
-                    <span>Subject: {{ user.subject.name }}</span><br>
+                    <span>Board: {{ user.subject.name }}</span><br>
                     <span>Phone: {{ user.phone_number }}</span><br>
                     <span>Year: {{ user.stage.name }}</span><br>
                     <span>Class: {{ user.group.name }}</span>
                 </div>
                 <div class="student-meta">
-                    <span>School: {{ user.school.name }}</span>
+                    <span>Group: {{ user.school.name }}</span>
                 </div>
             </div>
             <div class="student-actions">
                 <form method="post" action="{{ url_for('admin.approve_student', user_id=user.id) }}">
                     <label class="code-label" for="code-{{ user.id }}">Student Code</label>
-                    <input type="text" id="code-{{ user.id }}" name="code" class="code-input" value="{{ suggested_code }}" required maxlength="8" autocomplete="off">
-                    <button type="submit" class="approve-btn" data-action="approve" data-username="{{ user.name|e }}">Approve</button>
+                    <input type="text" id="code-{{ user.id }}" name="code" class="code-input"
+                        value="{{ suggested_code }}" required maxlength="8" autocomplete="off">
+                    <button type="submit" class="approve-btn" data-action="approve"
+                        data-username="{{ user.name|e }}">Approve</button>
                 </form>
                 <form method="post" action="{{ url_for('admin.reject_student', user_id=user.id) }}">
-                     <button type="submit" class="reject-btn" data-action="reject" data-username="{{ user.name|e }}" style="margin-top:29px">Reject</button>
+                    <button type="submit" class="reject-btn" data-action="reject" data-username="{{ user.name|e }}"
+                        style="margin-top:29px">Reject</button>
                 </form>
             </div>
         </div>
@@ -300,21 +402,24 @@ body.modal-open { overflow: hidden; }
 
     {% if pagination and pagination.pages > 1 %}
     <nav class="pagination" aria-label="Student list pagination">
-        {% if pagination.has_prev %}<a href="{{ url_for('admin.approve_students', page=pagination.prev_num) }}">&laquo;</a>{% endif %}
+        {% if pagination.has_prev %}<a
+            href="{{ url_for('admin.approve_students', page=pagination.prev_num) }}">&laquo;</a>{% endif %}
         {% set start_page = pagination.page - 2 if pagination.page - 2 > 1 else 1 %}
-        {% set end_page = pagination.page + 2 if pagination.page + 2 < pagination.pages else pagination.pages %}
-        {% if start_page > 1 %}
+        {% set end_page = pagination.page + 2 if pagination.page + 2 < pagination.pages else pagination.pages %} {% if
+            start_page> 1 %}
             <a href="{{ url_for('admin.approve_students', page=1) }}">1</a>
             {% if start_page > 2 %}<span class="disabled">...</span>{% endif %}
-        {% endif %}
-        {% for p in range(start_page, end_page + 1) %}
-            <a href="{{ url_for('admin.approve_students', page=p) }}" class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
-        {% endfor %}
-        {% if end_page < pagination.pages %}
-            {% if end_page < pagination.pages - 1 %}<span class="disabled">...</span>{% endif %}
-            <a href="{{ url_for('admin.approve_students', page=pagination.pages) }}">{{ pagination.pages }}</a>
-        {% endif %}
-        {% if pagination.has_next %}<a href="{{ url_for('admin.approve_students', page=pagination.next_num) }}">&raquo;</a>{% endif %}
+            {% endif %}
+            {% for p in range(start_page, end_page + 1) %}
+            <a href="{{ url_for('admin.approve_students', page=p) }}"
+                class="{% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+            {% endfor %}
+            {% if end_page < pagination.pages %} {% if end_page < pagination.pages - 1 %}<span class="disabled">
+                ...</span>{% endif %}
+                <a href="{{ url_for('admin.approve_students', page=pagination.pages) }}">{{ pagination.pages }}</a>
+                {% endif %}
+                {% if pagination.has_next %}<a
+                    href="{{ url_for('admin.approve_students', page=pagination.next_num) }}">&raquo;</a>{% endif %}
     </nav>
     {% endif %}
 </div>
@@ -331,109 +436,109 @@ body.modal-open { overflow: hidden; }
 
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    // Search filter logic
-    var searchInput = document.getElementById("searchInput");
-    var cardsList = document.getElementById("studentCardsList");
-    var sortSchool = document.getElementById("sortSchool");
-    var sortGrade = document.getElementById("sortGrade");
-    var sortClass = document.getElementById("sortClass");
-    var sortSubject = document.getElementById("sortSubject");
-    function filterAndSortCards() {
-        var searchVal = searchInput.value.trim().toLowerCase();
-        var schoolVal = sortSchool.value.trim().toLowerCase();
-        var gradeVal = sortGrade.value.trim().toLowerCase();
-        var classVal = sortClass.value.trim().toLowerCase();
-        var subjectVal = sortSubject.value.trim().toLowerCase();
-        var cards = Array.from(cardsList.querySelectorAll(".student-card"));
+    document.addEventListener("DOMContentLoaded", function () {
+        // Search filter logic
+        var searchInput = document.getElementById("searchInput");
+        var cardsList = document.getElementById("studentCardsList");
+        var sortSchool = document.getElementById("sortSchool");
+        var sortGrade = document.getElementById("sortGrade");
+        var sortClass = document.getElementById("sortClass");
+        var sortSubject = document.getElementById("sortSubject");
+        function filterAndSortCards() {
+            var searchVal = searchInput.value.trim().toLowerCase();
+            var schoolVal = sortSchool.value.trim().toLowerCase();
+            var gradeVal = sortGrade.value.trim().toLowerCase();
+            var classVal = sortClass.value.trim().toLowerCase();
+            var subjectVal = sortSubject.value.trim().toLowerCase();
+            var cards = Array.from(cardsList.querySelectorAll(".student-card"));
 
-        cards.forEach(function(card) {
-            var name = card.getAttribute("data-name") || '';
-            var phone = card.getAttribute("data-phone") || '';
-            var school = card.getAttribute("data-school") || '';
-            var grade = card.getAttribute("data-grade") || '';
-            var group = card.getAttribute("data-class") || '';
-            var subject = card.getAttribute("data-subject") || '';
-            var isVisible = (name.includes(searchVal) || phone.includes(searchVal)) &&
-                            (!schoolVal || school === schoolVal) &&
-                            (!gradeVal || grade === gradeVal) &&
-                            (!classVal || group === classVal) &&
-                            (!subjectVal || subject === subjectVal);
-            card.style.display = isVisible ? "" : "none";
+            cards.forEach(function (card) {
+                var name = card.getAttribute("data-name") || '';
+                var phone = card.getAttribute("data-phone") || '';
+                var school = card.getAttribute("data-school") || '';
+                var grade = card.getAttribute("data-grade") || '';
+                var group = card.getAttribute("data-class") || '';
+                var subject = card.getAttribute("data-subject") || '';
+                var isVisible = (name.includes(searchVal) || phone.includes(searchVal)) &&
+                    (!schoolVal || school === schoolVal) &&
+                    (!gradeVal || grade === gradeVal) &&
+                    (!classVal || group === classVal) &&
+                    (!subjectVal || subject === subjectVal);
+                card.style.display = isVisible ? "" : "none";
+            });
+        }
+
+        searchInput.addEventListener("input", filterAndSortCards);
+        sortSchool.addEventListener("change", filterAndSortCards);
+        sortGrade.addEventListener("change", filterAndSortCards);
+        sortClass.addEventListener("change", filterAndSortCards);
+        sortSubject.addEventListener("change", filterAndSortCards);
+        // Confirmation logic for approve/reject
+        var approveBtns = document.querySelectorAll('.approve-btn');
+        var rejectBtns = document.querySelectorAll('.reject-btn');
+
+        approveBtns.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                var username = btn.getAttribute('data-username');
+                confirmAction(e, "Are you sure you want to <b>approve</b> <span style='color:var(--button-bg)'>" + username + "</span>?");
+            });
         });
-    }
-
-    searchInput.addEventListener("input", filterAndSortCards);
-    sortSchool.addEventListener("change", filterAndSortCards);
-    sortGrade.addEventListener("change", filterAndSortCards);
-    sortClass.addEventListener("change", filterAndSortCards);
-    sortSubject.addEventListener("change", filterAndSortCards);
-    // Confirmation logic for approve/reject
-    var approveBtns = document.querySelectorAll('.approve-btn');
-    var rejectBtns = document.querySelectorAll('.reject-btn');
-
-    approveBtns.forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            var username = btn.getAttribute('data-username');
-            confirmAction(e, "Are you sure you want to <b>approve</b> <span style='color:var(--button-bg)'>" + username + "</span>?");
-        });
-    });
-    rejectBtns.forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
-            var username = btn.getAttribute('data-username');
-            confirmAction(e, "Are you sure you want to <b style='color:var(--flash-danger-bg)'>reject</b> <span style='color:var(--flash-danger-bg)'>\" + username + \"</span>?");
-        });
-    });
-
-    // --- NEW MODAL LOGIC ---
-    const modal = document.getElementById('profileModal');
-    const modalCloseBtn = document.getElementById('modalCloseBtn');
-    const modalBody = document.getElementById('modalBody');
-    const studentCards = document.querySelectorAll('.student-card');
-
-    if (modal) {
-        const openModal = (card) => {
-            const pfpHTML = card.querySelector('.student-pfp').innerHTML;
-            const infoHTML = card.querySelector('.student-info').innerHTML;
-
-            modalBody.innerHTML = `
-                <div class="student-pfp">${pfpHTML}</div>
-                ${infoHTML}
-            `;
-            
-            modal.classList.add('active');
-            document.body.classList.add('modal-open');
-        };
-
-        const closeModal = () => {
-            modal.classList.remove('active');
-            document.body.classList.remove('modal-open');
-        };
-
-        studentCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                // Prevent modal from opening if the click is on an interactive element
-                if (e.target.closest('a, button, input')) {
-                    return;
-                }
-                openModal(card);
+        rejectBtns.forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                var username = btn.getAttribute('data-username');
+                confirmAction(e, "Are you sure you want to <b style='color:var(--flash-danger-bg)'>reject</b> <span style='color:var(--flash-danger-bg)'>\" + username + \"</span>?");
             });
         });
 
-        modalCloseBtn.addEventListener('click', closeModal);
+        // --- NEW MODAL LOGIC ---
+        const modal = document.getElementById('profileModal');
+        const modalCloseBtn = document.getElementById('modalCloseBtn');
+        const modalBody = document.getElementById('modalBody');
+        const studentCards = document.querySelectorAll('.student-card');
 
-        modal.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                closeModal();
-            }
-        });
+        if (modal) {
+            const openModal = (card) => {
+                const pfpHTML = card.querySelector('.student-pfp').innerHTML;
+                const infoHTML = card.querySelector('.student-info').innerHTML;
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && modal.classList.contains('active')) {
-                closeModal();
-            }
-        });
-    }
-});
+                modalBody.innerHTML = `
+                <div class="student-pfp">${pfpHTML}</div>
+                ${infoHTML}
+            `;
+
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            };
+
+            const closeModal = () => {
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            };
+
+            studentCards.forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // Prevent modal from opening if the click is on an interactive element
+                    if (e.target.closest('a, button, input')) {
+                        return;
+                    }
+                    openModal(card);
+                });
+            });
+
+            modalCloseBtn.addEventListener('click', closeModal);
+
+            modal.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key === 'Escape' && modal.classList.contains('active')) {
+                    closeModal();
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

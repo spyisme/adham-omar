@@ -163,15 +163,15 @@
     <form method="POST" action="{{ url_for('admin.whatsapp') }}" class="broadcast-form" id="broadcastForm">
         <div class="form-row">
             <div class="form-group">
-                <label for="subjectSelect">Subject</label>
+                <label for="subjectSelect">Board</label>
                 <select id="subjectSelect" name="subject_id" required>
-                    <option value="">Select Subject</option>
+                    <option value="">Select Board</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="schoolSelect">School</label>
+                <label for="schoolSelect">Group</label>
                 <select id="schoolSelect" name="school_id" required disabled>
-                    <option value="">Select School</option>
+                    <option value="">Select Group</option>
                 </select>
             </div>
             <div class="form-group">
@@ -228,7 +228,7 @@
         .then(data => {
             // Store filter data for later use
             window.filterData = data;
-            populateSelect(subjectSelect, data.subjects, 'id', 'name', 'Select Subject');
+            populateSelect(subjectSelect, data.subjects, 'id', 'name', 'Select Board');
         });
 
     // On subject change, populate schools
@@ -236,7 +236,7 @@
         schoolSelect.disabled = true;
         stageSelect.disabled = true;
         classSelect.disabled = true;
-        schoolSelect.innerHTML = '<option value="">Select School</option>';
+        schoolSelect.innerHTML = '<option value="">Select Group</option>';
         stageSelect.innerHTML = '<option value="">Select Grade</option>';
         classSelect.innerHTML = '<option value="">Select Class</option>';
         recipientCountDiv.textContent = '';
@@ -244,7 +244,7 @@
 
         if (this.value && window.filterData) {
             const schools = window.filterData.subject_school_map[this.value] || [];
-            populateSelect(schoolSelect, schools, 'id', 'name', 'Select School');
+            populateSelect(schoolSelect, schools, 'id', 'name', 'Select Group');
         }
     });
 
@@ -335,7 +335,7 @@
                     schoolSelect.disabled = true;
                     stageSelect.disabled = true;
                     classSelect.disabled = true;
-                    schoolSelect.innerHTML = '<option value="">Select School</option>';
+                    schoolSelect.innerHTML = '<option value="">Select Group</option>';
                     stageSelect.innerHTML = '<option value="">Select Grade</option>';
                     classSelect.innerHTML = '<option value="">Select Class</option>';
                     recipientCountDiv.textContent = '';

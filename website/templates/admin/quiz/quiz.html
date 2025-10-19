@@ -197,9 +197,9 @@
 
                 <div class="filter-dropdown" id="subjectDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
-                        Subjects ▼</button>
+                        Boards ▼</button>
                     <div class="filter-dropdown-list" id="subjectDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                         {% for subject in subjects %}
                         <label><input type="checkbox" value="{{ subject.name|e }}"> {{ subject.name }}</label>
                         {% endfor %}
@@ -207,10 +207,10 @@
                 </div>
 
                 <div class="filter-dropdown" id="schoolDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
                         {% for school in schools %}
                         <label><input type="checkbox" value="{{ school.name|e }}"> {{ school.name }}</label>
                         {% endfor %}
@@ -266,7 +266,7 @@
                         }}/{{ quiz.qualified_students_count }}
                     </div>
                     <div class="card-meta">
-                        <span><strong>Subject:</strong> {{ quiz.subject.name if quiz.subject else '—' }}</span>
+                        <span><strong>Board:</strong> {{ quiz.subject.name if quiz.subject else '—' }}</span>
                         <span><strong>🏫</strong>
                             {% if quiz.schools_mm %}
                             {{ quiz.schools_mm|map(attribute='name')|join(', ') }}
@@ -361,9 +361,9 @@
                         class="form-input">
                 </div>
                 <div>
-                    <label class="form-label">Subject</label>
+                    <label class="form-label">Board</label>
                     <div class="multi" id="ms-subjects">
-                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Board
                             ▼</button>
                         <div class="multi-list" id="ms-subjects-list">
                             {% for subject in subjects %}
@@ -374,12 +374,12 @@
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">School</label>
+                    <label class="form-label">Group</label>
                     <div class="multi" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                             {% for school in schools %}
                             <label>
                                 <input type="checkbox" name="schools_mm[]" value="{{ school.id }}">

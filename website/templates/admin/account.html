@@ -344,27 +344,27 @@
                 </ul>
             </div>
             <div class="management-section">
-                <h3>Schools</h3>
+                <h3>Groups</h3>
                 <ul class="tags-list">
                     {% if current_user.managed_schools %}
                     {% for school in current_user.managed_schools %}
                     <li class="tag-item">{{ school.name }}</li>
                     {% endfor %}
                     {% else %}
-                    <li class="tag-item empty">You do not manage any schools.</li>
+                    <li class="tag-item empty">You do not manage any groups.</li>
                     {% endif %}
                 </ul>
             </div>
 
             <div class="management-section">
-                <h3>Subjects</h3>
+                <h3>Boards</h3>
                 <ul class="tags-list">
                     {% if current_user.managed_subjects %}
                     {% for subject in current_user.managed_subjects %}
                     <li class="tag-item">{{ subject.name }}</li>
                     {% endfor %}
                     {% else %}
-                    <li class="tag-item empty">You do not manage any subjects.</li>
+                    <li class="tag-item empty">You do not manage any boards.</li>
                     {% endif %}
                 </ul>
             </div>

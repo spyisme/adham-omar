@@ -437,17 +437,17 @@
             <div class="filters-row-wrapper">
                 <div class="filter-dropdown disabled" id="subjectDropdown">
                     <button type="button" class="btn form-input filter-dropdown-btn" id="subjectDropdownBtn">All
-                        Subjects ▼</button>
+                        Boards ▼</button>
                     <div class="filter-dropdown-list" id="subjectDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Subjects</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                     </div>
                 </div>
 
                 <div class="filter-dropdown disabled" id="schoolDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Groups
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
                     </div>
                 </div>
 
@@ -535,25 +535,25 @@
 
                 <div>
                     <label class="form-label">Out of (Full Mark)</label>
-                    <input type="number" name="out_of" min="0" placeholder="e.g., 100 (leave empty for ungraded assignment)"
-                        class="form-input">
+                    <input type="number" name="out_of" min="0"
+                        placeholder="e.g., 100 (leave empty for ungraded assignment)" class="form-input">
                 </div>
-                
+
                 <div>
-                    <label class="form-label">Subject</label>
+                    <label class="form-label">Board</label>
                     <div class="multi" id="ms-subjects">
-                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Subject
+                        <button type="button" class="btn form-input multi-btn" id="ms-subjects-btn">Choose Board
                             ▼</button>
                         <div class="multi-list" id="ms-subjects-list"></div>
                     </div>
                 </div>
                 <div>
-                    <label class="form-label">School</label>
+                    <label class="form-label">Group</label>
                     <div class="multi disabled" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Groups
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
                         </div>
                     </div>
                 </div>
@@ -998,7 +998,7 @@
                             confirmButtonText: 'Yes, delete it!',
                             cancelButtonText: 'Cancel'
                         });
-                        
+
                         if (!result.isConfirmed) return;
 
                         settingsModal.classList.remove('show');
@@ -1028,7 +1028,7 @@
                             confirmButtonText: 'Yes, toggle it!',
                             cancelButtonText: 'Cancel'
                         });
-                        
+
                         if (!result.isConfirmed) return;
 
                         settingsModal.classList.remove('show');
