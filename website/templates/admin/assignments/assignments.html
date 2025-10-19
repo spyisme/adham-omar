@@ -1453,8 +1453,8 @@
                             <p class="assignment-out_of">Out of: ${a.out_of || 'N/A'}</p>
                             <p class="assignment-points">Points: ${a.points || 'N/A'}</p>
 
-                            <p class="assignment-student_whatsapp">Student WhatsApp: <span style="color: ${a.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.student_whatsapp ? 'Yes' : 'No'}</span></p>
-                            <p class="assignment-parent_whatsapp">Parent WhatsApp: <span style="color: ${a.parent_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.parent_whatsapp ? 'Yes' : 'No'}</span></p>
+                            <p class="assignment-student_whatsapp">Messages are sent to students via WhatsApp: <span style="color: ${a.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.student_whatsapp ? 'Yes' : 'No'}</span></p>
+                            <p class="assignment-parent_whatsapp">Messages are sent to parents via WhatsApp: <span style="color: ${a.parent_whatsapp ? 'green' : 'red'}; font-weight: bold;">${a.parent_whatsapp ? 'Yes' : 'No'}</span></p>
                         </div>
                         <div class="card-actions">
                             <div class="action-buttons">
@@ -1469,10 +1469,10 @@
                         </div>
                     </div>
                     <div class="card-details">
-                        <div class="detail-item"><strong>Subject</strong> ${a.subject || 'N/A'}</div>
-                        <div class="detail-item"><strong>School(s)</strong> ${schoolStr}</div>
-                        <div class="detail-item"><strong>Grade(s)</strong> ${stageStr}</div>
-                        <div class="detail-item"><strong>Class(es)</strong> ${groupStr}</div>
+                        <div class="detail-item"><strong>Board(s)</strong> ${a.subject || 'N/A'}</div>
+                        <div class="detail-item"><strong>Group(s)</strong> ${schoolStr}</div>
+                      <!--  <div class="detail-item"><strong>Grade(s)</strong> ${stageStr}</div>
+                        <div class="detail-item"><strong>Class(es)</strong> ${groupStr}</div> -->
                     </div>
                 </div>
                 <div class="card-footer">
