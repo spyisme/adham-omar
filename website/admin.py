@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template , request, redirect, url_for, flash, send_from_directory , abort , jsonify
 from .models import (
-    Users, Groups, Stages, Assignments, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
-    Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, Schools , Parent , AssistantLogs, Subjects , Sessions , Attendance_session , Attendance_student)
+    Users, Groups, Assignments, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
+    Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, Parent , AssistantLogs, Sessions , Attendance_session , Attendance_student)
 from datetime import datetime
 from . import db
 import pytz
@@ -37,20 +37,18 @@ GMT_PLUS_2 = pytz.timezone('Etc/GMT-3')
 
 def scope_match_mm_legacy(mm_rel, legacy_col, user_value):
     """
-    Returns a SQLAlchemy filter for one dimension (group / stage / school):
-    - If user_value is not None: either the assignment includes it (MM or legacy),
-      or the assignment is globally unspecified for this dimension (no MM & legacy is NULL).
-    - If user_value is None: only pass if the assignment is globally unspecified
-      (no MM & legacy is NULL) — i.e., not targeting any specific value.
+    Returns a SQLAlchemy filter for groups:
+    - If user_value is not None: either the item includes it (MM or legacy),
+      or the item is globally unspecified (no MM & legacy is NULL).
+    - If user_value is None: only pass if the item is globally unspecified
+      (no MM & legacy is NULL) — i.e., not targeting any specific group.
     """
     mm_has_any   = mm_rel.any()     
     mm_has_user  = mm_rel.any() if user_value is None else mm_rel.any(id=user_value)
 
     if user_value is None:
-
         return and_(not_(mm_has_any), legacy_col.is_(None))
     else:
-
         return or_(
             mm_has_user,
             legacy_col == user_value,
@@ -59,15 +57,10 @@ def scope_match_mm_legacy(mm_rel, legacy_col, user_value):
 
 
 def get_user_scope_ids():
+    """Returns the IDs of groups managed by the current admin user."""
     managed_groups = getattr(current_user, "managed_groups", [])
-    managed_stages = getattr(current_user, "managed_stages", [])
-    managed_schools = getattr(current_user, "managed_schools", [])
-    managed_subjects = getattr(current_user, "managed_subjects", [])
     group_ids = [g.id for g in managed_groups]
-    stage_ids = [s.id for s in managed_stages]
-    school_ids = [s.id for s in managed_schools]
-    subject_ids = [s.id for s in managed_subjects]
-    return group_ids, stage_ids, school_ids, subject_ids
+    return group_ids
 
 
 def can_manage(selected_ids, managed_ids):
@@ -89,105 +82,76 @@ def can_manage(selected_ids, managed_ids):
 
 SCOPE_REGISTRY = {
     Announcements: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     Assignments: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     Quizzes: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     Sessions: { 
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     Materials_folder: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     NextQuiz: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'next_quiz_groups'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
     Attendance_session: {
-        'groups':   {'m2m': 'groups_mm', 'fk': 'groupid'},
-        'stages':   {'m2m': 'stages_mm', 'fk': 'stageid'},
-        'schools': {'m2m': 'schools_mm', 'fk': 'schoolid'},
-        'subjects': {'m2m': None, 'fk': 'subjectid'},
+        'groups': {'m2m': 'groups_mm', 'fk': 'groupid'},
     },
 }
 
 def get_visible_to_admin_query(model, admin_user, base_query=None):
     """
     Returns a SQLAlchemy query for all records of a model visible to an admin.
-    Corrected so that the item must match ALL defined scopes (school, group, stage, subject).
+    Only checks group scope (simplified from multi-dimension system).
     """
     scope_config = SCOPE_REGISTRY.get(model)
     if not scope_config:
         return base_query or model.query
 
-    admin_scopes = {
-        'groups':   [g.id for g in getattr(admin_user, 'managed_groups', [])],
-        'stages':   [s.id for s in getattr(admin_user, 'managed_stages', [])],
-        'schools':  [s.id for s in getattr(admin_user, 'managed_schools', [])],
-        'subjects': [s.id for s in getattr(admin_user, 'managed_subjects', [])],
-    }
-
+    admin_groups = [g.id for g in getattr(admin_user, 'managed_groups', [])]
+    
     q = base_query or model.query
-    all_scope_filters = []  # collect per-dimension filters here
-
-    for scope_name, field_names in scope_config.items():
-        admin_managed_ids = admin_scopes.get(scope_name)
-        m2m_attr_name = field_names.get('m2m')
-        fk_attr_name  = field_names.get('fk')
-
-        has_m2m = m2m_attr_name and hasattr(model, m2m_attr_name)
-        has_fk  = fk_attr_name and hasattr(model, fk_attr_name)
-
-        if not has_m2m and not has_fk:
-            continue
-
-        dimension_filters = []
-
-        # Handle many-to-many scope
-        if has_m2m:
-            m2m_rel = getattr(model, m2m_attr_name)
-            if admin_managed_ids:
-                dimension_filters.append(m2m_rel.any(m2m_rel.entity.class_.id.in_(admin_managed_ids)))
-
-        # Handle foreign key scope
-        if has_fk:
-            fk_col = getattr(model, fk_attr_name)
-            if admin_managed_ids:
-                dimension_filters.append(fk_col.in_(admin_managed_ids))
-
-        # If admin manages nothing in this dimension, exclude items with values
-        if not admin_managed_ids:
-            # force false for this dimension (admin has no rights here)
-            dimension_filters.append(False)
-
-        if dimension_filters:
-            all_scope_filters.append(or_(*dimension_filters))
-
-    # ✅ Require ALL dimensions to match
-    if all_scope_filters:
-        q = q.filter(and_(*all_scope_filters))
-
+    
+    # Only check groups scope
+    group_config = scope_config.get('groups')
+    if not group_config:
+        return q
+    
+    m2m_attr_name = group_config.get('m2m')
+    fk_attr_name = group_config.get('fk')
+    
+    has_m2m = m2m_attr_name and hasattr(model, m2m_attr_name)
+    has_fk = fk_attr_name and hasattr(model, fk_attr_name)
+    
+    if not has_m2m and not has_fk:
+        return q
+    
+    group_filters = []
+    
+    # Handle many-to-many scope
+    if has_m2m:
+        m2m_rel = getattr(model, m2m_attr_name)
+        if admin_groups:
+            group_filters.append(m2m_rel.any(m2m_rel.entity.class_.id.in_(admin_groups)))
+    
+    # Handle foreign key scope
+    if has_fk:
+        fk_col = getattr(model, fk_attr_name)
+        if admin_groups:
+            group_filters.append(fk_col.in_(admin_groups))
+    
+    # If admin manages no groups, exclude all items with group assignments
+    if not admin_groups:
+        group_filters.append(False)
+    
+    if group_filters:
+        q = q.filter(or_(*group_filters))
+    
     return q
 
 
@@ -231,23 +195,11 @@ def dashboard():
 #Filter for all admin routes
 @admin.route('/api/filters')
 def api_admin_filters():
-    subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
+    """Returns filter data for the admin (groups only)."""
     groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
-    stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
-
-    subject_school_map = {}
-    for subject in subjects:
-        # Get schools through assistant_managed_schools relationship
-        managed_school_ids = [school.id for school in current_user.managed_schools]
-        schools_list = [{"id": school.id, "name": school.name} for school in subject.schools if school.id in managed_school_ids]
-        schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-        subject_school_map[subject.id] = schools_list
 
     filter_data = {
-        "subjects": [{"id": s.id, "name": s.name} for s in subjects],
-        "groups": [{"id": g.id, "name": g.name} for g in groups],
-        "stages": [{"id": s.id, "name": s.name} for s in stages],
-        "subject_school_map": subject_school_map
+        "groups": [{"id": g.id, "name": g.name} for g in groups]
     }
     return jsonify(filter_data)
 
@@ -268,23 +220,16 @@ def announcements_data():
 
     announcements_list = []
     for ann in announcements:
-        schools_names = [s.name for s in getattr(ann, 'schools_mm', [])] if getattr(ann, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(ann, 'stages_mm', [])] if getattr(ann, 'stages_mm', None) else []
         groups_names = [g.name for g in getattr(ann, 'groups_mm', [])] if getattr(ann, 'groups_mm', None) else []
 
         # Format for display: "Item1, Item2" or "All" if empty
-        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
-        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
-        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Groups'
 
         announcements_list.append({
             "id": ann.id,
             "title": ann.title,
             "content": ann.content,
             "creation_date": ann.creation_date.strftime('%Y-%m-%d %H:%M'),
-            "subject": ann.subject.name if ann.subject else "N/A",
-            "schools": schools_display,
-            "stages": stages_display,
             "groups": groups_display
         })
     
@@ -298,20 +243,12 @@ def get_announcement_data(announcement_id):
     if not announcement:
         return jsonify({"success": False, "message": "Announcement not found or you do not have permission to view it."}), 404
 
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(announcement, 'schools_mm', [])] if getattr(announcement, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(announcement, 'stages_mm', [])] if getattr(announcement, 'stages_mm', None) else []
     groups_mm = [{"id": g.id, "name": g.name} for g in getattr(announcement, 'groups_mm', [])] if getattr(announcement, 'groups_mm', None) else []
 
     announcement_data = {
         "id": announcement.id,
         "title": announcement.title,
         "content": announcement.content,
-        "subject": {
-            "id": announcement.subject.id if announcement.subject else None,
-            "name": announcement.subject.name if announcement.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
         "groups_mm": groups_mm,
     }
 
@@ -322,19 +259,7 @@ def get_announcement_data(announcement_id):
 def announcements():
 
     if request.method == "POST":
-        group_ids_user, stage_ids_user, school_ids_user, subject_ids_user  = get_user_scope_ids()
-
-
-        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
-
-
-
-        subject_school_map = {}
-        for subject in subjects:
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
-
+        group_ids_user = get_user_scope_ids()
 
         title = (request.form.get("title") or "").strip()
         content = (request.form.get("content") or "").strip()
@@ -343,55 +268,17 @@ def announcements():
             flash("Title and content are required.", "danger")
             return redirect(url_for("admin.announcements"))
 
+        group_ids_mm = parse_multi_ids("groups_mm[]")
 
-        subject_id_single = int_or_none(request.form.get("subject_id"))
-
-        group_ids_mm  = parse_multi_ids("groups_mm[]")
-        stage_ids_mm  = parse_multi_ids("stages_mm[]")
-        school_ids_mm = parse_multi_ids("schools_mm[]")
-
+        # If no groups selected, default to all managed groups
         if not group_ids_mm:
             group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
-        if not stage_ids_mm:
-            stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
 
-
-        if not school_ids_mm:
-
-            subject_id = subject_id_single
-
-            if subject_id and subject_id in subject_school_map:
-                school_ids_mm = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                flash("Choose a subject" , "danger")
-                return redirect(url_for("admin.announcements"))
-
-
+        # Verify admin has permission to post to selected groups
         if group_ids_mm:
             if not can_manage(group_ids_mm, group_ids_user):
                 flash("You are not allowed to post to one or more selected groups.", "danger")
                 return redirect(url_for("admin.announcements"))
-        if stage_ids_mm:
-            if not can_manage(stage_ids_mm, stage_ids_user):
-                flash("You are not allowed to post to one or more selected stages.", "danger")
-                return redirect(url_for("admin.announcements"))
-
-        if school_ids_mm:
-            if not can_manage(school_ids_mm, school_ids_user):
-                flash("You are not allowed to post to one or more selected schools.", "danger")
-                return redirect(url_for("admin.announcements"))
-
-
-        if subject_id_single:
-            if subject_id_single not in subject_ids_user:
-                flash("You are not allowed to post to this subject.", "danger")
-                return redirect(url_for("admin.announcements"))
-        else :
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.announcements"))
-
-
-
 
         cairo_tz = pytz.timezone('Africa/Cairo')
         aware_local_time = datetime.now(cairo_tz)
@@ -400,19 +287,14 @@ def announcements():
         new_announcement = Announcements(
             title=title,
             content=content,
-            subjectid=subject_id_single,
             creation_date=naive_local_time
         )
 
         db.session.add(new_announcement)
 
-
+        # Assign groups
         if group_ids_mm:
             new_announcement.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
-        if stage_ids_mm:
-            new_announcement.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
-        if school_ids_mm:
-            new_announcement.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
 
         db.session.commit()
         
@@ -429,10 +311,7 @@ def announcements():
                 },
                 "data": {
                     "content": new_announcement.content,
-                    "stages_mm": [s.id for s in new_announcement.stages_mm],
-                    "groups_mm": [g.id for g in new_announcement.groups_mm],
-                    "schools_mm": [s.id for s in new_announcement.schools_mm],
-                    "subjects": [new_announcement.subject.name]
+                    "groups_mm": [g.id for g in new_announcement.groups_mm]
                 },
                 "before": None,
                 "after": None
@@ -443,7 +322,6 @@ def announcements():
 
         flash("Announcement created successfully!", "success")
         return redirect(url_for("admin.announcements"))
-
 
     return render_template("admin/announcements/announcements.html")
 
@@ -475,10 +353,7 @@ def delete_announcement(announcement_id):
             "before": {
                 "title": announcement.title,
                 "content": announcement.content,
-                "stages_mm": [s.id for s in announcement.stages_mm],
-                "groups_mm": [g.id for g in announcement.groups_mm],
-                "schools_mm": [s.id for s in announcement.schools_mm],
-                "subjects": [announcement.subject.name]
+                "groups_mm": [g.id for g in announcement.groups_mm]
             },
             "after": None
         }
@@ -500,16 +375,13 @@ def edit_announcement(announcement_id):
         flash("Announcement not found or you do not have permission to edit it.", "danger")
         return redirect(url_for("admin.announcements"))
 
-    group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
+    group_ids_user = get_user_scope_ids()
 
     # Store old values for logging
     old_announcement = {
         "title": announcement.title,
         "content": announcement.content,
-        "subjectid": announcement.subjectid,
-        "groups_mm": [g.id for g in announcement.groups_mm],
-        "stages_mm": [s.id for s in announcement.stages_mm],
-        "schools_mm": [s.id for s in announcement.schools_mm],
+        "groups_mm": [g.id for g in announcement.groups_mm]
     }
 
     title = (request.form.get("title") or "").strip()
@@ -521,16 +393,10 @@ def edit_announcement(announcement_id):
         flash("Title and content are required.", "danger")
         return redirect(url_for("admin.announcements"))
 
-    subject_id_single = int_or_none(request.form.get("subject_id"))
-
     group_ids_mm = parse_multi_ids("groups_mm[]")
-    stage_ids_mm = parse_multi_ids("stages_mm[]")
-    school_ids_mm = parse_multi_ids("schools_mm[]")
 
     if not group_ids_mm:
         group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
-    if not stage_ids_mm:
-        stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
 
     # Validation
     if group_ids_mm:
@@ -539,43 +405,13 @@ def edit_announcement(announcement_id):
                 return jsonify({"success": False, "message": "You are not allowed to post to one or more selected groups."}), 403
             flash("You are not allowed to post to one or more selected groups.", "danger")
             return redirect(url_for("admin.announcements"))
-    if stage_ids_mm:
-        if not can_manage(stage_ids_mm, stage_ids_user):
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": False, "message": "You are not allowed to post to one or more selected stages."}), 403
-            flash("You are not allowed to post to one or more selected stages.", "danger")
-            return redirect(url_for("admin.announcements"))
-
-    if school_ids_mm:
-        if not can_manage(school_ids_mm, school_ids_user):
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": False, "message": "You are not allowed to post to one or more selected schools."}), 403
-            flash("You are not allowed to post to one or more selected schools.", "danger")
-            return redirect(url_for("admin.announcements"))
-
-    if subject_id_single:
-        if subject_id_single not in subject_ids_user:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": False, "message": "You are not allowed to post to this subject."}), 403
-            flash("You are not allowed to post to this subject.", "danger")
-            return redirect(url_for("admin.announcements"))
-    else:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": "You must select a subject."}), 400
-        flash("You must select a subject.", "danger")
-        return redirect(url_for("admin.announcements"))
 
     # Update announcement
     announcement.title = title
     announcement.content = content
-    announcement.subjectid = subject_id_single
 
     if group_ids_mm:
         announcement.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
-    if stage_ids_mm:
-        announcement.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
-    if school_ids_mm:
-        announcement.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
 
     db.session.commit()
 
@@ -596,10 +432,7 @@ def edit_announcement(announcement_id):
             "after": {
                 "title": announcement.title,
                 "content": announcement.content,
-                "subjectid": announcement.subjectid,
-                "groups_mm": [g.id for g in announcement.groups_mm],
-                "stages_mm": [s.id for s in announcement.stages_mm],
-                "schools_mm": [s.id for s in announcement.schools_mm],
+                "groups_mm": [g.id for g in announcement.groups_mm]
             }
         }
     )
@@ -608,22 +441,14 @@ def edit_announcement(announcement_id):
 
     # Return JSON for AJAX requests
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        schools_names = [s.name for s in getattr(announcement, 'schools_mm', [])] if getattr(announcement, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(announcement, 'stages_mm', [])] if getattr(announcement, 'stages_mm', None) else []
         groups_names = [g.name for g in getattr(announcement, 'groups_mm', [])] if getattr(announcement, 'groups_mm', None) else []
-
-        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
-        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
-        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
+        groups_display = ', '.join(groups_names) if groups_names else 'All Groups'
 
         announcement_data = {
             "id": announcement.id,
             "title": announcement.title,
             "content": announcement.content,
             "creation_date": announcement.creation_date.strftime('%Y-%m-%d %H:%M'),
-            "subject": announcement.subject.name if announcement.subject else "N/A",
-            "schools": schools_display,
-            "stages": stages_display,
             "groups": groups_display
         }
         return jsonify({"success": True, "message": "Announcement updated successfully!", "announcement": announcement_data})
@@ -643,24 +468,15 @@ def students():
 
     search = request.args.get('search', '', type=str).strip()
     group = request.args.get('group', '', type=str).strip()
-    stage = request.args.get('stage', '', type=str).strip()
-    school = request.args.get('school', '', type=str).strip()
-    subject = request.args.get('subject', '', type=str).strip()
 
     query = Users.query.filter(Users.role == 'student', Users.code != 'nth', Users.code != 'Nth')
 
-    # Apply admin scope restrictions
+    # Apply admin scope restrictions (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         if group_ids:
             query = query.filter(Users.groupid.in_(group_ids))
-        if stage_ids:
-            query = query.filter(Users.stageid.in_(stage_ids))
-        if school_ids:
-            query = query.filter(Users.schoolid.in_(school_ids))
-        if subject_ids:
-            query = query.filter(Users.subjectid.in_(subject_ids))
 
     if search:
         search_like = f"%{search}%"
@@ -670,20 +486,10 @@ def students():
             (Users.phone_number.ilike(search_like)) |
             (Users.email.ilike(search_like)) | 
             (Users.parent_phone_number.ilike(search_like))
-
         )
 
     if group:
         query = query.join(Groups).filter(Groups.name == group)
-
-    if stage:
-        query = query.join(Stages).filter(Stages.name == stage)
-
-    if school:
-        query = query.join(Schools).filter(Schools.name == school)
-
-    if subject:
-        query = query.join(Subjects).filter(Subjects.name == subject)
 
     query = query.distinct()
 
@@ -694,23 +500,14 @@ def students():
     # Filter dropdown options based on admin scope
     if current_user.role == "super_admin":
         groups = Groups.query.all()
-        stages = Stages.query.all()
-        schools = Schools.query.all()
-        subjects = Subjects.query.all()
     else:
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         groups = Groups.query.filter(Groups.id.in_(group_ids)).all() if group_ids else []
-        stages = Stages.query.filter(Stages.id.in_(stage_ids)).all() if stage_ids else []
-        schools = Schools.query.filter(Schools.id.in_(school_ids)).all() if school_ids else []
-        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all() if subject_ids else []
 
     return render_template(
         'admin/students.html',
         users=users,
         groups=groups,
-        stages=stages,
-        schools=schools,
-        subjects=subjects,
         pagination=pagination,
     )
 
@@ -729,67 +526,49 @@ def approve_students():
         (Users.code == 'nth') | (Users.code == 'Nth')
     )
 
-    # Apply admin scope restrictions
+    # Apply admin scope restrictions (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
-        # Apply filters based on admin's scope
         if group_ids:
             query = query.filter(Users.groupid.in_(group_ids))
-        if stage_ids:
-            query = query.filter(Users.stageid.in_(stage_ids))
-        if school_ids:
-            query = query.filter(Users.schoolid.in_(school_ids))
-        if subject_ids:
-            query = query.filter(Users.subjectid.in_(subject_ids))
 
     pagination = query.order_by(Users.id.asc()).paginate(page=page, per_page=per_page, error_out=False)
     users = pagination.items
 
-    # Filter schools based on admin scope
+    # Get groups for dropdown based on admin scope
     if current_user.role == "super_admin":
-        schools = Schools.query.all()
+        groups = Groups.query.all()
     else:
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
-        schools = Schools.query.filter(Schools.id.in_(school_ids)).all() if school_ids else []
+        group_ids = get_user_scope_ids()
+        groups = Groups.query.filter(Groups.id.in_(group_ids)).all() if group_ids else []
 
-    SCHOOL_ABBREVIATIONS = {
-        "Albashaer international school": "BIS",
-        "Aspire International school": "AIS",
-        "British International College in Cairo": "BIC",
-        "British Ramses school": "BRS",
-        "Capital International School": "CIS",
-        "Egypt British international school": "EBS",
-        "Global Achievers": "GAS",
-        "Green Hills": "GRH",
-        "Gulf English school": "GES",
-        "Heights Center": "HTC",
-        "Manchester International School": "MIS",
-        "Modern British international school": "MBS",
-        "Modern education School": "MES",
-        "Online group": "ONL",
-        "Summits": "SUM",
-        "Sun of Knowledge International school": "SKI",
-        "Private": "PRV",
+    # Calculate last index for each group for code generation
+    GROUP_ABBREVIATIONS = {
+        "Group A": "GPA",
+        "Group B": "GPB",
+        "Group C": "GPC",
+        "Group D": "GPD",
+        "Online": "ONL",
     }
 
-    school_codes = {}
-    for school in schools:
-        abbr = SCHOOL_ABBREVIATIONS.get(school.name)
+    group_codes = {}
+    for group in groups:
+        abbr = GROUP_ABBREVIATIONS.get(group.name)
         if abbr:
-            school_codes[school.id] = abbr
+            group_codes[group.id] = abbr
         else:
-            school_codes[school.id] = school.name[:3].upper()
+            group_codes[group.id] = group.name[:3].upper()
 
-    last_school_indices = {}
-    for school in schools:
-        # Query to find the highest numeric code for each school
+    last_group_indices = {}
+    for group in groups:
+        # Query to find the highest numeric code for each group
         students_with_codes = Users.query.filter(
             Users.role == 'student',
-            Users.schoolid == school.id,
+            Users.groupid == group.id,
             Users.code != 'nth',
             Users.code != 'Nth',
-            Users.code.ilike(f"{school_codes[school.id]}-%")
+            Users.code.ilike(f"{group_codes[group.id]}-%")
         ).all()
         
         last_index = 0
@@ -805,29 +584,15 @@ def approve_students():
                 except Exception:
                     continue
         
-        last_school_indices[school.id] = last_index
-
-    # Filter dropdown options based on admin scope
-    if current_user.role == "super_admin":
-        groups = Groups.query.all()
-        stages = Stages.query.all()
-        subjects = Subjects.query.all()
-    else:
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
-        groups = Groups.query.filter(Groups.id.in_(group_ids)).all() if group_ids else []
-        stages = Stages.query.filter(Stages.id.in_(stage_ids)).all() if stage_ids else []
-        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all() if subject_ids else []
+        last_group_indices[group.id] = last_index
 
     return render_template(
         'admin/approve.html',
         users=users,
-        school_codes=school_codes,
-        last_school_indices=last_school_indices,
-        schools=schools,
+        group_codes=group_codes,
+        last_group_indices=last_group_indices,
         groups=groups,
-        stages=stages,
-        pagination=pagination,
-        subjects=subjects
+        pagination=pagination
     )
 
 
@@ -835,22 +600,12 @@ def approve_students():
 def approve_student(user_id):
     user = Users.query.get_or_404(user_id)
     
-    # Check if admin has permission to approve this student
+    # Check if admin has permission to approve this student (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         # Verify the student is within admin's scope
-        has_permission = False
-        if group_ids and user.groupid in group_ids:
-            has_permission = True
-        elif stage_ids and user.stageid in stage_ids:
-            has_permission = True
-        elif school_ids and user.schoolid in school_ids:
-            has_permission = True
-        elif subject_ids and user.subjectid in subject_ids:
-            has_permission = True
-            
-        if not has_permission:
+        if not (group_ids and user.groupid in group_ids):
             flash('You do not have permission to approve this student.', 'danger')
             return redirect(url_for('admin.approve_students'))
     
@@ -885,7 +640,6 @@ def approve_student(user_id):
 
         db.session.commit()
 
-
         new_log = AssistantLogs(
             assistant_id=current_user.id,
             action='Create',
@@ -903,9 +657,6 @@ def approve_student(user_id):
                     "phone_number": user.phone_number,
                     "code": user.code,
                     "groupid": user.groupid,
-                    "stageid": user.stageid,
-                    "schoolid": user.schoolid,
-                    "subjectid": user.subjectid,
                     "role": user.role,
                     "student_whatsapp": user.student_whatsapp,
                     "parent_whatsapp": user.parent_whatsapp,
@@ -929,22 +680,12 @@ def approve_student(user_id):
 def reject_student(user_id):
     user = Users.query.get_or_404(user_id)
     
-    # Check if admin has permission to reject this student
+    # Check if admin has permission to reject this student (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         # Verify the student is within admin's scope
-        has_permission = False
-        if group_ids and user.groupid in group_ids:
-            has_permission = True
-        elif stage_ids and user.stageid in stage_ids:
-            has_permission = True
-        elif school_ids and user.schoolid in school_ids:
-            has_permission = True
-        elif subject_ids and user.subjectid in subject_ids:
-            has_permission = True
-            
-        if not has_permission:
+        if not (group_ids and user.groupid in group_ids):
             flash('You do not have permission to reject this student.', 'danger')
             return redirect(url_for('admin.approve_students'))
     
@@ -972,9 +713,6 @@ def reject_student(user_id):
                 "parent_type": user.parent_type,
                 "code": user.code,
                 "groupid": user.groupid,
-                "stageid": user.stageid,
-                "schoolid": user.schoolid,
-                "subjectid": user.subjectid,
                 "role": user.role
             },
             "after": None
@@ -999,22 +737,12 @@ def student(user_id):
         flash("Student not found!", "danger")
         return redirect(url_for("admin.students"))
 
-    # Check if admin has permission to view this student
+    # Check if admin has permission to view this student (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         # Verify the student is within admin's scope
-        has_permission = False
-        if group_ids and student_obj.groupid in group_ids:
-            has_permission = True
-        elif stage_ids and student_obj.stageid in stage_ids:
-            has_permission = True
-        elif school_ids and student_obj.schoolid in school_ids:
-            has_permission = True
-        elif subject_ids and student_obj.subjectid in subject_ids:
-            has_permission = True
-            
-        if not has_permission:
+        if not (group_ids and student_obj.groupid in group_ids):
             flash('You do not have permission to view this student.', 'danger')
             return redirect(url_for('admin.students'))
 
@@ -1061,29 +789,16 @@ def edit_user(user_id):
         flash('User is an admin. Use the "Edit Admin" page.', 'error')
         return redirect(url_for('admin.edit_assistant', user_id=user_id))
 
-    # Check if admin has permission to edit this user
+    # Check if admin has permission to edit this user (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         # Verify the user is within admin's scope
-        has_permission = False
-        if group_ids and user.groupid in group_ids:
-            has_permission = True
-        elif stage_ids and user.stageid in stage_ids:
-            has_permission = True
-        elif school_ids and user.schoolid in school_ids:
-            has_permission = True
-        elif subject_ids and user.subjectid in subject_ids:
-            has_permission = True
-            
-        if not has_permission:
+        if not (group_ids and user.groupid in group_ids):
             flash('You do not have permission to edit this user.', 'danger')
             return redirect(url_for('admin.students'))
 
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all()
 
     if request.method == 'POST':
         if 'delete_user' in request.form:
@@ -1099,9 +814,6 @@ def edit_user(user_id):
                     "parent_phone_number": user.parent_phone_number,
                     "code": user.code,
                     "groupid": user.groupid,
-                    "stageid": user.stageid,
-                    "schoolid": user.schoolid,
-                    "subjectid": user.subjectid,
                     "profile_picture": user.profile_picture,
                     "role": user.role,
                     "parent_email": user.parent_email,
@@ -1157,8 +869,6 @@ def edit_user(user_id):
                 user.points = 0
                 user.otp = None
                 user.groupid = None
-                user.stageid = None
-                user.schoolid = None
                 user.login_count = 0
                 user.last_website_access = None
 
@@ -1199,9 +909,6 @@ def edit_user(user_id):
                 "parent_phone_number": user.parent_phone_number,
                 "code": user.code,
                 "groupid": user.groupid,
-                "stageid": user.stageid,
-                "schoolid": user.schoolid,
-                "subjectid": user.subjectid,
                 "profile_picture": user.profile_picture,
                 "role": user.role,
                 "parent_email": user.parent_email,
@@ -1219,9 +926,6 @@ def edit_user(user_id):
             user.parent_phone_number = request.form['parent_phone_number']
             # user.code = request.form['code']
             user.groupid = int(request.form['group']) if request.form['group'] else None
-            user.stageid = int(request.form['stage']) if request.form['stage'] else None
-            user.schoolid = int(request.form['school']) if request.form['school'] else None
-            user.subjectid = int(request.form['subject']) if request.form['subject'] else None
             if request.form['code'] != user.code :
                 code_exists = Users.query.filter(
                     Users.code == request.form['code'].strip(),
@@ -1256,9 +960,6 @@ def edit_user(user_id):
                         "parent_phone_number": user.parent_phone_number,
                         "code": user.code,
                         "groupid": user.groupid,
-                        "stageid": user.stageid,
-                        "schoolid": user.schoolid,
-                        "subjectid": user.subjectid,
                         "profile_picture": user.profile_picture,
                         "role": user.role,
                         "parent_email": user.parent_email,
@@ -1279,7 +980,7 @@ def edit_user(user_id):
         except Exception as e:
             flash(f"Error occurred: {e}", 'error')
             return redirect(url_for('admin.edit_user', user_id=user_id))
-    return render_template('admin/edit_user.html', user=user, groups=groups, stages=stages, schools=schools, subjects=subjects)
+    return render_template('admin/edit_user.html', user=user, groups=groups)
 
 
 #Reset password for a user (Admin route)
@@ -1287,22 +988,12 @@ def edit_user(user_id):
 def reset_password(user_id):
     user = Users.query.get_or_404(user_id)
     
-    # Check if admin has permission to reset password for this user
+    # Check if admin has permission to reset password for this user (groups only)
     if current_user.role != "super_admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         
         # Verify the user is within admin's scope
-        has_permission = False
-        if group_ids and user.groupid in group_ids:
-            has_permission = True
-        elif stage_ids and user.stageid in stage_ids:
-            has_permission = True
-        elif school_ids and user.schoolid in school_ids:
-            has_permission = True
-        elif subject_ids and user.subjectid in subject_ids:
-            has_permission = True
-            
-        if not has_permission:
+        if not (group_ids and user.groupid in group_ids):
             flash('You do not have permission to reset password for this user.', 'danger')
             return redirect(url_for('admin.students'))
     
@@ -1370,11 +1061,8 @@ def edit_assistant(user_id):
         flash('User is a student. Use the "Edit Student" page.', 'error')
         return redirect(url_for('admin.edit_user', user_id=user_id))
 
-    # 1. Fetch all items to display in the form
+    # Fetch groups to display in the form
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all()
 
     if request.method == 'POST':
         if 'delete_user' in request.form:
@@ -1417,59 +1105,35 @@ def edit_assistant(user_id):
             flash('Assistant and related data have been deleted successfully!', 'success')
             return redirect(url_for('admin.assistants'))
         try:
-            # 2. Capture the "before" state, including management scopes
+            # Capture the "before" state (groups only)
             old_data = {
                 "name": user.name,
                 "email": user.email,
                 "phone_number": user.phone_number,
                 "role": user.role,
-                "managed_schools": [s.id for s in user.managed_schools],
-                "managed_groups": [g.id for g in user.managed_groups],
-                "managed_stages": [st.id for st in user.managed_stages],
-                "managed_subjects": [s.id for s in user.managed_subjects]
+                "managed_groups": [g.id for g in user.managed_groups]
             }
             
-            # --- Update basic assistant info ---
+            # Update basic assistant info
             user.name = request.form['name']
             user.email = request.form['email']
             user.phone_number = request.form['phone_number']
 
-            # 3. Get the lists of IDs for the new management scopes from the form
-            selected_school_ids = request.form.getlist('school_ids', type=int)
+            # Get the list of group IDs from the form
             selected_group_ids = request.form.getlist('group_ids', type=int)
-            selected_stage_ids = request.form.getlist('stage_ids', type=int)
-            selected_subject_ids = request.form.getlist('subject_ids', type=int)
 
-            # If no schools selected, select all
-            if not selected_school_ids:
-                selected_school_ids = [school.id for school in Schools.query.all()]
-            # If no groups selected, select all
+            # If no groups selected, select all (assistant can manage all groups)
             if not selected_group_ids:
                 selected_group_ids = [group.id for group in Groups.query.all()]
-            # If no stages selected, select all
-            if not selected_stage_ids:
-                selected_stage_ids = [stage.id for stage in Stages.query.all()]
-            # If no subjects selected, select all
-            if not selected_subject_ids:
-                selected_subject_ids = [subject.id for subject in Subjects.query.all()]
-            # Clear existing relationships first
-            user.managed_schools.clear()
+            
+            # Clear existing groups and assign new ones
             user.managed_groups.clear()
-            user.managed_stages.clear()
-            user.managed_subjects.clear()
-            # Query for the new objects to assign
-            schools_to_assign = Schools.query.filter(Schools.id.in_(selected_school_ids)).all()
             groups_to_assign = Groups.query.filter(Groups.id.in_(selected_group_ids)).all()
-            stages_to_assign = Stages.query.filter(Stages.id.in_(selected_stage_ids)).all()
-            subjects_to_assign = Subjects.query.filter(Subjects.id.in_(selected_subject_ids)).all()
-            # Assign the new relationships
-            user.managed_schools.extend(schools_to_assign)
             user.managed_groups.extend(groups_to_assign)
-            user.managed_stages.extend(stages_to_assign)
-            user.managed_subjects.extend(subjects_to_assign)
-            db.session.commit() # Commit all changes at once
+            
+            db.session.commit()
 
-            # 4. Create the log with the "before" and "after" data
+            # Create the log with the "before" and "after" data
             new_log = AssistantLogs(
                 assistant_id=current_user.id,
                 action='Edit',
@@ -1488,10 +1152,7 @@ def edit_assistant(user_id):
                         "email": user.email,
                         "phone_number": user.phone_number,
                         "role": user.role,
-                        "managed_schools": selected_school_ids,
-                        "managed_groups": selected_group_ids,
-                        "managed_stages": selected_stage_ids,
-                        "managed_subjects": selected_subject_ids
+                        "managed_groups": selected_group_ids
                     }
                 }
             )
@@ -1501,12 +1162,12 @@ def edit_assistant(user_id):
             flash('Changes saved successfully!', 'success')
             return redirect(url_for('admin.assistants'))
         except Exception as e:
-            db.session.rollback() # Rollback changes if an error occurs
+            db.session.rollback()
             flash(f"(Check if the phone number or email is already in use) Error occurred: {e}", 'error')
             return redirect(url_for('admin.edit_assistant', user_id=user_id))
             
-    # Pass all items to the template for the GET request
-    return render_template('admin/assistant/edit_admin.html', user=user, groups=groups, stages=stages, schools=schools, subjects=subjects)
+    # Pass groups to the template for the GET request
+    return render_template('admin/assistant/edit_admin.html', user=user, groups=groups)
 
 
 @admin.route('/add_assistant', methods=['GET', 'POST'])
@@ -1515,11 +1176,8 @@ def add_assistant():
         flash('You are not authorized to add an assistant.', 'danger')
         return redirect(url_for('admin.assistants'))
     
-    # 1. Fetch all items to display in the form
+    # Fetch groups to display in the form
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all()
     
     if request.method == 'POST':
         name = request.form.get('name')
@@ -1531,7 +1189,7 @@ def add_assistant():
         existing_user = Users.query.filter_by(email=email).first()
         if existing_user:
             flash('A user with this email already exists.', 'error')
-            return render_template('admin/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups, stages=stages, schools=schools, subjects=subjects)
+            return render_template('admin/assistant/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups)
 
         new_admin = Users(
             name=name,
@@ -1544,36 +1202,18 @@ def add_assistant():
             db.session.add(new_admin)
             db.session.flush()  # Flush to get the ID before committing
             
-            # 2. Get the lists of IDs for the management scopes from the form
-            selected_school_ids = request.form.getlist('school_ids', type=int)
+            # Get the list of group IDs from the form
             selected_group_ids = request.form.getlist('group_ids', type=int)
-            selected_stage_ids = request.form.getlist('stage_ids', type=int)
-            selected_subject_ids = request.form.getlist('subject_ids', type=int)
 
-            # If no schools selected, select all
-            if not selected_school_ids:
-                selected_school_ids = [school.id for school in Schools.query.all()]
-            # If no groups selected, select all
+            # If no groups selected, select all (assistant can manage all groups)
             if not selected_group_ids:
                 selected_group_ids = [group.id for group in Groups.query.all()]
-            # If no stages selected, select all
-            if not selected_stage_ids:
-                selected_stage_ids = [stage.id for stage in Stages.query.all()]
-            # If no subjects selected, select all
-            if not selected_subject_ids:
-                selected_subject_ids = [subject.id for subject in Subjects.query.all()]
             
-            # Query for the objects to assign
-            schools_to_assign = Schools.query.filter(Schools.id.in_(selected_school_ids)).all()
+            # Query for the groups to assign
             groups_to_assign = Groups.query.filter(Groups.id.in_(selected_group_ids)).all()
-            stages_to_assign = Stages.query.filter(Stages.id.in_(selected_stage_ids)).all()
-            subjects_to_assign = Subjects.query.filter(Subjects.id.in_(selected_subject_ids)).all()
             
-            # Assign the relationships
-            new_admin.managed_schools.extend(schools_to_assign)
+            # Assign the groups
             new_admin.managed_groups.extend(groups_to_assign)
-            new_admin.managed_stages.extend(stages_to_assign)
-            new_admin.managed_subjects.extend(subjects_to_assign)
             
             db.session.commit()
 
@@ -1593,10 +1233,7 @@ def add_assistant():
                         "email": new_admin.email,
                         "phone_number": new_admin.phone_number,
                         "role": new_admin.role,
-                        "managed_schools": selected_school_ids,
-                        "managed_groups": selected_group_ids,
-                        "managed_stages": selected_stage_ids,
-                        "managed_subjects": selected_subject_ids
+                        "managed_groups": selected_group_ids
                     },
                     "before": None,
                     "after": None
@@ -1606,18 +1243,18 @@ def add_assistant():
             db.session.commit()
 
             flash('Assistant added successfully!', 'success')
-            try :
+            try:
                 send_whatsapp_message(new_admin.phone_number, f"Your assistant account has been created. \nYour email is {new_admin.email}. \nYour password is {password}. \nPlease login to your account and change your password.")
-            except :
+            except:
                 pass
             return redirect(url_for('admin.assistants'))
         except Exception as e:
             db.session.rollback()
             flash(f"Error occurred: {e}", 'error')
-            return render_template('admin/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups, stages=stages, schools=schools, subjects=subjects)
+            return render_template('admin/assistant/add_assistant.html', name=name, email=email, phone_number=phone_number, role=role, groups=groups)
     
-    # Pass all items to the template for the GET request
-    return render_template('admin/assistant/add_assistant.html', groups=groups, stages=stages, schools=schools, subjects=subjects)
+    # Pass groups to the template for the GET request
+    return render_template('admin/assistant/add_assistant.html', groups=groups)
 
 
 #=================================================================
@@ -1644,11 +1281,10 @@ def parse_deadline(dt_str):
 
 def qualified_students_count_for_assignment(assignment):
     """
-    Count students that qualify for this assignment:
-      - If MM targets exist for a dimension, use them.
-      - Else if legacy FK exists, use it.
-      - Else dimension is 'global' (no filter for that dimension).
-      - Subject is always a single subject (not MM).
+    Count students that qualify for this assignment (groups-only scope).
+    - If MM groups exist, use them.
+    - Else if legacy groupid exists, use it.
+    - Else assignment is global (no filter).
     """
     # base filter: active students with valid code
     base_filters = [
@@ -1657,10 +1293,8 @@ def qualified_students_count_for_assignment(assignment):
         Users.code != 'Nth',
     ]
 
-    # collect MM ids safely (relationship may be empty)
-    mm_group_ids  = [g.id for g in getattr(assignment, "groups_mm", [])]
-    mm_stage_ids  = [s.id for s in getattr(assignment, "stages_mm", [])]
-    mm_school_ids = [s.id for s in getattr(assignment, "schools_mm", [])]
+    # collect MM group ids safely (relationship may be empty)
+    mm_group_ids = [g.id for g in getattr(assignment, "groups_mm", [])]
 
     filters = list(base_filters)
 
@@ -1670,31 +1304,14 @@ def qualified_students_count_for_assignment(assignment):
     elif assignment.groupid:
         filters.append(Users.groupid == assignment.groupid)
 
-    # stage filter
-    if mm_stage_ids:
-        filters.append(Users.stageid.in_(mm_stage_ids))
-    elif assignment.stageid:
-        filters.append(Users.stageid == assignment.stageid)
-
-    # school filter
-    if mm_school_ids:
-        filters.append(Users.schoolid.in_(mm_school_ids))
-    elif assignment.schoolid:
-        filters.append(Users.schoolid == assignment.schoolid)
-
-    # subject filter (single subject, not MM)
-    if getattr(assignment, "subjectid", None):
-        filters.append(Users.subjectid == assignment.subjectid)
-
     return Users.query.filter(and_(*filters)).count()
 
 def qualified_students_count_for_quiz(quiz):
     """
-    Count students that qualify for this quiz:
-      - If MM targets exist for a dimension, use them.
-      - Else if legacy FK exists, use it.
-      - Else dimension is 'global' (no filter for that dimension).
-      - Subject is always a single subject (not MM).
+    Count students that qualify for this quiz (groups-only scope).
+    - If MM groups exist, use them.
+    - Else if legacy groupid exists, use it.
+    - Else quiz is global (no filter).
     """
     # base filter: active students with valid code
     base_filters = [
@@ -1703,10 +1320,8 @@ def qualified_students_count_for_quiz(quiz):
         Users.code != 'Nth',
     ]
 
-    # collect MM ids safely (relationship may be empty)
-    mm_group_ids  = [g.id for g in getattr(quiz, "groups_mm", [])]
-    mm_stage_ids  = [s.id for s in getattr(quiz, "stages_mm", [])]
-    mm_school_ids = [s.id for s in getattr(quiz, "schools_mm", [])]
+    # collect MM group ids safely (relationship may be empty)
+    mm_group_ids = [g.id for g in getattr(quiz, "groups_mm", [])]
 
     filters = list(base_filters)
 
@@ -1716,31 +1331,13 @@ def qualified_students_count_for_quiz(quiz):
     elif quiz.groupid:
         filters.append(Users.groupid == quiz.groupid)
 
-    # stage filter
-    if mm_stage_ids:
-        filters.append(Users.stageid.in_(mm_stage_ids))
-    elif quiz.stageid:
-        filters.append(Users.stageid == quiz.stageid)
-
-    # school filter
-    if mm_school_ids:
-        filters.append(Users.schoolid.in_(mm_school_ids))
-    elif quiz.schoolid:
-        filters.append(Users.schoolid == quiz.schoolid)
-
-    # subject filter (single subject, not MM)
-    if getattr(quiz, "subjectid", None):
-        filters.append(Users.subjectid == quiz.subjectid)
-
     return Users.query.filter(and_(*filters)).count()
 
 
 def get_qualified_students_query(target_object, admin_id=None):
     """
     Builds a SQLAlchemy query for students qualified for a target object 
-    (e.g., an assignment or quiz), optionally filtered by an admin's scope.
-    
-    Subject is always a single subject (not MM).
+    (e.g., an assignment or quiz), optionally filtered by an admin's group scope.
     """
     # base filter: active students with valid code
     base_filters = [
@@ -1749,10 +1346,8 @@ def get_qualified_students_query(target_object, admin_id=None):
         Users.code != 'Nth',
     ]
 
-    # collect MM ids safely (relationship may be empty)
-    mm_group_ids  = [g.id for g in getattr(target_object, "groups_mm", [])]
-    mm_stage_ids  = [s.id for s in getattr(target_object, "stages_mm", [])]
-    mm_school_ids = [s.id for s in getattr(target_object, "schools_mm", [])]
+    # collect MM group ids safely (relationship may be empty)
+    mm_group_ids = [g.id for g in getattr(target_object, "groups_mm", [])]
 
     filters = list(base_filters)
 
@@ -1762,40 +1357,13 @@ def get_qualified_students_query(target_object, admin_id=None):
     elif target_object.groupid:
         filters.append(Users.groupid == target_object.groupid)
 
-    # stage filter
-    if mm_stage_ids:
-        filters.append(Users.stageid.in_(mm_stage_ids))
-    elif target_object.stageid:
-        filters.append(Users.stageid == target_object.stageid)
-
-    # school filter
-    if mm_school_ids:
-        filters.append(Users.schoolid.in_(mm_school_ids))
-    elif target_object.schoolid:
-        filters.append(Users.schoolid == target_object.schoolid)
-
-    # subject filter (single subject, not MM)
-    if getattr(target_object, "subjectid", None):
-        filters.append(Users.subjectid == target_object.subjectid)
-
-    # ==================================================
-    # ✅ Apply admin scope if provided
-    # ==================================================
+    # Apply admin scope if provided (groups only)
     if admin_id:
         admin = Users.query.get(admin_id)
         if admin:
-            managed_school_ids  = [s.id for s in admin.managed_schools]
-            managed_group_ids   = [g.id for g in admin.managed_groups]
-            managed_stage_ids   = [st.id for st in admin.managed_stages]
-            managed_subject_ids = [sub.id for sub in admin.managed_subjects]
-
-            scope_filter = and_(
-                Users.schoolid.in_(managed_school_ids)   if managed_school_ids else True,
-                Users.groupid.in_(managed_group_ids)     if managed_group_ids else True,
-                Users.stageid.in_(managed_stage_ids)     if managed_stage_ids else True,
-                Users.subjectid.in_(managed_subject_ids) if managed_subject_ids else True,
-            )
-            filters.append(scope_filter)
+            managed_group_ids = [g.id for g in admin.managed_groups]
+            if managed_group_ids:
+                filters.append(Users.groupid.in_(managed_group_ids))
 
     return Users.query.filter(and_(*filters))
 
@@ -4189,44 +3757,30 @@ def material_media(material_id):
 
 @admin.route('/students/setup', methods=['GET', 'POST'])
 def students_setup():
+    """Simplified setup - only manages groups now."""
     if current_user.role != "super_admin":
         flash("You are not authorized to access this page.", "danger")
         return redirect(url_for("admin.index"))
 
-
-    # Handle add operations
+    # Handle add operations (groups only)
     if request.method == 'POST':
-    
-        entity_type = request.form.get('entity_type')
         name = request.form.get('name')
 
         if not name:
-            flash(f'{entity_type.capitalize()} name is required.', 'error')
-            return redirect(url_for('admin.students_setup'))
-
-        model_map = {
-            'school': Schools,
-            'stage': Stages,
-            'class': Groups,
-            'subject': Subjects
-        }
-
-        Model = model_map.get(entity_type)
-        if not Model:
-            flash('Invalid entity type.', 'error')
+            flash('Group name is required.', 'error')
             return redirect(url_for('admin.students_setup'))
 
         # Ensure uniqueness (case-insensitive, trimmed)
         name_clean = name.strip()
-        existing = Model.query.filter(db.func.lower(Model.name) == name_clean.lower()).first()
+        existing = Groups.query.filter(db.func.lower(Groups.name) == name_clean.lower()).first()
         if existing:
-            flash(f'{entity_type.capitalize()} already exists.', 'error')
+            flash('Group already exists.', 'error')
         else:
-            new_item = Model(name=name_clean)
-            db.session.add(new_item)
+            new_group = Groups(name=name_clean)
+            db.session.add(new_group)
             try:
                 db.session.commit()
-                flash(f'{entity_type.capitalize()} created successfully!', 'success')
+                flash('Group created successfully!', 'success')
                 
                 # Log the action
                 new_log = AssistantLogs(
@@ -4234,14 +3788,14 @@ def students_setup():
                     action='Create',
                     log={
                         "action_name": "Create",
-                        "resource_type": entity_type,
+                        "resource_type": "group",
                         "action_details": {
-                            "id": new_item.id,
-                            "title": new_item.name,
-                            "summary": f"New {entity_type} '{new_item.name}' was created."
+                            "id": new_group.id,
+                            "title": new_group.name,
+                            "summary": f"New group '{new_group.name}' was created."
                         },
                         "data": {
-                            "name": new_item.name
+                            "name": new_group.name
                         },
                         "before": None,
                         "after": None
@@ -4251,129 +3805,68 @@ def students_setup():
                 db.session.commit()
             except Exception as e:
                 db.session.rollback()
-                flash(f'Error creating {entity_type}: {str(e)}', 'error')
+                flash(f'Error creating group: {str(e)}', 'error')
 
         return redirect(url_for('admin.students_setup'))
 
-    # Fetch all existing data
-    def get_data(Model):
-        data_list = []
-        for item in Model.query.order_by(Model.name).all(): # Added order_by for consistency
-            # --- Student count logic (no changes here) ---
-            users = getattr(item, 'users', None)
-            if users is not None:
-                try:
-                    count = users.filter_by(role='student').count()
-                except AttributeError:
-                    count = len([u for u in users if getattr(u, 'role', None) == 'student'])
-            else:
-                count = 0
-
-            # <<< --- START OF NEW CODE --- >>>
-            item_data = {'id': item.id, 'name': item.name, 'count': count}
-
-            # If the model is Schools, get its subjects
-            if Model == Schools:
-                subjects = getattr(item, 'subjects', None)
-                if subjects:
-                    item_data['subjects'] = [s.name for s in subjects.all()]
-            
-            # If the model is Subjects, get its schools
-            if Model == Subjects:
-                schools = getattr(item, 'schools', None)
-                if schools:
-                    item_data['schools'] = [s.name for s in schools.all()]
-
-            data_list.append(item_data)
-            # <<< --- END OF NEW CODE --- >>>
-            
-        return data_list
-
-    schools_data = get_data(Schools)
-    stages_data = get_data(Stages)
-    groups_data = get_data(Groups)
-    subjects_data = get_data(Subjects)
+    # Fetch all groups with student counts
+    groups_data = []
+    for group in Groups.query.order_by(Groups.name).all():
+        users = getattr(group, 'users', None)
+        if users is not None:
+            try:
+                count = users.filter_by(role='student').count()
+            except AttributeError:
+                count = len([u for u in users if getattr(u, 'role', None) == 'student'])
+        else:
+            count = 0
+        
+        groups_data.append({
+            'id': group.id,
+            'name': group.name,
+            'count': count
+        })
+    
     return render_template(
         'admin/students_setup.html',
-        schools=schools_data,
-        stages=stages_data,
-        groups=groups_data,
-        subjects=subjects_data
+        groups=groups_data
     )
 
 
-@admin.route('/assign-subjects', methods=['POST'])
-def assign_subjects_to_school():
+@admin.route('/students/setup/delete/<int:item_id>', methods=['POST'])
+def delete_entity(item_id):
+    """Delete a group - simplified to groups only."""
     if current_user.role != "super_admin":
-        flash("You are not authorized to access this page.", "danger")
-        return redirect(url_for("admin.index"))
-
-    school_id = request.form.get('school_id')
-    subject_ids_raw = request.form.get('subject_ids', '')  # e.g. "1,2,3"
-
-    if not school_id:
-        flash("Please select a school.", "error")
-        return redirect(url_for('admin.students_setup'))
-
-    # Split string into a list of integers
-    subject_ids = [int(x) for x in subject_ids_raw.split(',') if x.strip().isdigit()]
-
-    school = Schools.query.get_or_404(school_id)
-
-    selected_subjects = Subjects.query.filter(Subjects.id.in_(subject_ids)).all()
-    school.subjects = selected_subjects
-
-    db.session.commit()
-
-    flash(f"Successfully updated subjects for {school.name}.", 'success')
-    return redirect(url_for('admin.students_setup'))
-
-
-@admin.route('/students/setup/delete/<entity>/<int:item_id>', methods=['POST'])
-def delete_entity(entity, item_id):
-    # return "FUCNTION PAUSED!"
-    if current_user.role != "super_admin":
-        flash("You are not authorized to delete this entity.", "danger")
+        flash("You are not authorized to delete this group.", "danger")
         return redirect(url_for("admin.students_setup"))
     
-    model_map = {
-        'school': Schools,
-        'stage': Stages,
-        'class': Groups,
-        'subject': Subjects
-    }
-    Model = model_map.get(entity)
-    if not Model:
-        flash('Invalid entity type.', 'error')
-        return redirect(url_for('admin.students_setup'))
-
-    item = Model.query.get(item_id)
-    if item:
+    group = Groups.query.get(item_id)
+    if group:
         # Log the action before deleting
         new_log = AssistantLogs(
             assistant_id=current_user.id,
             action='Delete',
             log={
                 "action_name": "Delete",
-                "resource_type": entity,
+                "resource_type": "group",
                 "action_details": {
-                    "id": item.id,
-                    "title": item.name,
-                    "summary": f"{entity.capitalize()} '{item.name}' was deleted."
+                    "id": group.id,
+                    "title": group.name,
+                    "summary": f"Group '{group.name}' was deleted."
                 },
                 "data": None,
                 "before": {
-                    "name": item.name
+                    "name": group.name
                 },
                 "after": None
             }
         )
         db.session.add(new_log)
-        db.session.delete(item)
+        db.session.delete(group)
         db.session.commit()
-        flash(f'{entity.capitalize()} deleted successfully!', 'success')
+        flash('Group deleted successfully!', 'success')
     else:
-        flash(f'{entity.capitalize()} not found.', 'error')
+        flash('Group not found.', 'error')
 
     return redirect(url_for('admin.students_setup'))
 
