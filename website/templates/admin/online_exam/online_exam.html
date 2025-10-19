@@ -1108,6 +1108,24 @@
                 <label class="form-label">Description</label>
                 <textarea name="description" rows="4" class="form-textarea">${escapeHtml(exam.description || '')}</textarea>
             </div>
+
+
+
+            <div>
+                <label class="form-label">
+                    <input type="checkbox" name="student_whatsapp" value="true" ${exam.student_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp notification to student
+                </label>
+            </div>
+            <div>
+                <label class="form-label">
+                    <input type="checkbox" name="parent_whatsapp" value="true" ${exam.parent_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp notification to parent
+                </label>
+            </div>
+
+
+
             <div>
                 <label class="form-label">Out of</label>
                 <input type="number" name="out_of" placeholder="0" value="${exam.out_of || ''}" class="form-input">
@@ -1427,7 +1445,7 @@
                     <div class="card-header">
                         <div>
                             <h3 class="exam-title">${e.title}</h3>
-                            <p class="exam-due">Date: ${due}</p>
+                            <p class="exam-due">Due: ${due}</p>
                             <p class="exam-out-of">Out of: ${e.out_of || 'N/A'}</p>
                             <p class="exam-points">Points: ${e.points || 'N/A'}</p>
                             <p class="exam-student_whatsapp">Messages are sent to students via WhatsApp: <span style="color: ${e.student_whatsapp ? 'green' : 'red'}; font-weight: bold;">${e.student_whatsapp ? 'Yes' : 'No'}</span></p>
