@@ -62,21 +62,19 @@
                         <p class="card-description">View and manage the members of this group.</p>
                         <ul class="action-list">
                             <li>
-                                <a href="#">
+                                <a href="{{ url_for('admin.group_students', group_id=group.id) }}">
                                     <i class="fas fa-user-graduate fa-fw me-3"></i>
                                     <span>Students</span>
                                     <i class="fas fa-chevron-right ms-auto"></i>
                                 </a>
                             </li>
-                            {% if current_user.role == "super_admin" %}
                             <li>
-                                <a href="#">
+                                <a href="{{ url_for('admin.group_assistants', group_id=group.id) }}">
                                     <i class="fas fa-chalkboard-teacher fa-fw me-3"></i>
-                                    <span>Assistants</span>
+                                    <span>Assistants & Heads</span>
                                     <i class="fas fa-chevron-right ms-auto"></i>
                                 </a>
                             </li>
-                            {% endif %}
                         </ul>
                     </div>
                 </div>

@@ -1,0 +1,499 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}{{ group.name }} - Assistants & Heads{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #1a237e;
+        --primary-hover-color: #141a64;
+        --head-color: #7c3aed;
+        --assistant-color: #2563eb;
+        --surface-bg: #ffffff;
+        --container-bg: #f8f9fa;
+        --text-color: #222222;
+        --subtle-text-color: #6c757d;
+        --border-color: #dee2e6;
+        --border-radius: 6px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --card-gap: 1rem;
+    }
+
+    .assistants-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin: 0;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        background-color: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .back-button:hover {
+        background-color: #e9ecef;
+        text-decoration: none;
+    }
+
+    .filters-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.5rem;
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+    }
+
+    .filter-input {
+        padding: 0.6rem 0.8rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        font-size: 1rem;
+        background-color: var(--surface-bg);
+        color: var(--text-color);
+        flex-grow: 1;
+        min-width: 200px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.2);
+    }
+
+    .controls-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .user-count {
+        color: var(--subtle-text-color);
+        font-weight: 500;
+    }
+
+    .sort-controls {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .sort-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.6rem 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        background-color: var(--surface-bg);
+        color: var(--text-color);
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .sort-btn:hover {
+        background-color: #e9ecef;
+    }
+
+    .sort-btn.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    .sort-indicator {
+        font-size: 0.8em;
+    }
+
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: var(--card-gap);
+        margin-top: 1rem;
+    }
+
+    .user-card {
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-sm);
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .user-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        margin: -1rem;
+        padding: 1rem;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .role-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .role-badge.head {
+        background-color: #ede9fe;
+        color: var(--head-color);
+    }
+
+    .role-badge.assistant {
+        background-color: #dbeafe;
+        color: var(--assistant-color);
+    }
+
+    .card-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f1f3f5;
+        font-size: 0.95rem;
+    }
+
+    .card-item:last-child {
+        border-bottom: none;
+    }
+
+    .card-item .label {
+        color: var(--subtle-text-color);
+        font-weight: 500;
+    }
+
+    .card-item .value {
+        color: var(--text-color);
+        text-align: right;
+    }
+
+    .managed-groups {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #f1f3f5;
+    }
+
+    .managed-groups .label {
+        color: var(--subtle-text-color);
+        font-weight: 500;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .group-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .group-tag {
+        padding: 0.25rem 0.6rem;
+        background-color: #f3f4f6;
+        color: #374151;
+        border-radius: var(--border-radius);
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .group-tag.current {
+        background-color: #dbeafe;
+        color: #1e40af;
+    }
+
+    .btn-primary {
+        padding: 0.6rem 1.2rem;
+        border-radius: var(--border-radius);
+        border: none;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover-color);
+        color: white;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .page-link {
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        background: var(--surface-bg);
+        color: var(--subtle-text-color);
+        text-decoration: none;
+        transition: background-color 0.2s, color 0.2s;
+    }
+
+    .page-link:hover {
+        background-color: #e9ecef;
+        color: var(--primary-color);
+    }
+
+    .page-link.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+        pointer-events: none;
+    }
+
+    .page-link.disabled {
+        color: #adb5bd;
+        background-color: #f8f9fa;
+        pointer-events: none;
+    }
+
+    .no-results {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--subtle-text-color);
+        font-size: 1.1rem;
+    }
+
+    @media (max-width: 768px) {
+        .assistants-container {
+            padding: 1rem 0.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .filters-form {
+            flex-direction: column;
+        }
+
+        .controls-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .sort-controls {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .cards-container {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="assistants-container">
+    <div class="page-header">
+        <div>
+            <a href="{{ url_for('admin.group', group_id=group.id) }}" class="back-button">
+                ← Back to {{ group.name }}
+            </a>
+            <h1>{{ group.name }} - Assistants & Heads</h1>
+        </div>
+    </div>
+
+    <form class="filters-form" id="filtersForm" role="search" method="get"
+        action="{{ url_for('admin.group_assistants', group_id=group.id) }}">
+        <input type="text" id="searchInput" name="search" class="filter-input"
+            placeholder="Search by name, email, or phone..." value="{{ request.args.get('search', '') }}">
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+
+    {% if users %}
+    <div class="controls-bar">
+        <span class="user-count">{{ pagination.total }} user{{ 's' if pagination.total != 1 else '' }} found</span>
+        <div class="sort-controls">
+            <button id="sortNameBtn" class="sort-btn active" type="button" data-sort="name">
+                Sort Name <span class="sort-indicator">↑</span>
+            </button>
+            <button id="sortRoleBtn" class="sort-btn" type="button" data-sort="role">
+                Sort Role <span class="sort-indicator"></span>
+            </button>
+        </div>
+    </div>
+
+    <div class="cards-container" id="userCardsContainer">
+        {% for user in users %}
+        <div class="user-card" data-name="{{ user.name }}" data-role="{{ user.role }}">
+
+            <div class="card-header">
+                <span style="color: var(--primary-color);">{{ user.name }}</span>
+                <span class="role-badge {% if user.role == 'super_admin' %}head{% else %}assistant{% endif %}">
+                    {% if user.role == 'super_admin' %}Head{% else %}Assistant{% endif %}
+                </span>
+            </div>
+
+            <div class="card-item">
+                <span class="label">Email</span>
+                <span class="value">{{ user.email }}</span>
+            </div>
+            <div class="card-item">
+                <span class="label">Phone</span>
+                <span class="value">{{ user.phone_number if user.phone_number else 'N/A' }}</span>
+            </div>
+
+            <div class="managed-groups">
+                <span class="label">Managed Groups:</span>
+                <div class="group-tags">
+                    {% for managed_group in user.managed_groups %}
+                    <span class="group-tag {% if managed_group.id == group.id %}current{% endif %}">
+                        {{ managed_group.name }}
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}"
+            class="page-link">Previous</a>
+        {% else %}
+        <span class="page-link disabled">Previous</span>
+        {% endif %}
+
+        {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if page_num %}
+        {% if page_num == pagination.page %}
+        <span class="page-link active">{{ page_num }}</span>
+        {% else %}
+        <a href="?page={{ page_num }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}"
+            class="page-link">{{ page_num }}</a>
+        {% endif %}
+        {% else %}
+        <span class="page-link disabled">...</span>
+        {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}{% if request.args.get('search') %}&search={{ request.args.get('search') }}{% endif %}"
+            class="page-link">Next</a>
+        {% else %}
+        <span class="page-link disabled">Next</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="no-results">
+        <p>No assistants or heads found for this group{% if request.args.get('search') %} matching your search{% endif
+            %}.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Client-side sorting
+    let sortState = {
+        name: 'asc',
+        role: null
+    };
+
+    const container = document.getElementById('userCardsContainer');
+    const cards = Array.from(container.querySelectorAll('.user-card'));
+
+    function sortCards(by) {
+        const currentState = sortState[by];
+        const newState = currentState === 'asc' ? 'desc' : 'asc';
+
+        // Reset all sort states except current
+        Object.keys(sortState).forEach(key => {
+            if (key !== by) sortState[key] = null;
+        });
+        sortState[by] = newState;
+
+        // Update button states
+        document.querySelectorAll('.sort-btn').forEach(btn => {
+            btn.classList.remove('active');
+            btn.querySelector('.sort-indicator').textContent = '';
+        });
+
+        const activeBtn = document.querySelector(`[data-sort="${by}"]`);
+        activeBtn.classList.add('active');
+        activeBtn.querySelector('.sort-indicator').textContent = newState === 'asc' ? '↑' : '↓';
+
+        // Sort cards
+        cards.sort((a, b) => {
+            let aVal = a.dataset[by].toLowerCase();
+            let bVal = b.dataset[by].toLowerCase();
+
+            if (newState === 'asc') {
+                return aVal.localeCompare(bVal);
+            } else {
+                return bVal.localeCompare(aVal);
+            }
+        });
+
+        // Reorder DOM
+        cards.forEach(card => container.appendChild(card));
+    }
+
+    document.getElementById('sortNameBtn').addEventListener('click', () => sortCards('name'));
+    document.getElementById('sortRoleBtn').addEventListener('click', () => sortCards('role'));
+</script>
+
+{% endblock %}

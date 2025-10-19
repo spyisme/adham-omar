@@ -6293,3 +6293,94 @@ def group_assignments(group_id):
 def group_exams(group_id):
     group = Groups.query.get_or_404(group_id)
     return render_template("admin/online_exam/online_exam.html", filter_group_id=group_id, group=group)
+
+@admin.route('/group/<int:group_id>/students', methods=['GET'])
+def group_students(group_id):
+    group = Groups.query.get_or_404(group_id)
+    
+    # Check if user has access to this group
+    if current_user.role != "super_admin":
+        group_ids = get_user_scope_ids()
+        if group_id not in group_ids:
+            flash("You don't have access to this group.", "danger")
+            return redirect(url_for("admin.index"))
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 51
+    search = request.args.get('search', '', type=str).strip()
+    
+    # Filter students by the specific group
+    query = Users.query.filter(
+        Users.role == 'student',
+        Users.code != 'nth',
+        Users.code != 'Nth',
+        Users.groupid == group_id
+    )
+    
+    # Apply search filter
+    if search:
+        search_like = f"%{search}%"
+        query = query.filter(
+            (Users.name.ilike(search_like)) |
+            (Users.code.ilike(search_like)) |
+            (Users.phone_number.ilike(search_like)) |
+            (Users.email.ilike(search_like)) |
+            (Users.parent_phone_number.ilike(search_like))
+        )
+    
+    query = query.distinct()
+    pagination = query.order_by(Users.code.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    users = pagination.items
+    
+    return render_template(
+        'admin/group_students.html',
+        users=users,
+        group=group,
+        pagination=pagination,
+    )
+
+@admin.route('/group/<int:group_id>/assistants', methods=['GET'])
+def group_assistants(group_id):
+    group = Groups.query.get_or_404(group_id)
+    
+    # Check if user has access to this group
+    if current_user.role != "super_admin":
+        group_ids = get_user_scope_ids()
+        if group_id not in group_ids:
+            flash("You don't have access to this group.", "danger")
+            return redirect(url_for("admin.index"))
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = 51
+    search = request.args.get('search', '', type=str).strip()
+    
+    # Filter users who are admins or super_admins and have this group in managed_groups
+    query = Users.query.filter(
+        Users.role.in_(['admin', 'super_admin'])
+    ).filter(
+        Users.managed_groups.any(Groups.id == group_id)
+    )
+    
+    # Apply search filter
+    if search:
+        search_like = f"%{search}%"
+        query = query.filter(
+            (Users.name.ilike(search_like)) |
+            (Users.email.ilike(search_like)) |
+            (Users.phone_number.ilike(search_like))
+        )
+    
+    query = query.distinct()
+    pagination = query.order_by(Users.name.asc()).paginate(page=page, per_page=per_page, error_out=False)
+    users = pagination.items
+    
+    return render_template(
+        'admin/group_assistants.html',
+        users=users,
+        group=group,
+        pagination=pagination,
+    )
+
+
+
+    
