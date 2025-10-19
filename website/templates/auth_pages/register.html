@@ -5,9 +5,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>English with Adham Omar - Register</title>
-  <meta name="description" content="English with  Adham Omar Registration">
-  <meta name="keywords" content="English,  Adham Omar, Register, English with  Adham Omar">
-  <meta name="author" content=" Adham Omar">
+  <meta name="description" content="English with Adham Omar Registration">
+  <meta name="keywords" content="English, Adham Omar, Register, English with Adham Omar">
+  <meta name="author" content="Adham Omar">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
@@ -29,7 +29,6 @@
       --error-text: #721c24;
       --error-border: #f5c6cb;
       --radius-md: 0.5rem;
-      --radius-lg: 15px;
     }
 
     /* --- Base & Typography --- */
@@ -47,27 +46,18 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 1.5rem;
     }
 
     h1, h2, .brand-logo {
       font-family: 'Playfair Display', serif;
     }
 
-    /* --- Main Page Layout --- */
+    /* --- Main Full Page Layout --- */
     .page-container {
       display: flex;
-      min-height: 90vh;
-      max-width: 1200px;
-      margin: auto;
+      width: 100vw;
+      height: 100vh;
       background: var(--white-color);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-medium);
-      overflow: hidden;
       animation: fade-in 0.8s ease-out;
     }
 
@@ -109,6 +99,12 @@
       background-color: var(--white-color);
       padding: clamp(1.5rem, 5vw, 3rem);
       overflow-y: auto;
+    }
+    
+    .form-wrapper {
+        max-width: 600px; /* Wider for register form */
+        margin: 0 auto;
+        width: 100%;
     }
 
     .form-header h1 {
@@ -190,7 +186,6 @@
       cursor: pointer;
     }
 
-    /* Phone Input */
     .country-code-input {
       width: 80px;
       flex-shrink: 0;
@@ -198,15 +193,7 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
       font-size: 1rem;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      background-color: var(--white-color);
       text-align: center;
-    }
-
-    .country-code-input:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
     }
 
     .non-egyptian-checkbox {
@@ -217,10 +204,8 @@
       font-size: 0.85rem;
       color: var(--text-color-light);
       cursor: pointer;
-      font-weight: 400;
     }
 
-    /* Custom File Input */
     .file-input-wrapper {
       display: flex;
       align-items: stretch;
@@ -294,7 +279,6 @@
       text-decoration: underline;
     }
 
-    /* --- Validation & Flash Messages --- */
     #form-errors {
       margin-top: 1.5rem;
       padding: 1rem;
@@ -349,17 +333,15 @@
 
     /* --- Responsive Design --- */
     @media (max-width: 992px) {
-      body {
-        padding: 0;
-        align-items: stretch;
-      }
       .page-container {
         flex-direction: column;
-        border-radius: 0;
-        min-height: 100vh;
+        height: auto; /* Allow content to scroll on mobile */
       }
       .welcome-panel { display: none; }
-      .form-panel { flex-basis: 100%; }
+      .form-panel { 
+          flex-basis: 100%; 
+          padding: 2rem;
+      }
     }
 
     @media (max-width: 576px) {
@@ -394,111 +376,111 @@
     </aside>
 
     <main class="form-panel">
-      <div class="form-header">
-        <h1>Create Your Account</h1>
-        <p>Welcome! Please fill in the details below to get started.</p>
-      </div>
-
-      <form id="registerForm" action="/register" method="POST" enctype="multipart/form-data" novalidate>
-
-        <section class="form-section">
-          <h2>Student Information</h2>
-          <div class="form-group">
-            <label for="student_name">Student Name</label>
-            <input type="text" id="student_name" name="student_name" required placeholder="Enter first 4 names" />
-          </div>
-
-          <div class="form-group">
-            <div class="form-row">
-              <div class="form-group" id="student_country_code_group" style="display: none; margin-bottom: 0;">
-                <label for="student_phone_country_code">Country Code</label>
-                <input type="tel" id="student_phone_country_code" name="student_phone_country_code"
-                  placeholder="e.g., 971" />
-              </div>
-              <div class="form-group" id="student_phone_number_group" style="margin-bottom: 0;">
-                <label for="student_phone" id="student_phone_label">Student Phone Number</label>
-                <input type="tel" id="student_phone" name="student_phone" required placeholder="e.g., 01xxxxxxxxx" />
-              </div>
-            </div>
-            <label class="non-egyptian-checkbox">
-              <input type="checkbox" id="student_non_egyptian" />
-              <span>Non-Egyptian number</span>
-            </label>
-          </div>
-          <div class="form-group">
-            <label for="student_email">Student Email Address</label>
-            <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
-          </div>
-
-
-          <div class="form-group">
-            <label for="group">Group</label>
-            <select name="group" id="group" required>
-              <option value="" disabled selected>Select your group</option>
-              {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="profile_picture">Profile Picture</label>
-            <div class="file-input-wrapper">
-              <input type="file" id="profile_picture" name="profile_picture" accept=".jpg,.jpeg,.png" required
-                style="display:none;">
-              <label for="profile_picture" class="file-input-trigger">Choose File</label>
-              <span class="file-input-name">No file chosen...</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="form-section">
-          <h2>Parent & Account Information</h2>
-
-          <div class="form-group">
-            <label for="parent_type">Parent Type</label>
-            <select name="parent_type" id="parent_type" required>
-              <option value="" disabled selected>Select parent type</option>
-              <option value="father">Father</option>
-              <option value="mother">Mother</option>
-              <option value="guardian">Guardian</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <div class="form-row">
-              <div class="form-group" id="parent_country_code_group" style="display: none; margin-bottom: 0;">
-                <label for="parent_phone_country_code">Country Code</label>
-                <input type="tel" id="parent_phone_country_code" name="parent_phone_country_code"
-                  placeholder="e.g., 971" />
-              </div>
-              <div class="form-group" id="parent_phone_number_group" style="margin-bottom: 0;">
-                <label for="parent_phone" id="parent_phone_label">Parent Phone Number</label>
-                <input type="tel" id="parent_phone" name="parent_phone" required placeholder="e.g., 01xxxxxxxxx" />
-              </div>
-            </div>
-            <label class="non-egyptian-checkbox">
-              <input type="checkbox" id="parent_non_egyptian" />
-              <span>Non-Egyptian number</span>
-            </label>
-          </div>
-          <div class="form-group">
-            <label for="password">Password (min. 8 characters)</label>
-            <input type="password" id="password" name="password" required placeholder="Create a secure password" />
-          </div>
-        </section>
-
-        <div id="form-errors"></div>
-
-        <button type="submit" class="form-submit">Create Account</button>
-        <div class="login-link">
-          Already have an account? <a href="/login">Login now</a>
+      <div class="form-wrapper">
+        <div class="form-header">
+            <h1>Create Your Account</h1>
+            <p>Welcome! Please fill in the details below to get started.</p>
         </div>
-      </form>
+
+        <form id="registerForm" action="/register" method="POST" enctype="multipart/form-data" novalidate>
+            <section class="form-section">
+            <h2>Student Information</h2>
+            <div class="form-group">
+                <label for="student_name">Student Name</label>
+                <input type="text" id="student_name" name="student_name" required placeholder="Enter first 4 names" />
+            </div>
+
+            <div class="form-group">
+                <div class="form-row">
+                <div class="form-group" id="student_country_code_group" style="display: none; margin-bottom: 0;">
+                    <label for="student_phone_country_code">Country Code</label>
+                    <input type="tel" id="student_phone_country_code" name="student_phone_country_code"
+                    placeholder="e.g., 971" class="country-code-input" />
+                </div>
+                <div class="form-group" id="student_phone_number_group" style="margin-bottom: 0;">
+                    <label for="student_phone" id="student_phone_label">Student Phone Number</label>
+                    <input type="tel" id="student_phone" name="student_phone" required placeholder="e.g., 01xxxxxxxxx" />
+                </div>
+                </div>
+                <label class="non-egyptian-checkbox">
+                <input type="checkbox" id="student_non_egyptian" />
+                <span>Non-Egyptian number</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="student_email">Student Email Address</label>
+                <input type="email" id="student_email" name="student_email" required placeholder="example@gmail.com" />
+            </div>
+
+
+            <div class="form-group">
+                <label for="group">Group</label>
+                <select name="group" id="group" required>
+                <option value="" disabled selected>Select your group</option>
+                {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="profile_picture">Profile Picture</label>
+                <div class="file-input-wrapper">
+                <input type="file" id="profile_picture" name="profile_picture" accept=".jpg,.jpeg,.png" required
+                    style="display:none;">
+                <label for="profile_picture" class="file-input-trigger">Choose File</label>
+                <span class="file-input-name">No file chosen...</span>
+                </div>
+            </div>
+            </section>
+
+            <section class="form-section">
+            <h2>Parent & Account Information</h2>
+
+            <div class="form-group">
+                <label for="parent_type">Parent Type</label>
+                <select name="parent_type" id="parent_type" required>
+                <option value="" disabled selected>Select parent type</option>
+                <option value="father">Father</option>
+                <option value="mother">Mother</option>
+                <option value="guardian">Guardian</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <div class="form-row">
+                <div class="form-group" id="parent_country_code_group" style="display: none; margin-bottom: 0;">
+                    <label for="parent_phone_country_code">Country Code</label>
+                    <input type="tel" id="parent_phone_country_code" name="parent_phone_country_code"
+                    placeholder="e.g., 971" class="country-code-input"/>
+                </div>
+                <div class="form-group" id="parent_phone_number_group" style="margin-bottom: 0;">
+                    <label for="parent_phone" id="parent_phone_label">Parent Phone Number</label>
+                    <input type="tel" id="parent_phone" name="parent_phone" required placeholder="e.g., 01xxxxxxxxx" />
+                </div>
+                </div>
+                <label class="non-egyptian-checkbox">
+                <input type="checkbox" id="parent_non_egyptian" />
+                <span>Non-Egyptian number</span>
+                </label>
+            </div>
+            <div class="form-group">
+                <label for="password">Password (min. 8 characters)</label>
+                <input type="password" id="password" name="password" required placeholder="Create a secure password" />
+            </div>
+            </section>
+
+            <div id="form-errors"></div>
+
+            <button type="submit" class="form-submit">Create Account</button>
+            <div class="login-link">
+            Already have an account? <a href="/login">Login now</a>
+            </div>
+        </form>
+      </div>
     </main>
   </div>
 
   <script>
     document.addEventListener("DOMContentLoaded", function () {
-      // --- Flash Message Handling ---
       const flashMessages = document.querySelectorAll('.flash-message');
       flashMessages.forEach(msg => {
         setTimeout(() => {
@@ -507,7 +489,6 @@
         }, 5000);
       });
 
-      // --- Custom File Input ---
       const fileInput = document.getElementById('profile_picture');
       const fileNameSpan = document.querySelector('.file-input-name');
       if (fileInput && fileNameSpan) {
@@ -519,30 +500,25 @@
           }
         });
       }
-
-      // --- ⬇️ MODIFIED COUNTRY CODE TOGGLE LOGIC ⬇️ ---
       
-      // --- Student Phone Elements ---
       const studentNonEgyptianCheckbox = document.getElementById('student_non_egyptian');
       const studentCountryCodeGroup = document.getElementById('student_country_code_group');
       const studentCountryCodeInput = document.getElementById('student_phone_country_code');
       const studentPhoneLabel = document.getElementById('student_phone_label');
       const studentPhoneInput = document.getElementById('student_phone');
 
-      // --- Parent Phone Elements ---
       const parentNonEgyptianCheckbox = document.getElementById('parent_non_egyptian');
       const parentCountryCodeGroup = document.getElementById('parent_country_code_group');
       const parentCountryCodeInput = document.getElementById('parent_phone_country_code');
       const parentPhoneLabel = document.getElementById('parent_phone_label');
       const parentPhoneInput = document.getElementById('parent_phone');
 
-      // --- Student Toggle Logic ---
       studentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
           studentCountryCodeGroup.style.display = 'block';
           studentPhoneLabel.textContent = 'Phone Number';
           studentPhoneInput.placeholder = 'e.g., 1234567890';
-          studentCountryCodeInput.value = ''; // Clear any default
+          studentCountryCodeInput.value = '';
         } else {
           studentCountryCodeGroup.style.display = 'none';
           studentPhoneLabel.textContent = 'Student Phone Number';
@@ -550,13 +526,12 @@
         }
       });
 
-      // --- Parent Toggle Logic ---
       parentNonEgyptianCheckbox.addEventListener('change', function () {
         if (this.checked) {
           parentCountryCodeGroup.style.display = 'block';
           parentPhoneLabel.textContent = 'Phone Number';
           parentPhoneInput.placeholder = 'e.g., 1234567890';
-          parentCountryCodeInput.value = ''; // Clear any default
+          parentCountryCodeInput.value = '';
         } else {
           parentCountryCodeGroup.style.display = 'none';
           parentPhoneLabel.textContent = 'Parent Phone Number';
@@ -564,13 +539,9 @@
         }
       });
 
-      // --- ⬆️ END MODIFIED COUNTRY CODE TOGGLE LOGIC ⬆️ ---
-
-
-      // --- Client-Side Form Validation ---
       const form = document.getElementById("registerForm");
       const errorContainer = document.getElementById("form-errors");
-      const maxFileSize = 5 * 1024 * 1024; // 5 MB
+      const maxFileSize = 5 * 1024 * 1024;
 
       form.addEventListener("submit", function (e) {
         let messages = [];
@@ -587,7 +558,6 @@
           addError("Student name must contain at least 4 names.");
         }
 
-        // Validate student phone based on checkbox
         const isStudentNonEgyptian = studentNonEgyptianCheckbox.checked;
         const studentPhoneValue = studentPhoneInput.value.trim();
         if (isStudentNonEgyptian) {
@@ -602,7 +572,6 @@
           }
         }
 
-        // Validate parent phone based on checkbox
         const isParentNonEgyptian = parentNonEgyptianCheckbox.checked;
         const parentPhoneValue = parentPhoneInput.value.trim();
         if (isParentNonEgyptian) {
