@@ -1898,7 +1898,7 @@ def view_assignment_submissions(assignment_id):
         Submissions.query
         .join(Users, Submissions.student_id == Users.id)
         .filter(Submissions.assignment_id == assignment_id)
-        .filter(Submissions.student_id.in_(qualified_students_subq))
+        .filter(Submissions.student_id.in_(db.select(qualified_students_subq)))
         .order_by(Users.name)
         .all()
     )
@@ -1949,12 +1949,39 @@ def edit_pdf(submission_id):
     filename = submission.file_url
 
     assignment = Assignments.query.get(submission.assignment_id)
+    student_name = submission.student.name
+    #take only first 2 names then truntcate 
+    student_name = student_name.split(" ")[0] + " " + student_name.split(" ")[1]
+    student_name = student_name[:20] + "..."
 
     if assignment.out_of > 0:
         show_grade = True
     else:
         show_grade = False
-    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade)
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade, student_name=student_name)
+
+
+
+@admin.route("/assignments/annotate2/<int:submission_id>")
+def edit_pdf2(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    pdfurl = f"/admin/getpdf2/{submission_id}"
+    filename = submission.file_url
+
+    assignment = Assignments.query.get(submission.assignment_id)
+    student_name = submission.student.name
+    #take only first 2 names then truntcate 
+    student_name = student_name.split(" ")[0] + " " + student_name.split(" ")[1]
+    student_name = student_name[:20] + "..."
+    if assignment.out_of > 0:
+        show_grade = True
+    else:
+        show_grade = False
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade, student_name=student_name)
+
+
+
+
 
 #Save new pdf and grade
 @admin.route("/assignments/annotate", methods=["POST"])
