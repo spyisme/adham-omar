@@ -5747,6 +5747,22 @@ def edit_exam(exam_id):
         out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
         exam.out_of = out_of
 
+        student_whatsapp = request.form.get("student_whatsapp", False)
+        if student_whatsapp == "true":
+            student_whatsapp = True
+        else:
+            student_whatsapp = False
+        parent_whatsapp = request.form.get("parent_whatsapp", False)
+        if parent_whatsapp == "true":
+            parent_whatsapp = True
+        else:
+            parent_whatsapp = False
+
+        exam.student_whatsapp = student_whatsapp
+        exam.parent_whatsapp = parent_whatsapp
+
+
+
         # deadline
         try:
             exam.deadline_date = parse_deadline(request.form.get("deadline_date", ""))
@@ -5836,6 +5852,8 @@ def edit_exam(exam_id):
                     "schools_mm": [s.id for s in getattr(exam, "schools_mm", [])],
                     "attachments": json.loads(exam.attachments) if exam.attachments else [],
                     "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None,
+                    "student_whatsapp": exam.student_whatsapp,
+                    "parent_whatsapp": exam.parent_whatsapp,
                 }
             }
         )
@@ -5872,6 +5890,8 @@ def edit_exam(exam_id):
                 "submitted_students_count": submitted_count,
                 "qualified_students_count": qualified_count,
                 "out_of": exam.out_of,
+                "student_whatsapp": exam.student_whatsapp,
+                "parent_whatsapp": exam.parent_whatsapp,
             }
             
             return jsonify({"success": True, "message": "Exam updated successfully!", "exam": exam_data})
