@@ -111,7 +111,9 @@
                             <th>#</th>
                             <th>Student</th>
                             <th>Submission Time</th>
+                            {% if exam.points > 0 %}
                             <th>Grade</th>
+                            {% endif %}
                             <th>Status</th>
                             <th>Original File</th>
                             <th>Actions</th>
@@ -132,7 +134,8 @@
                                 class="submission-time {% if submission.upload_time > submission.assignment.deadline_date %}late{% endif %}">
                                 {{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}
                             </td>
-                            <td data-label="Grade">
+                            {% if exam.points > 0 %}
+                                <td data-label="Grade">
                                 <form method="POST" class="grade-form"
                                     style="display: flex; align-items: center; gap: 0.5rem;">
                                     <input type="hidden" name="submission_id" value="{{ submission.id }}">
@@ -161,7 +164,7 @@
                                         onmouseout="this.style.backgroundColor='#007bff';">Save</button>
                                 </form>
                             </td>
-
+                            {% endif %}
                             <td data-label="Status">
                                 {% if submission.corrected and submission.reviewed %}
                                 <span class="badge badge-success"
