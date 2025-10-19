@@ -6590,8 +6590,8 @@ def unlink_zoom_participant():
 @admin.route('/temp/activate/<int:user_id>')
 def temp_activate(user_id):
     user = Users.query.get_or_404(user_id)
-    user.student_whatsapp = user.phone_number
-    user.parent_whatsapp = user.parent_phone_number
+    user.student_whatsapp = user.phone_number_country_code + user.phone_number
+    user.parent_whatsapp = user.parent_phone_number_country_code + user.parent_phone_number
     db.session.commit()
     flash(f"Student {user.name} has been activated successfully!", "success")
     return redirect(url_for('admin.student' , user_id=user_id))
