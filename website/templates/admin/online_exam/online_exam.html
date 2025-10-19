@@ -514,9 +514,23 @@
                     <textarea name="description" rows="4" placeholder="Provide instructions, topics, or details here..."
                         class="form-textarea"></textarea>
                 </div>
+
+                <div>
+                    <label class="form-label">
+                        <input type="checkbox" name="student_whatsapp" value="true" checked>
+                        Send WhatsApp notification to student
+                    </label>
+                </div>
+                <div>
+                    <label class="form-label">
+                        <input type="checkbox" name="parent_whatsapp" value="true" checked>
+                        Send WhatsApp notification to parent
+                    </label>
+                </div>
+
                 <div>
                     <label class="form-label">Out of</label>
-                    <input type="number" name="out_of" placeholder="0" class="form-input">
+                    <input type="number" name="out_of" placeholder="e.g., 100 (leave empty for ungraded exam)" class="form-input">
                 </div>
                 <div>
                     <label class="form-label">Board</label>
@@ -568,7 +582,7 @@
                     <input type="url" name="link" placeholder="https://example.com/resource" class="form-input">
                 </div>
                 <div>
-                    <label class="form-label">Points</label>
+                    <label class="form-label">Points (Optional)</label>
                     <input type="number" name="points" placeholder="0" class="form-input">
                 </div>
             </div>

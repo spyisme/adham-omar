@@ -5283,6 +5283,19 @@ def online_exam():
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip()
 
+        student_whatsapp = request.form.get("student_whatsapp", False)
+        if student_whatsapp == "true":
+            student_whatsapp = True
+        else:
+            student_whatsapp = False
+        parent_whatsapp = request.form.get("parent_whatsapp", False)
+        if parent_whatsapp == "true":
+            parent_whatsapp = True
+        else:
+            parent_whatsapp = False
+
+
+
         subject_id_single = int_or_none(request.form.get("subject_id")) 
 
         group_ids  = parse_multi_ids("groups[]")
@@ -5381,6 +5394,8 @@ def online_exam():
             creation_date=naive_local_time,
             created_by=current_user.id,
             out_of= out_of,
+            student_whatsapp=student_whatsapp,
+            parent_whatsapp=parent_whatsapp,
         )
 
         # IMPORTANT: add to session BEFORE assigning M2M relations
@@ -5419,6 +5434,8 @@ def online_exam():
                         "attachments": json.loads(new_exam.attachments) if new_exam.attachments else [],
                         "points": new_exam.points,
                         "out_of": new_exam.out_of,
+                        "student_whatsapp": new_exam.student_whatsapp,
+                        "parent_whatsapp": new_exam.parent_whatsapp,
                     },
                     "before": None,
                     "after": None
@@ -5454,6 +5471,8 @@ def online_exam():
                 "submitted_students_count": 0,
                 "qualified_students_count": qualified_count,
                 "out_of": new_exam.out_of,
+                "student_whatsapp": new_exam.student_whatsapp,
+                "parent_whatsapp": new_exam.parent_whatsapp,
             }
             
             return jsonify({"success": True, "message": "Exam added successfully!", "exam": exam_data})
