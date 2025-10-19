@@ -857,7 +857,7 @@
                     form.reset();
                     // Reset modal dropdown button labels
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-                    document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Boards ▼';
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Assignment created successfully', 'success');
@@ -1427,7 +1427,7 @@
         }
 
         grid.innerHTML = assignments.map(a => {
-            const schoolStr = (a.schools && a.schools.length) ? a.schools.join(', ') : 'All Schools';
+            const schoolStr = (a.schools && a.schools.length) ? a.schools.join(', ') : 'All Boards';
             const stageStr = (a.stages && a.stages.length) ? a.stages.join(', ') : 'All Stages';
             const groupStr = (a.groups && a.groups.length) ? a.groups.join(', ') : 'All Classes';
             const due = a.deadline_date ? a.deadline_date : 'Not set';
@@ -1591,8 +1591,8 @@
             msSchoolsList.appendChild(label);
         });
 
-        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterAssignments);
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterAssignments);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
     }
 
     function enableFilters() {
@@ -1698,7 +1698,7 @@
                         label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
-                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
                     toggleModalSchoolDropdown();
                 };
             });

@@ -352,10 +352,10 @@
                 </div>
 
                 <div class="filter-dropdown disabled" id="schoolDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Schools
+                    <button type="button" class="btn form-input filter-dropdown-btn" id="schoolDropdownBtn">All Boards
                         ▼</button>
                     <div class="filter-dropdown-list" id="schoolDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                     </div>
                 </div>
                 <div class="filter-dropdown disabled" id="stageDropdown">
@@ -435,10 +435,10 @@
                 <div>
                     <label class="form-label">School</label>
                     <div class="multi disabled" id="ms-schools">
-                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Schools
+                        <button type="button" class="btn form-input multi-btn" id="ms-schools-btn">All Boards
                             ▼</button>
                         <div class="multi-list" id="ms-schools-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                            <label class="multi-all"><input type="checkbox" value="" checked>All Boards</label>
                         </div>
                     </div>
                 </div>
@@ -693,7 +693,7 @@
                     form.reset();
                     // Reset modal dropdown button labels
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-                    document.getElementById('ms-schools-btn').textContent = 'All Schools ▼';
+                    document.getElementById('ms-schools-btn').textContent = 'All Boards ▼';
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-groups-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Folder created successfully', 'success');
@@ -1050,7 +1050,7 @@
         }
 
         const foldersHTML = folders.map(f => {
-            const schoolStr = f.schools || 'All Schools';
+            const schoolStr = f.schools || 'All Boards';
             const stageStr = f.stages || 'All Stages';
             const groupStr = f.groups || 'All Classes';
             const viewHref = `/admin/folders/${f.id}`;
@@ -1181,8 +1181,8 @@
             msSchoolsList.appendChild(label);
         });
 
-        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterFolders);
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterFolders);
+        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
     }
 
     function enableFilters() {
@@ -1288,7 +1288,7 @@
                         label.innerHTML = `<input type="checkbox" name="schools_mm[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
-                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
                     toggleModalSchoolDropdown();
                 };
             });

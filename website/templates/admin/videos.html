@@ -429,9 +429,9 @@ h1 {
         <input type="text" id="searchInput" class="filter-input" placeholder="Search videos...">
 
         <div class="filter-dropdown" id="schoolDropdown">
-            <button type="button" class="filter-dropdown-btn" id="schoolDropdownBtn">All Schools ▼</button>
+            <button type="button" class="filter-dropdown-btn" id="schoolDropdownBtn">All Boards ▼</button>
             <div class="filter-dropdown-list" id="schoolDropdownList">
-                <label class="dropdown-all"><input type="checkbox" value="" checked>All Schools</label>
+                <label class="dropdown-all"><input type="checkbox" value="" checked>All Boards</label>
                 {% for school in schools %}
                     <label><input type="checkbox" value="{{ school.name|e }}"> {{ school.name }}</label>
                 {% endfor %}
@@ -491,7 +491,7 @@ h1 {
                         {% elif video.school %}
                             {{ video.school.name }}
                         {% else %}
-                            All Schools
+                            All Boards
                         {% endif %}
                     </span>
                     <span title="Stage/Year">
@@ -555,9 +555,9 @@ h1 {
 
             <label>Schools</label>
             <div class="multi" id="ms-schools">
-              <button type="button" class="multi-btn" id="ms-schools-btn">All Schools ▼</button>
+              <button type="button" class="multi-btn" id="ms-schools-btn">All Boards ▼</button>
               <div class="multi-list" id="ms-schools-list">
-                <label class="multi-all"><input type="checkbox" value="" checked>All Schools</label>
+                <label class="multi-all"><input type="checkbox" value="" checked>All Boards</label>
                 {% for school in schools %}
                   <label><input type="checkbox" name="schools_mm[]" value="{{ school.id }}">{{ school.name }}</label>
                 {% endfor %}
@@ -681,7 +681,7 @@ function getCheckedValues(listId) {
     return Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value.toLowerCase()).filter(Boolean);
 }
 
-setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Schools', filterVideos);
+setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterVideos);
 setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Classes', filterVideos);
 setupDropdown('stageDropdown', 'stageDropdownBtn', 'stageDropdownList', 'All Stages', filterVideos);
 
@@ -717,7 +717,7 @@ function confirmAction(e , msg){
 
 // Modal Multi-selects (same helpers/classes as assignments)
 function setupModalMulti(id, btn, list, label){ setupDropdown(id, btn, list, label, () => {}); }
-setupModalMulti('ms-schools','ms-schools-btn','ms-schools-list','All Schools');
+setupModalMulti('ms-schools','ms-schools-btn','ms-schools-list','All Boards');
 setupModalMulti('ms-stages','ms-stages-btn','ms-stages-list','All Stages');
 setupModalMulti('ms-groups','ms-groups-btn','ms-groups-list','All Classes');
 </script>

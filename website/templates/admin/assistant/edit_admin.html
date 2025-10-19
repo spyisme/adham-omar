@@ -25,12 +25,12 @@
 
             <label class="edit-label">Schools:</label>
             <div class="multi" id="ms-schools">
-                <button type="button" class="multi-btn" id="ms-schools-btn">All Schools ▼</button>
+                <button type="button" class="multi-btn" id="ms-schools-btn">All Boards ▼</button>
                 <div class="multi-list" id="ms-schools-list">
                     <label class="multi-all">
                         <input type="checkbox" value="" id="all-schools-checkbox"
                             {% if not user.managed_schools %}checked{% endif %}>
-                        All Schools
+                        All Boards
                     </label>
                     {% for school in schools %}
                         <label>
@@ -297,7 +297,7 @@ function setupDropdown(dropdownId, btnId, listId, labelAll) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Schools');
+    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
     setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
     setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
     setupDropdown('ms-subjects', 'ms-subjects-btn', 'ms-subjects-list', 'All Subjects');
