@@ -28,21 +28,12 @@
 
             <label class="edit-label">Schools:</label>
             <div class="multi" id="ms-schools">
-<<<<<<< HEAD
-                <button type="button" class="multi-btn" id="ms-schools-btn">All Boards ▼</button>
-                <div class="multi-list" id="ms-schools-list">
-                    <label class="multi-all">
-                        <input type="checkbox" value="" id="all-schools-checkbox"
-                            {% if not user.managed_schools %}checked{% endif %}>
-                        All Boards
-=======
                 <button type="button" class="multi-btn" id="ms-schools-btn">All Groups ▼</button>
                 <div class="multi-list" id="ms-schools-list">
                     <label class="multi-all">
                         <input type="checkbox" value="" id="all-schools-checkbox" {% if not user.managed_schools
                             %}checked{% endif %}>
                         All Groups
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     </label>
                     {% for school in schools %}
                     <label>
@@ -364,30 +355,5 @@
         setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
         setupDropdown('ms-subjects', 'ms-subjects-btn', 'ms-subjects-list', 'All Boards');
     });
-<<<<<<< HEAD
-
-    function updateBtnLabel() {
-        let selected = checkboxes.filter(cb => cb.checked).map(cb => cb.parentElement.textContent.trim());
-        if (allCheckbox && (allCheckbox.checked || selected.length === 0)) {
-            btn.textContent = labelAll + " ▼";
-        } else if (selected.length === 1) {
-            btn.textContent = selected[0] + " ▼";
-        } else if (selected.length > 1) {
-            btn.textContent = selected.length + " selected ▼";
-        } else if (selected.length === 0 && !allCheckbox) {
-            btn.textContent = labelAll + " ▼";
-        }
-    }
-    updateBtnLabel();
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
-    setupDropdown('ms-stages', 'ms-stages-btn', 'ms-stages-list', 'All Stages');
-    setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Classes');
-    setupDropdown('ms-subjects', 'ms-subjects-btn', 'ms-subjects-list', 'All Subjects');
-});
-=======
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
 </script>
 {% endblock %}

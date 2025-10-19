@@ -856,13 +856,8 @@
                     modal.classList.remove('show');
                     form.reset();
                     // Reset modal dropdown button labels
-<<<<<<< HEAD
-                    document.getElementById('ms-subjects-btn').textContent = 'Choose Subject ▼';
-                    document.getElementById('ms-schools-btn').textContent = 'All Boards ▼';
-=======
                     document.getElementById('ms-subjects-btn').textContent = 'Choose Board ▼';
                     document.getElementById('ms-schools-btn').textContent = 'All Groups ▼';
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     document.getElementById('ms-stages-btn').textContent = 'All Stages ▼';
                     document.getElementById('ms-classes-btn').textContent = 'All Classes ▼';
                     showToast(data.message || 'Assignment created successfully', 'success');
@@ -1432,11 +1427,7 @@
         }
 
         grid.innerHTML = assignments.map(a => {
-<<<<<<< HEAD
-            const schoolStr = (a.schools && a.schools.length) ? a.schools.join(', ') : 'All Boards';
-=======
             const schoolStr = (a.schools && a.schools.length) ? a.schools.join(', ') : 'All Groups';
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
             const stageStr = (a.stages && a.stages.length) ? a.stages.join(', ') : 'All Stages';
             const groupStr = (a.groups && a.groups.length) ? a.groups.join(', ') : 'All Classes';
             const due = a.deadline_date ? a.deadline_date : 'Not set';
@@ -1600,13 +1591,8 @@
             msSchoolsList.appendChild(label);
         });
 
-<<<<<<< HEAD
-        setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Boards', filterAssignments);
-        setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
-=======
         setupDropdown('schoolDropdown', 'schoolDropdownBtn', 'schoolDropdownList', 'All Groups', filterAssignments);
         setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
     }
 
     function enableFilters() {
@@ -1712,11 +1698,7 @@
                         label.innerHTML = `<input type="checkbox" name="schools[]" value="${school.id}"> ${school.name}`;
                         msSchoolsList.appendChild(label);
                     });
-<<<<<<< HEAD
-                    setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Boards');
-=======
                     setupDropdown('ms-schools', 'ms-schools-btn', 'ms-schools-list', 'All Groups');
->>>>>>> 24121a6b57ed99a95ef4180d37aa63bf78aca6f7
                     toggleModalSchoolDropdown();
                 };
             });
