@@ -49,7 +49,7 @@ def start_whatsapp_worker():
 start_whatsapp_worker()
 
 # Load webhook URL from environment variable
-ERROR_WEBHOOK = "https://discord.com/api/webhooks/1418899208328446033/h24AIXJmgMku9USPlgq9P26f_Fu3VWFf79IyfBkhJWdNNw6iYZ2T_SUPQWm4nDnuGBOA"
+ERROR_WEBHOOK = "https://discord.com/api/webhooks/1429605546876469258/16D2rEZYBI675Qvb6msDRoCON4Bm3KKnV6xEigZ-z6hFNvv1rvM4Z7vKsHWwGYJySV0p"
 
 # Configure logging for production
 if not app.debug:
@@ -132,7 +132,7 @@ def internal_server_error(error):
 
     # Send the detailed message to your Discord webhook
 
-    send_whatsapp_message_spy('01111251681' , f"An error on Sally webstie. on {request.path} page")
+    send_whatsapp_message_spy('01111251681' , f"An error on adhamomaresl.com website. on {request.path} page")
 
     discord_send(ERROR_WEBHOOK, discord_message)
 
