@@ -9,13 +9,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary-color: #0A2647; /* Deeper Blue */
-            --secondary-color: #144272; /* Mid Blue */
-            --accent-color: #205295; /* Lighter Blue */
-            --highlight-color: #FFB100; /* Gold/Yellow Highlight */
+            /* --- Bright Color Palette --- */
+            --primary-color: #007BFF;   /* Bright, confident blue */
+            --secondary-color: #F4F7FC; /* Very light, clean blue-gray */
+            --accent-color: #FF6B6B;    /* Vibrant coral/red for CTAs */
+            --highlight-color: #FFA000;  /* Warm gold for highlights */
             --text-color: #333;
-            --bg-color: #F8F9FA;
+            --text-color-light: #555;
+            --bg-color: #FFFFFF;
             --white-color: #FFFFFF;
+            --shadow-light: 0 4px 12px rgba(0,0,0,0.05);
+            --shadow-medium: 0 8px 25px rgba(0,0,0,0.1);
         }
 
         /* --- Basic Reset & Setup --- */
@@ -44,30 +48,27 @@
         }
 
         @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(60px); }
+            from { opacity: 0; transform: translateY(40px); }
             to { opacity: 1; transform: translateY(0); }
         }
         
         @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 177, 0, 0.7); }
-            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 177, 0, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 177, 0, 0); }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 20px rgba(255, 107, 107, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 107, 107, 0); }
         }
         
-        /* Helper classes for JS observer */
+        /* --- Scroll Observer Animations --- */
         .hidden {
             opacity: 0;
-            filter: blur(5px);
-            transform: translateY(20px);
-            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
         }
         .hidden:nth-child(2) { transition-delay: 150ms; }
         .hidden:nth-child(3) { transition-delay: 300ms; }
 
-
         .show {
             opacity: 1;
-            filter: blur(0);
             transform: translateY(0);
         }
 
@@ -87,10 +88,15 @@
         .section-title {
             text-align: center;
             font-family: 'Playfair Display', serif;
-            font-size: 3rem;
+            font-size: 2.8rem;
             margin-bottom: 50px;
             color: var(--primary-color);
             font-weight: 700;
+        }
+
+        p {
+            color: var(--text-color-light);
+            margin-bottom: 1.2rem;
         }
 
         /* --- Header & Navigation --- */
@@ -102,12 +108,13 @@
             z-index: 1000;
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
             padding: 15px 0;
+            background-color: var(--white-color);
         }
         
         .header.scrolled {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            box-shadow: var(--shadow-light);
         }
 
         .navbar {
@@ -147,7 +154,7 @@
             bottom: -5px;
             left: 50%;
             transform: translateX(-50%);
-            background-color: var(--highlight-color);
+            background-color: var(--primary-color);
             transition: width 0.3s ease;
         }
         .nav-link:hover { color: var(--primary-color); }
@@ -166,11 +173,12 @@
             border-radius: 25px;
             transition: all 0.3s ease;
             font-size: 0.95rem;
+            border: 2px solid transparent;
         }
 
         .btn-login {
             color: var(--primary-color);
-            border: 2px solid var(--primary-color);
+            border-color: var(--primary-color);
             background: transparent;
         }
 
@@ -180,24 +188,52 @@
         }
 
         .btn-register {
-            background-color: var(--highlight-color);
-            color: var(--primary-color);
-            border: 2px solid var(--highlight-color);
+            background-color: var(--accent-color);
+            color: var(--white-color);
+            border-color: var(--accent-color);
         }
 
         .btn-register:hover {
             background-color: transparent;
-            color: var(--highlight-color);
+            color: var(--accent-color);
+        }
+        
+        /* --- Mobile Navigation --- */
+        .nav-toggle {
+            display: none;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        
+        .hamburger-bar {
+            display: block;
+            width: 25px;
+            height: 3px;
+            margin: 5px auto;
+            background-color: var(--primary-color);
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .nav-toggle.active .hamburger-bar:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .nav-toggle.active .hamburger-bar:nth-child(2) {
+            opacity: 0;
+        }
+        .nav-toggle.active .hamburger-bar:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
         }
 
         /* --- Hero Section --- */
         #hero {
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            height: 100vh;
+            background: linear-gradient(45deg, var(--primary-color), #4dabff);
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 20px;
+            padding-top: 80px; /* Offset for header */
         }
         
         .hero-content {
@@ -216,7 +252,7 @@
 
         .hero-text h1 {
             font-family: 'Playfair Display', serif;
-            font-size: 4rem;
+            font-size: 3.8rem;
             font-weight: 700;
             line-height: 1.2;
             margin-bottom: 20px;
@@ -229,6 +265,8 @@
         .hero-text p {
             font-size: 1.2rem;
             margin-bottom: 30px;
+            color: var(--white-color);
+            opacity: 0.9;
         }
 
         .hero-image {
@@ -239,21 +277,21 @@
             width: 320px;
             height: 320px;
             border-radius: 50%;
-            border: 8px solid var(--white-color);
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            border: 6px solid var(--white-color);
+            box-shadow: var(--shadow-medium);
             object-fit: cover;
         }
 
         .btn {
             display: inline-block;
             padding: 14px 35px;
-            background-color: var(--highlight-color);
-            color: var(--primary-color);
+            background-color: var(--accent-color);
+            color: var(--white-color);
             text-decoration: none;
             font-weight: 700;
             border-radius: 50px;
-            transition: transform 0.3s, box-shadow 0.3s, background-color 0.3s;
-            border: none;
+            transition: all 0.3s ease;
+            border: 2px solid var(--accent-color);
             cursor: pointer;
             font-size: 1rem;
         }
@@ -261,7 +299,8 @@
         .btn:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-            background-color: #fff;
+            background-color: var(--white-color);
+            color: var(--accent-color);
         }
 
         .btn.pulse {
@@ -281,117 +320,90 @@
         
         .about-image {
             flex-basis: 400px;
-            position: relative;
-        }
-
-        .about-image::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border: 5px solid var(--accent-color);
-            border-radius: 15px;
-            top: 20px;
-            left: -20px;
-            z-index: 0;
-            transition: all 0.3s ease;
-        }
-        .about-image:hover::before {
-             transform: translate(10px, -10px);
         }
 
         .about-image img {
             width: 100%;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-medium);
             position: relative;
             z-index: 1;
+            transition: transform 0.3s ease;
+        }
+        .about-image:hover img {
+            transform: scale(1.03);
         }
 
-        /* --- Why Choose Me Section (NEW DESIGN) --- */
+        /* --- Why Choose Me Section --- */
         #why {
-            background: var(--white-color);
+            background: var(--secondary-color);
         }
         
         .method-flow {
-            display: flex;
-            justify-content: space-around;
-            gap: 40px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
             margin-top: 50px;
-            position: relative;
-        }
-
-        /* Connecting Line */
-        .method-flow::before {
-            content: '';
-            position: absolute;
-            top: 45px;
-            left: 10%;
-            width: 80%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-color), var(--highlight-color));
-            z-index: 0;
-            opacity: 0.3;
         }
 
         .method-step {
-            flex: 1;
+            background: var(--white-color);
+            border-radius: 15px;
+            padding: 30px;
             text-align: center;
-            position: relative;
-            z-index: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            box-shadow: var(--shadow-light);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .method-step:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--shadow-medium);
         }
         
         .step-icon {
-            width: 90px;
-            height: 90px;
-            background-color: var(--white-color);
-            border: 4px solid var(--primary-color);
+            width: 80px;
+            height: 80px;
+            background-color: var(--primary-color);
+            color: var(--white-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2.5rem;
-            margin-bottom: 25px;
-            transition: transform 0.3s, background-color 0.3s, color 0.3s;
+            margin: 0 auto 25px auto;
+            transition: transform 0.3s, background-color 0.3s;
         }
 
         .method-step:hover .step-icon {
             transform: scale(1.1) rotate(10deg);
-            background-color: var(--primary-color);
-            color: var(--white-color);
+            background-color: var(--accent-color);
         }
         
         .method-step h3 {
             font-family: 'Playfair Display', serif;
             font-size: 1.6rem;
-            color: var(--secondary-color);
+            color: var(--primary-color);
             margin-bottom: 15px;
         }
 
         /* --- Testimonials Section --- */
         #testimonials {
-            background-color: var(--primary-color);
-        }
-        #testimonials .section-title {
-            color: var(--white-color);
+            background-color: var(--bg-color);
         }
 
         .testimonial-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 40px;
+            gap: 30px;
         }
         
         .testimonial {
-            background: var(--secondary-color);
-            color: var(--white-color);
+            background: var(--white-color);
+            color: var(--text-color);
             padding: 35px;
             border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            border-left: 5px solid var(--highlight-color);
+            box-shadow: var(--shadow-light);
+            border-top: 5px solid var(--primary-color);
             position: relative;
         }
         
@@ -402,8 +414,8 @@
             left: 15px;
             font-family: 'Playfair Display', serif;
             font-size: 6rem;
-            color: var(--accent-color);
-            opacity: 0.5;
+            color: var(--primary-color);
+            opacity: 0.1;
             line-height: 1;
         }
 
@@ -413,50 +425,113 @@
             margin-bottom: 20px;
             position: relative;
             z-index: 1;
+            color: var(--text-color-light);
         }
         
         .testimonial-author {
             font-weight: 700;
-            color: var(--highlight-color);
+            color: var(--primary-color);
             font-size: 1.1rem;
         }
 
         /* --- Footer --- */
         .footer {
-            background-color: var(--text-color);
+            background-color: var(--primary-color);
             color: var(--white-color);
             text-align: center;
             padding: 40px 20px;
+        }
+        .footer p {
+            color: var(--white-color);
+            margin: 0;
+            opacity: 0.9;
         }
         
         /* --- Responsive Design --- */
         @media (max-width: 992px) {
             .method-flow {
-                flex-direction: column;
-                align-items: center;
+                grid-template-columns: 1fr;
             }
-            .method-flow::before { display: none; }
+            .testimonial-grid { 
+                grid-template-columns: 1fr; 
+            }
         }
 
         @media (max-width: 768px) {
             .hero-content, #about .container {
-                flex-direction: column;
+                flex-direction: column-reverse; /* Put text below image on mobile */
                 text-align: center;
             }
+            
+            #hero .hero-content {
+                flex-direction: column; /* Keep hero text first */
+            }
+
             #about .container {
                 gap: 50px;
             }
-
+            
             .hero-text h1 { font-size: 2.8rem; }
             .section-title { font-size: 2.2rem; }
 
-            .nav-menu { display: none; }
+            /* --- Mobile Nav Menu --- */
+            .nav-toggle {
+                display: block;
+            }
 
-            .testimonial-grid { grid-template-columns: 1fr; }
+            .nav-menu {
+                display: none; /* Hide by default */
+                flex-direction: column;
+                position: fixed;
+                top: 0;
+                right: -100%; /* Start off-screen */
+                width: 80%;
+                max-width: 300px;
+                height: 100vh;
+                background-color: var(--white-color);
+                box-shadow: var(--shadow-medium);
+                padding-top: 80px;
+                gap: 0;
+                transition: right 0.4s ease-in-out;
+            }
+            
+            .nav-menu.active {
+                display: flex;
+                right: 0;
+            }
 
-            .about-image::before {
-                left: -10px;
-                top: 10px;
+            .nav-menu li {
+                width: 100%;
+            }
+            
+            .nav-link {
+                display: block;
+                padding: 15px;
+                text-align: center;
+                font-size: 1.1rem;
+            }
+            .nav-link:hover {
+                background-color: var(--secondary-color);
+            }
+            .nav-link::after {
+                display: none; /* Remove underline on mobile */
+            }
+
+            .nav-auth-buttons {
+                flex-direction: column;
+                width: 100%;
+                padding: 20px;
+                gap: 15px;
+            }
+            
+            .btn-nav {
+                width: 100%;
+                text-align: center;
+            }
+            
+            .hero-image img {
+                width: 250px;
+                height: 250px;
             }
         }
         
@@ -464,11 +539,11 @@
 </head>
 <body>
 
-    <!-- Header -->
     <header class="header">
         <nav class="navbar container">
             <a href="#" class="nav-logo">Dr. Adham Omar</a>
-            <ul class="nav-menu">
+            
+            <ul class="nav-menu" id="nav-menu">
                 <li><a href="#hero" class="nav-link">Home</a></li>
                 <li><a href="#about" class="nav-link">About Me</a></li>
                 <li><a href="#why" class="nav-link">My Method</a></li>
@@ -478,10 +553,15 @@
                     <a href="{{ url_for('website.register') }}" class="btn-nav btn-register">Register</a>
                 </li>
             </ul>
+            
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+                <span class="hamburger-bar"></span>
+            </button>
         </nav>
     </header>
 
-    <!-- Hero Section -->
     <section id="hero">
         <div class="container hero-content">
             <div class="hero-text">
@@ -490,16 +570,15 @@
                 <a href="{{ url_for('website.login') }}" class="btn pulse">Get Started</a>
             </div>
             <div class="hero-image">
-                <img src="https://placehold.co/400x400/144272/FFB100?text=Dr.+Omar" alt="Dr. Adham Omar">
+                <img src="static/adhamomar.jpeg" alt="Dr. Adham Omar">
             </div>
         </div>
     </section>
 
-    <!-- About Me Section -->
     <section id="about">
         <div class="container">
             <div class="about-image hidden">
-                <img src="https://placehold.co/600x450/F8F9FA/0A2647?text=Dedicated+Teaching" alt="Modern Classroom">
+                <img src="https://placehold.co/600x450/F4F7FC/333333?text=Dedicated+Teaching" alt="Modern Classroom">
             </div>
             <div class="about-text hidden">
                 <h2 class="section-title" style="text-align:left; margin-bottom: 20px;">The Architect of A* Grades</h2>
@@ -509,7 +588,6 @@
         </div>
     </section>
 
-    <!-- Why Choose Me Section -->
     <section id="why">
         <div class="container">
             <h2 class="section-title">The A* Method: A Three-Step Approach</h2>
@@ -533,7 +611,6 @@
         </div>
     </section>
 
-    <!-- Testimonials Section -->
     <section id="testimonials">
         <div class="container">
             <h2 class="section-title">Success Stories</h2>
@@ -550,7 +627,6 @@
         </div>
     </section>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <p>&copy; 2025 Dr. Adham Omar. All Rights Reserved. <br> IGCSE English Excellence</p>
@@ -579,6 +655,30 @@
                 header.classList.remove('scrolled');
             }
         });
+        
+        // --- Mobile Navigation Toggle ---
+        const navToggle = document.getElementById('nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                // Toggle 'active' class on both the button (for X animation) and the menu (to show/hide)
+                navToggle.classList.toggle('active');
+                navMenu.classList.toggle('active');
+            });
+            
+            // --- Close mobile menu when a link is clicked ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (navMenu.classList.contains('active')) {
+                        navToggle.classList.remove('active');
+                        navMenu.classList.remove('active');
+                    }
+                });
+            });
+        }
+
     </script>
 </body>
 </html>
