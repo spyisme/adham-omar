@@ -250,7 +250,8 @@ def send_whatsapp_message(phone_number, message, country_code , bypass = False):
         # Find the user first. This is important to do before saving.
         if bypass:
             user = None
-            country_code = "2"
+            if not country_code:
+                country_code = "2"
         else:
             user = Users.query.filter(
                 (Users.student_whatsapp == phone_number) | 
@@ -283,8 +284,11 @@ def send_whatsapp_message(phone_number, message, country_code , bypass = False):
 
         
         # Create a new WhatsApp message record
+        # Only add country code if it's not already in the phone number
+        formatted_number = f"{country_code}{phone_number}" if country_code else phone_number
+        
         whatsapp_msg = WhatsappMessages(
-            to=f"{country_code}{phone_number}",
+            to=formatted_number,
             content=message,
             user_id=user.id if user else None,
             status="pending"
