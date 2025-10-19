@@ -172,18 +172,11 @@ def dashboard():
     student_count = None
     try :
         if current_user.role == "admin":
-            group_ids, stage_ids, school_ids, subject_ids  = get_user_scope_ids()
+            group_ids = get_user_scope_ids()
             query = Users.query.filter_by(role='student')
-            if group_ids and stage_ids and school_ids:
-                query = query.filter(
-                    Users.groupid.in_(group_ids),
-                    Users.stageid.in_(stage_ids),
-                    Users.schoolid.in_(school_ids),
-                    Users.subjectid.in_(subject_ids)
-                )
+            if group_ids :
+                query = query.filter(Users.groupid.in_(group_ids))
                 student_count = query.distinct().count()
-            else:
-                student_count = 0
         elif current_user.role == "super_admin":
             students = Users.query.filter_by(role='student').all()
             student_count = len(students)
@@ -1403,8 +1396,6 @@ def assignments_data():
             .count()
         )
 
-        schools_names = [s.name for s in getattr(a, 'schools_mm', [])] if getattr(a, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(a, 'stages_mm', [])] if getattr(a, 'stages_mm', None) else []
         groups_names = [g.name for g in getattr(a, 'groups_mm', [])] if getattr(a, 'groups_mm', None) else []
 
         assignments_list.append({
@@ -1413,10 +1404,6 @@ def assignments_data():
             "description": a.description,
             "creation_date": a.creation_date.strftime('%Y-%m-%d %I:%M %p') if a.creation_date else None,
             "deadline_date": a.deadline_date.strftime('%Y-%m-%d %I:%M %p') if a.deadline_date else None,
-            "subject": a.subject.name if a.subject else "N/A",
-            "subject_id": a.subject.id if a.subject else None,
-            "schools": schools_names,
-            "stages": stages_names,
             "groups": groups_names,
             "status": a.status,
             "out_of": a.out_of,
@@ -1448,8 +1435,6 @@ def get_assignment_data(assignment_id):
 
     existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
     
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(assignment, 'schools_mm', [])] if getattr(assignment, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(assignment, 'stages_mm', [])] if getattr(assignment, 'stages_mm', None) else []
     groups_mm = [{"id": g.id, "name": g.name} for g in getattr(assignment, 'groups_mm', [])] if getattr(assignment, 'groups_mm', None) else []
 
     # Fetch user objects if created_by/last_edited_by are user IDs
@@ -1461,12 +1446,6 @@ def get_assignment_data(assignment_id):
         "title": assignment.title,
         "description": assignment.description,
         "deadline_date": assignment.deadline_date.strftime('%Y-%m-%dT%H:%M') if assignment.deadline_date else None,
-        "subject": {
-            "id": assignment.subject.id if assignment.subject else None,
-            "name": assignment.subject.name if assignment.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
         "groups_mm": groups_mm,
         "attachments": existing_attachments,
         "student_whatsapp": assignment.student_whatsapp,
@@ -1514,8 +1493,6 @@ def exams_data():
             .count()
         )
 
-        schools_names = [s.name for s in getattr(e, 'schools_mm', [])] if getattr(e, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(e, 'stages_mm', [])] if getattr(e, 'stages_mm', None) else []
         groups_names = [g.name for g in getattr(e, 'groups_mm', [])] if getattr(e, 'groups_mm', None) else []
 
         user = Users.query.get(e.created_by) if e.created_by else None
@@ -1527,14 +1504,11 @@ def exams_data():
             "description": e.description,
             "creation_date": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
             "deadline_date": e.deadline_date.strftime('%Y-%m-%d %I:%M %p') if e.deadline_date else None,
-            "subject": e.subject.name if e.subject else "N/A",
-            "subject_id": e.subject.id if e.subject else None,
-            "schools": schools_names,
-            "stages": stages_names,
             "groups": groups_names,
             "student_whatsapp": e.student_whatsapp,
             "parent_whatsapp": e.parent_whatsapp,
             "status": e.status,
+            "close_after_deadline": e.close_after_deadline,
             "submitted_students_count": submitted_count,
             "qualified_students_count": qualified_count,
             "out_of": e.out_of,
@@ -1563,8 +1537,6 @@ def get_exam_data(exam_id):
     user = Users.query.get(exam.created_by) if exam.created_by else None
     last_edited_user = Users.query.get(exam.last_edited_by) if exam.last_edited_by else None
     
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(exam, 'schools_mm', [])] if getattr(exam, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(exam, 'stages_mm', [])] if getattr(exam, 'stages_mm', None) else []
     groups_mm = [{"id": g.id, "name": g.name} for g in getattr(exam, 'groups_mm', [])] if getattr(exam, 'groups_mm', None) else []
 
     exam_data = {
@@ -1572,16 +1544,11 @@ def get_exam_data(exam_id):
         "title": exam.title,
         "description": exam.description,
         "deadline_date": exam.deadline_date.strftime('%Y-%m-%dT%H:%M') if exam.deadline_date else None,
-        "subject": {
-            "id": exam.subject.id if exam.subject else None,
-            "name": exam.subject.name if exam.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
         "groups_mm": groups_mm,
         "attachments": existing_attachments,
         "student_whatsapp": exam.student_whatsapp,
         "parent_whatsapp": exam.parent_whatsapp,
+        "close_after_deadline": exam.close_after_deadline,
         "status": exam.status,
         "out_of": exam.out_of,
         "points": exam.points,
@@ -1594,28 +1561,15 @@ def get_exam_data(exam_id):
     return jsonify({"success": True, "exam": exam_data})
 
 
-
-
-
-
-
 @admin.route('/assignments', methods=['GET', 'POST'])
 def assignments():
 
 
     if request.method == "POST":
+        if current_user.role != "super_admin":
+            flash("You are not allowed to create assignments.", "danger")
+            return redirect(url_for("admin.assignments"))
         groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
-        stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
-        schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
-        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in getattr(current_user, "managed_subjects", [])])).all() if hasattr(current_user, "managed_subjects") else Subjects.query.all()
-
-        subject_school_map = {}
-        for subject in subjects:
-            # For each subject, get its associated schools and format them for JavaScript
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            # Sort schools to put "Online" schools first, then alphabetically
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
 
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip()
@@ -1645,50 +1599,14 @@ def assignments():
         out_of = request.form.get("out_of", 0)
         out_of = int(out_of) if str(out_of).isdigit() else 0
 
-        subject_id_single = int_or_none(request.form.get("subject_id")) 
-
         group_ids  = parse_multi_ids("groups[]")
-        stage_ids  = parse_multi_ids("stages[]")
-        school_ids = parse_multi_ids("schools[]")
 
         if not group_ids:
             group_ids = [g.id for g in groups]
-        if not stage_ids:
-            stage_ids = [s.id for s in stages]
-
-        if not school_ids:
-            subject_id = subject_id_single
-
-            if subject_id and subject_id in subject_school_map:
-                school_ids = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                flash("Choose a subject" , "danger")
-                return redirect(url_for("admin.assignments"))
-
-        if not subject_id_single:
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.assignments"))
-
 
         if group_ids:
             if not can_manage(group_ids, [g.id for g in groups]):
                 flash("You are not allowed to post to one or more selected groups.", "danger")
-                return redirect(url_for("admin.assignments"))
-
-
-        if stage_ids:
-            if not can_manage(stage_ids, [s.id for s in stages]):
-                flash("You are not allowed to post to one or more selected stages.", "danger")
-                return redirect(url_for("admin.assignments"))
-
-        if school_ids:
-            if not can_manage(school_ids, [s.id for s in schools]):
-                flash("You are not allowed to post to one or more selected schools.", "danger")
-                return redirect(url_for("admin.assignments"))
-
-        if subject_id_single:
-            if subject_id_single not in [s.id for s in subjects]:
-                flash("You are not allowed to post to this subject.", "danger")
                 return redirect(url_for("admin.assignments"))
 
         # deadline
@@ -1734,7 +1652,6 @@ def assignments():
         new_assignment = Assignments(
             title=title,
             description=description,
-            subjectid=subject_id_single, 
             deadline_date=deadline_date,
             attachments=json.dumps(attachments),
             points=points,
@@ -1751,8 +1668,6 @@ def assignments():
 
 
         new_assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        new_assignment.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
-        new_assignment.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
 
 
         db.session.commit()
@@ -1774,13 +1689,8 @@ def assignments():
                         "title": new_assignment.title,
                         "description": new_assignment.description,
                         "deadline_date": str(new_assignment.deadline_date) if new_assignment.deadline_date else None,
-                        "stageid": new_assignment.stageid,
                         "groupid": new_assignment.groupid,
-                        "schoolid": new_assignment.schoolid,
-                        "subjectid": new_assignment.subjectid,  # <--- add subject
-                        "groups": [g.id for g in getattr(new_assignment, "groups", [])],
-                        "stages": [s.id for s in getattr(new_assignment, "stages", [])],
-                        "schools": [s.id for s in getattr(new_assignment, "schools", [])],
+                        "groups": [g.id for g in getattr(new_assignment, "groups_mm", [])],
                         "attachments": json.loads(new_assignment.attachments) if new_assignment.attachments else [],
                         "points": new_assignment.points,
                         "out_of": new_assignment.out_of,
@@ -1807,10 +1717,6 @@ def assignments():
                 "description": new_assignment.description,
                 "creation_date": new_assignment.creation_date.strftime('%Y-%m-%d %H:%M') if new_assignment.creation_date else None,
                 "deadline_date": new_assignment.deadline_date.strftime('%Y-%m-%d %H:%M') if new_assignment.deadline_date else None,
-                "subject": new_assignment.subject.name if new_assignment.subject else "N/A",
-                "subject_id": new_assignment.subject.id if new_assignment.subject else None,
-                "schools": [s.name for s in getattr(new_assignment, 'schools_mm', [])] if getattr(new_assignment, 'schools_mm', None) else [],
-                "stages": [s.name for s in getattr(new_assignment, 'stages_mm', [])] if getattr(new_assignment, 'stages_mm', None) else [],
                 "groups": [g.name for g in getattr(new_assignment, 'groups_mm', [])] if getattr(new_assignment, 'groups_mm', None) else [],
                 "status": new_assignment.status,
                 "points": new_assignment.points,
@@ -2637,6 +2543,12 @@ def send_late_message_for_submission(assignment_id, student_id):
 #Delete a submission for student (Admin route)
 @admin.route("/assignments/delete_submission/<int:submission_id>", methods=["POST"])
 def delete_submission(submission_id):
+
+    if current_user.role != "super_admin":
+        flash("You are not allowed to delete student's submissions.", "danger")
+        return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
+
+
     submission = Submissions.query.get_or_404(submission_id)
     assignment = Assignments.query.get(submission.assignment_id)
     if not assignment:
@@ -2704,6 +2616,12 @@ def delete_submission(submission_id):
 #Edit an assignment 
 @admin.route("/assignments/edit/<int:assignment_id>", methods=["GET", "POST"])
 def edit_assignment(assignment_id):
+
+    if current_user.role != "super_admin":
+        flash("You are not allowed to edit assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
     if not assignment:
         flash("Assignment not found or you do not have permission to edit it.", "danger")
@@ -2717,15 +2635,7 @@ def edit_assignment(assignment_id):
     existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
 
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all() 
 
-    def int_or_none(x):
-        try:
-            return int(x) if x not in (None, "", "None") else None
-        except (TypeError, ValueError):
-            return None
 
     if request.method == "POST":
         # Save a copy of the old assignment state for logging
@@ -2733,14 +2643,9 @@ def edit_assignment(assignment_id):
             "title": assignment.title,
             "description": assignment.description,
             "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
-            "stageid": assignment.stageid,
             "groupid": assignment.groupid,
-            "schoolid": assignment.schoolid,
             "groups_mm": [g.id for g in getattr(assignment, "groups_mm", [])],
-            "stages_mm": [s.id for s in getattr(assignment, "stages_mm", [])],
-            "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
             "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
-            "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None, 
             "student_whatsapp": assignment.student_whatsapp,
             "parent_whatsapp": assignment.parent_whatsapp,
             "out_of": assignment.out_of,
@@ -2791,59 +2696,16 @@ def edit_assignment(assignment_id):
         assignment.close_after_deadline = close_after_deadline
 
 
-
-
-
-
-        subject_id_single = int_or_none(request.form.get("subject")) 
-
-
-        if subject_id_single :
-            assignment.subjectid = subject_id_single
-
-
         # NEW: multi-selects (for many-to-many relationships)
         group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
-        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
-        
-        # Handle new multi-select schools format (comma-separated string)
-        school_ids_str = request.form.get("school_ids", "").strip()
-        if school_ids_str:
-            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
-        else:
-            school_ids_mm = []
 
         if not group_ids_mm:
             groups = Groups.query.all()
             group_ids_mm = [group.id for group in groups]
 
-        if  not stage_ids_mm:
-            stages = Stages.query.all()
-            stage_ids_mm = [stage.id for stage in stages]
-        
-        # If no schools provided, use schools from selected subject
-        if not school_ids_mm:
-            if subject_id_single:
-                # Get schools associated with the selected subject
-                subject = Subjects.query.get(subject_id_single)
-                if subject and hasattr(subject, 'schools'):
-                    school_ids_mm = [school.id for school in subject.schools]
-                else:
-                    # Fallback to all schools if subject has no schools
-                    schools = Schools.query.all()
-                    school_ids_mm = [school.id for school in schools]
-            else:
-                # If no subject selected, use all schools
-                schools = Schools.query.all()
-                school_ids_mm = [school.id for school in schools]
-
         # Update many-to-many relationships
         if hasattr(assignment, "groups_mm"):
             assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
-        if hasattr(assignment, "stages_mm"):
-            assignment.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
-        if hasattr(assignment, "schools_mm"):
-            assignment.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
 
         # Handle file upload
         if "attachments" in request.files and request.files["attachments"].filename != "":
@@ -2882,15 +2744,9 @@ def edit_assignment(assignment_id):
                     "title": assignment.title,
                     "description": assignment.description,
                     "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
-                    "stageid": assignment.stageid,
                     "groupid": assignment.groupid,
-                    "schoolid": assignment.schoolid,
-                    "subjectid": getattr(assignment, "subjectid", None),  # Add subjectid
                     "groups_mm": [g.id for g in getattr(assignment, "groups_mm", [])],
-                    "stages_mm": [s.id for s in getattr(assignment, "stages_mm", [])],
-                    "schools_mm": [s.id for s in getattr(assignment, "schools_mm", [])],
                     "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
-                    "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None,  # Add subject name
                     "student_whatsapp": assignment.student_whatsapp,
                     "parent_whatsapp": assignment.parent_whatsapp,
                     "out_of": assignment.out_of,
@@ -2904,8 +2760,6 @@ def edit_assignment(assignment_id):
         # Check if it's an AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             # Return updated assignment data
-            schools_names = [s.name for s in getattr(assignment, 'schools_mm', [])] if getattr(assignment, 'schools_mm', None) else []
-            stages_names = [s.name for s in getattr(assignment, 'stages_mm', [])] if getattr(assignment, 'stages_mm', None) else []
             groups_names = [g.name for g in getattr(assignment, 'groups_mm', [])] if getattr(assignment, 'groups_mm', None) else []
             
             qualified_count = qualified_students_count_for_assignment(assignment)
@@ -2923,10 +2777,6 @@ def edit_assignment(assignment_id):
                 "description": assignment.description,
                 "creation_date": assignment.creation_date.strftime('%Y-%m-%d %I:%M %p') if assignment.creation_date else None,
                 "deadline_date": assignment.deadline_date.strftime('%Y-%m-%d %I:%M %p') if assignment.deadline_date else None,
-                "subject": assignment.subject.name if assignment.subject else "N/A",
-                "subject_id": assignment.subject.id if assignment.subject else None,
-                "schools": schools_names,
-                "stages": stages_names,
                 "groups": groups_names,
                 "status": assignment.status,
                 "points": assignment.points,
@@ -2992,15 +2842,17 @@ def edit_assignment(assignment_id):
         "admin/assignments/edit_assignment.html",
         assignment=assignment,
         groups=groups,
-        stages=stages,
-        attachments=existing_attachments,
-        schools=schools,
-        subjects=subjects  # Pass subjects to template
+        attachments=existing_attachments
     )
 
 #Delete an assignment 
 @admin.route("/assignments/delete/<int:assignment_id>", methods=["POST"])
 def delete_assignment(assignment_id):
+
+    if current_user.role != "super_admin":
+        flash("You are not allowed to delete assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
 
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
     if not assignment:
@@ -3132,6 +2984,11 @@ def delete_assignment(assignment_id):
 @admin.route("/assignments/visibility/<int:assignment_id>", methods=["POST"]) 
 def toggle_assignment_visibility(assignment_id):
 
+    if current_user.role != "super_admin":
+        flash("You are not allowed to toggle the visibility of assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
     if not assignment:
         wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
@@ -3179,20 +3036,13 @@ def toggle_assignment_visibility(assignment_id):
     flash(f"Assignment status is: {assignment.status} now!", "success")
     return redirect(url_for("admin.assignments"))
 
-#View submissions (Old route not used)
-@admin.route("/submissions", methods=["GET"])
-def view_submissions():
-    submissions = Submissions.query.join(Assignments).join(Users).order_by(Submissions.id.desc()).all()
-    groups = Groups.query.all()
-    stages = Stages.query.all()
-    assignments = Assignments.query.all()
-    return render_template(
-        "admin/submissions.html",
-        submissions=submissions,
-        groups=groups,
-        stages=stages,
-        assignments=assignments
-    )
+
+
+
+
+
+
+
 
 #View submission media (Important)
 @admin.route("/submissions/uploads/<int:submission_id>")
@@ -3869,13 +3719,6 @@ def delete_entity(item_id):
         flash('Group not found.', 'error')
 
     return redirect(url_for('admin.students_setup'))
-
-#=================================================================
-#Quiz
-#=================================================================
-
-
-#Removed from here
 
 
 #===============================================================================
@@ -4784,24 +4627,18 @@ def update_student_attendance(session_id):
 #=================================================================
 #Online Exam
 #=================================================================
+
+
 @admin.route("/online/exam", methods=["GET", "POST"])
 def online_exam():
-    # --- Ensure admin has access to see exams ---
-    assignments_query = get_visible_to_admin_query(Assignments, current_user)
-    groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
-    stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
-    schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
-    subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in getattr(current_user, "managed_subjects", [])])).all() if hasattr(current_user, "managed_subjects") else Subjects.query.all()
-    
-    subject_school_map = {}
-    for subject in subjects:
-        # For each subject, get its associated schools and format them for JavaScript
-        schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-        # Sort schools to put "Online" schools first, then alphabetically
-        schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-        subject_school_map[subject.id] = schools_list
-        
+
     if request.method == "POST":
+
+        # --- Ensure admin has access to see exams ---
+        assignments_query = get_visible_to_admin_query(Assignments, current_user)
+        groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
+        
+
         title = (request.form.get("title") or "").strip()
         description = (request.form.get("description") or "").strip()
 
@@ -4817,49 +4654,21 @@ def online_exam():
             parent_whatsapp = False
 
 
+        close_after_deadline = request.form.get("close_after_deadline", False)
+        if close_after_deadline == "true":
+            close_after_deadline = True
+        else:
+            close_after_deadline = False
 
-        subject_id_single = int_or_none(request.form.get("subject_id")) 
 
-        group_ids  = parse_multi_ids("groups[]")
-        stage_ids  = parse_multi_ids("stages[]")
-        school_ids = parse_multi_ids("schools[]")
+        group_ids = parse_multi_ids("groups[]")
 
         if not group_ids:
             group_ids = [g.id for g in groups]
-        if not stage_ids:
-            stage_ids = [s.id for s in stages]
-
-        if not school_ids:
-            subject_id = subject_id_single
-            if subject_id and subject_id in subject_school_map:
-                school_ids = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                flash("Choose a subject" , "danger")
-                return redirect(url_for("admin.online_exam"))
-
-
-        if not subject_id_single:
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.online_exam"))
 
         if group_ids:
             if not can_manage(group_ids, [g.id for g in groups]):
                 flash("You are not allowed to post to one or more selected groups.", "danger")
-                return redirect(url_for("admin.online_exam"))
-
-        if stage_ids:
-            if not can_manage(stage_ids, [s.id for s in stages]):
-                flash("You are not allowed to post to one or more selected stages.", "danger")
-                return redirect(url_for("admin.online_exam"))
-
-        if school_ids:
-            if not can_manage(school_ids, [s.id for s in schools]):
-                flash("You are not allowed to post to one or more selected schools.", "danger")
-                return redirect(url_for("admin.online_exam"))
-
-        if subject_id_single:
-            if subject_id_single not in [s.id for s in subjects]:
-                flash("You are not allowed to post to this subject.", "danger")
                 return redirect(url_for("admin.online_exam"))
 
         # deadline
@@ -4875,7 +4684,6 @@ def online_exam():
 
         out_of_raw = request.form.get("out_of", 0)
         out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
-
 
         # attachments
         upload_dir = "website/assignments/uploads/"
@@ -4903,29 +4711,26 @@ def online_exam():
         aware_local_time = datetime.now(cairo_tz)
         naive_local_time = aware_local_time.replace(tzinfo=None)
 
-
         # ---- create and persist
         new_exam = Assignments(
             title=title,
             description=description,
-            subjectid=subject_id_single, 
             deadline_date=deadline_date,
             attachments=json.dumps(attachments),
             points=points,
             type="Exam",
             creation_date=naive_local_time,
             created_by=current_user.id,
-            out_of= out_of,
+            out_of=out_of,
             student_whatsapp=student_whatsapp,
             parent_whatsapp=parent_whatsapp,
+            close_after_deadline=close_after_deadline,
         )
 
         # IMPORTANT: add to session BEFORE assigning M2M relations
         db.session.add(new_exam)
 
         new_exam.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        new_exam.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
-        new_exam.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
 
         db.session.commit()
 
@@ -4946,18 +4751,14 @@ def online_exam():
                         "title": new_exam.title,
                         "description": new_exam.description,
                         "deadline_date": str(new_exam.deadline_date) if new_exam.deadline_date else None,
-                        "stageid": new_exam.stageid,
                         "groupid": new_exam.groupid,
-                        "schoolid": new_exam.schoolid,
-                        "subjectid": new_exam.subjectid,
-                        "groups": [g.id for g in getattr(new_exam, "groups", [])],
-                        "stages": [s.id for s in getattr(new_exam, "stages", [])],
-                        "schools": [s.id for s in getattr(new_exam, "schools", [])],
+                        "groups": [g.id for g in getattr(new_exam, "groups_mm", [])],
                         "attachments": json.loads(new_exam.attachments) if new_exam.attachments else [],
                         "points": new_exam.points,
                         "out_of": new_exam.out_of,
                         "student_whatsapp": new_exam.student_whatsapp,
                         "parent_whatsapp": new_exam.parent_whatsapp,
+                        "close_after_deadline": new_exam.close_after_deadline,
                     },
                     "before": None,
                     "after": None
@@ -4971,8 +4772,6 @@ def online_exam():
 
         # Return JSON for AJAX requests
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            schools_names = [s.name for s in getattr(new_exam, 'schools_mm', [])] if getattr(new_exam, 'schools_mm', None) else []
-            stages_names = [s.name for s in getattr(new_exam, 'stages_mm', [])] if getattr(new_exam, 'stages_mm', None) else []
             groups_names = [g.name for g in getattr(new_exam, 'groups_mm', [])] if getattr(new_exam, 'groups_mm', None) else []
             
             qualified_count = qualified_students_count_for_assignment(new_exam)
@@ -4983,10 +4782,6 @@ def online_exam():
                 "description": new_exam.description,
                 "creation_date": new_exam.creation_date.strftime('%Y-%m-%d %I:%M %p') if new_exam.creation_date else None,
                 "deadline_date": new_exam.deadline_date.strftime('%Y-%m-%d %I:%M %p') if new_exam.deadline_date else None,
-                "subject": new_exam.subject.name if new_exam.subject else "N/A",
-                "subject_id": new_exam.subject.id if new_exam.subject else None,
-                "schools": schools_names,
-                "stages": stages_names,
                 "groups": groups_names,
                 "points": new_exam.points,
                 "status": new_exam.status,
@@ -4995,6 +4790,7 @@ def online_exam():
                 "out_of": new_exam.out_of,
                 "student_whatsapp": new_exam.student_whatsapp,
                 "parent_whatsapp": new_exam.parent_whatsapp,
+                "close_after_deadline": new_exam.close_after_deadline,
             }
             
             return jsonify({"success": True, "message": "Exam added successfully!", "exam": exam_data})
@@ -5002,27 +4798,10 @@ def online_exam():
         flash("Exam added successfully!", "success")
         return redirect(url_for("admin.online_exam"))
 
-    # ---- GET: list + form data
-    exams = assignments_query.filter(Assignments.type == "Exam").order_by(Assignments.id.desc()).all()
 
-    # stats per exam
-    for e in exams:
-        e.qualified_students_count = qualified_students_count_for_assignment(e)
-        e.submitted_students_count = (
-            Submissions.query
-            .with_entities(Submissions.student_id)
-            .filter_by(assignment_id=e.id)
-            .distinct()
-            .count()
-        )
 
     return render_template(
-        "admin/online_exam/online_exam.html",
-        exams=exams,
-        groups=groups,
-        stages=stages,
-        subject_school_map=subject_school_map,
-        subjects=subjects
+        "admin/online_exam/online_exam.html"
     )
 
 @admin.route("/online/exam/submissions/<int:exam_id>", methods=["GET", "POST"])
@@ -5215,9 +4994,14 @@ def toggle_exam(exam_id):
     flash(f"Exam status is: {exam.status} now!", "success")
     return redirect(url_for("admin.online_exam"))
 
-
 @admin.route("/online/exam/edit/<int:exam_id>", methods=["GET", "POST"])
 def edit_exam(exam_id):
+
+    if current_user.role != "super_admin":
+        flash("You are not allowed to edit exams.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+
     exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
     if not exam:
         flash("Exam not found or you do not have permission to edit it.", "danger")
@@ -5227,18 +5011,11 @@ def edit_exam(exam_id):
         flash("Assignment is not an exam.", "danger")
         return redirect(url_for("admin.online_exam"))
 
+
     existing_attachments = json.loads(exam.attachments) if exam.attachments else []
 
     groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all() 
 
-    def int_or_none(x):
-        try:
-            return int(x) if x not in (None, "", "None") else None
-        except (TypeError, ValueError):
-            return None
 
     if request.method == "POST":
         # Save a copy of the old exam state for logging
@@ -5246,28 +5023,29 @@ def edit_exam(exam_id):
             "title": exam.title,
             "description": exam.description,
             "deadline_date": str(exam.deadline_date) if exam.deadline_date else None,
-            "stageid": exam.stageid,
             "groupid": exam.groupid,
-            "schoolid": exam.schoolid,
             "groups_mm": [g.id for g in getattr(exam, "groups_mm", [])],
-            "stages_mm": [s.id for s in getattr(exam, "stages_mm", [])],
-            "schools_mm": [s.id for s in getattr(exam, "schools_mm", [])],
             "attachments": json.loads(exam.attachments) if exam.attachments else [],
-            "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None, 
+            "student_whatsapp": exam.student_whatsapp,
+            "parent_whatsapp": exam.parent_whatsapp,
+            "out_of": exam.out_of,
         }
 
         # Update basic fields
         exam.title = request.form.get("title", "").strip()
         exam.description = request.form.get("description", "").strip()
-
+        exam.last_edited_by = current_user.id
         cairo_tz = pytz.timezone('Africa/Cairo')
         aware_local_time = datetime.now(cairo_tz)
         naive_local_time = aware_local_time.replace(tzinfo=None)
-        exam.last_edited_by = current_user.id
         exam.last_edited_at = naive_local_time
-        out_of_raw = request.form.get("out_of", 0)
-        out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
-        exam.out_of = out_of
+        # deadline
+        try:
+            exam.deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+        except (TypeError, ValueError):
+            flash("Invalid deadline date. Please use the datetime picker.", "error")
+            return redirect(url_for("admin.online_exam"))
+
 
         student_whatsapp = request.form.get("student_whatsapp", False)
         if student_whatsapp == "true":
@@ -5280,53 +5058,34 @@ def edit_exam(exam_id):
         else:
             parent_whatsapp = False
 
+        #close after deadline
+        close_after_deadline = request.form.get("close_after_deadline", False)
+        if close_after_deadline == "true":
+            close_after_deadline = True
+        else:
+            close_after_deadline = False
+
+
+
+        # out of (full mark)
+        out_of = request.form.get("out_of", 0)
+        out_of = int(out_of) if str(out_of).isdigit() else 0
         exam.student_whatsapp = student_whatsapp
         exam.parent_whatsapp = parent_whatsapp
+        exam.out_of = out_of
+        exam.close_after_deadline = close_after_deadline
 
-
-
-        # deadline
-        try:
-            exam.deadline_date = parse_deadline(request.form.get("deadline_date", ""))
-        except (TypeError, ValueError):
-            flash("Invalid deadline date. Please use the datetime picker.", "error")
-            return redirect(url_for("admin.online_exam"))
-
-        subject_id_single = int_or_none(request.form.get("subject")) 
-
-        if subject_id_single:
-            exam.subjectid = subject_id_single
 
         # NEW: multi-selects (for many-to-many relationships)
         group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
-        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
-        
-        # Handle new multi-select schools format (comma-separated string)
-        school_ids_str = request.form.get("school_ids", "").strip()
-        if school_ids_str:
-            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
-        else:
-            school_ids_mm = []
 
         if not group_ids_mm:
+            groups = Groups.query.all()
             group_ids_mm = [group.id for group in groups]
-
-        if not stage_ids_mm:
-            stage_ids_mm = [stage.id for stage in stages]
-        
-        if not school_ids_mm:
-            if subject_id_single:
-                school_ids_mm = [school.id for school in schools if subject_id_single in [s.id for s in school.subjects]]
-            else:
-                school_ids_mm = [school.id for school in schools]
 
         # Update many-to-many relationships
         if hasattr(exam, "groups_mm"):
             exam.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
-        if hasattr(exam, "stages_mm"):
-            exam.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
-        if hasattr(exam, "schools_mm"):
-            exam.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
 
         # Handle file upload
         if "attachments" in request.files and request.files["attachments"].filename != "":
@@ -5365,27 +5124,22 @@ def edit_exam(exam_id):
                     "title": exam.title,
                     "description": exam.description,
                     "deadline_date": str(exam.deadline_date) if exam.deadline_date else None,
-                    "stageid": exam.stageid,
                     "groupid": exam.groupid,
-                    "schoolid": exam.schoolid,
-                    "subjectid": getattr(exam, "subjectid", None),
                     "groups_mm": [g.id for g in getattr(exam, "groups_mm", [])],
-                    "stages_mm": [s.id for s in getattr(exam, "stages_mm", [])],
-                    "schools_mm": [s.id for s in getattr(exam, "schools_mm", [])],
                     "attachments": json.loads(exam.attachments) if exam.attachments else [],
-                    "subject": getattr(exam.subject, "name", None) if hasattr(exam, "subject") else None,
                     "student_whatsapp": exam.student_whatsapp,
                     "parent_whatsapp": exam.parent_whatsapp,
+                    "out_of": exam.out_of,
+                    "close_after_deadline": exam.close_after_deadline,
                 }
             }
         )
         db.session.add(new_log)
         db.session.commit()
 
-        # Return JSON for AJAX requests
+        # Check if it's an AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            schools_names = [s.name for s in getattr(exam, 'schools_mm', [])] if getattr(exam, 'schools_mm', None) else []
-            stages_names = [s.name for s in getattr(exam, 'stages_mm', [])] if getattr(exam, 'stages_mm', None) else []
+            # Return updated exam data
             groups_names = [g.name for g in getattr(exam, 'groups_mm', [])] if getattr(exam, 'groups_mm', None) else []
             
             qualified_count = qualified_students_count_for_assignment(exam)
@@ -5396,27 +5150,25 @@ def edit_exam(exam_id):
                 .distinct()
                 .count()
             )
-            
-            exam_data = {
+
+            updated_exam = {
                 "id": exam.id,
                 "title": exam.title,
                 "description": exam.description,
                 "creation_date": exam.creation_date.strftime('%Y-%m-%d %I:%M %p') if exam.creation_date else None,
                 "deadline_date": exam.deadline_date.strftime('%Y-%m-%d %I:%M %p') if exam.deadline_date else None,
-                "subject": exam.subject.name if exam.subject else "N/A",
-                "subject_id": exam.subject.id if exam.subject else None,
-                "schools": schools_names,
-                "stages": stages_names,
                 "groups": groups_names,
                 "status": exam.status,
+                "points": exam.points,
                 "submitted_students_count": submitted_count,
                 "qualified_students_count": qualified_count,
-                "out_of": exam.out_of,
                 "student_whatsapp": exam.student_whatsapp,
                 "parent_whatsapp": exam.parent_whatsapp,
+                "out_of": exam.out_of,
+                "close_after_deadline": exam.close_after_deadline,
             }
             
-            return jsonify({"success": True, "message": "Exam updated successfully!", "exam": exam_data})
+            return jsonify({"success": True, "message": "Exam updated successfully!", "exam": updated_exam})
 
         flash("Exam updated successfully!", "success")
         return redirect(url_for("admin.online_exam"))
@@ -5466,17 +5218,11 @@ def edit_exam(exam_id):
             flash("Attachment not found!", "error")
         return redirect(url_for("admin.edit_exam", exam_id=exam_id))
 
-
-
-
     return render_template(
         "admin/online_exam/edit_exam.html",
         exam=exam,
         groups=groups,
-        stages=stages,
-        attachments=existing_attachments,
-        schools=schools,
-        subjects=subjects
+        attachments=existing_attachments
     )
 
 @admin.route("/online/exam/delete/<int:exam_id>", methods=["POST"])
@@ -5644,18 +5390,11 @@ def account():
 
     student_count = None
     if current_user.role == "admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
+        group_ids = get_user_scope_ids()
         query = Users.query.filter_by(role='student')
-        if group_ids and stage_ids and school_ids:
-            query = query.filter(
-                Users.groupid.in_(group_ids),
-                Users.stageid.in_(stage_ids),
-                Users.schoolid.in_(school_ids),
-                Users.subjectid.in_(subject_ids)
-            )
+        if group_ids :
+            query = query.filter(Users.groupid.in_(group_ids))
             student_count = query.distinct().count()
-        else:
-            student_count = 0
     elif current_user.role == "super_admin":
         students = Users.query.filter_by(role='student').all()
         student_count = len(students)

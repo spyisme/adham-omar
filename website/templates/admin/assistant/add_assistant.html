@@ -319,36 +319,8 @@
 
             <label>Groups:</label>
             <div class="dropdown">
-                <div id="multiSelectSchools" class="multi-select" onclick="toggleSchoolDropdown()">
-                    <input type="text" id="multiInputSchools" placeholder="Type or select groups..."
-                        oninput="filterSchools()">
-                </div>
-                <div id="dropdownListSchools" class="dropdown-list">
-                    {% for school in schools %}
-                    <div data-id="{{ school.id }}">{{ school.name }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-            <input type="hidden" name="school_ids" id="selectedSchools">
-
-            <label>Stages:</label>
-            <div class="dropdown">
-                <div id="multiSelectStages" class="multi-select" onclick="toggleStageDropdown()">
-                    <input type="text" id="multiInputStages" placeholder="Type or select stages..."
-                        oninput="filterStages()">
-                </div>
-                <div id="dropdownListStages" class="dropdown-list">
-                    {% for stage in stages %}
-                    <div data-id="{{ stage.id }}">{{ stage.name }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-            <input type="hidden" name="stage_ids" id="selectedStages">
-
-            <label>Classes:</label>
-            <div class="dropdown">
                 <div id="multiSelectGroups" class="multi-select" onclick="toggleGroupDropdown()">
-                    <input type="text" id="multiInputGroups" placeholder="Type or select classes..."
+                    <input type="text" id="multiInputGroups" placeholder="Type or select groups..."
                         oninput="filterGroups()">
                 </div>
                 <div id="dropdownListGroups" class="dropdown-list">
@@ -359,147 +331,11 @@
             </div>
             <input type="hidden" name="group_ids" id="selectedGroups">
 
-            <label>Boards:</label>
-            <div class="dropdown">
-                <div id="multiSelectSubjects" class="multi-select" onclick="toggleSubjectDropdown()">
-                    <input type="text" id="multiInputSubjects" placeholder="Type or select boards..."
-                        oninput="filterSubjects()">
-                </div>
-                <div id="dropdownListSubjects" class="dropdown-list">
-                    {% for subject in subjects %}
-                    <div data-id="{{ subject.id }}">{{ subject.name }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-            <input type="hidden" name="subject_ids" id="selectedSubjects">
-
             <button type="submit" class="btn">Add Assistant</button>
         </form>
     </div>
 </div>
 <script>
-    // Multi-select functionality for Schools
-    const schoolDropdown = document.getElementById('dropdownListSchools');
-    const schoolMultiSelect = document.getElementById('multiSelectSchools');
-    const schoolInput = document.getElementById('multiInputSchools');
-    const schoolHiddenInput = document.getElementById('selectedSchools');
-    let selectedSchools = [];
-
-    function toggleSchoolDropdown() {
-        schoolDropdown.style.display = schoolDropdown.style.display === 'block' ? 'none' : 'block';
-        if (schoolDropdown.style.display === 'block') {
-            schoolInput.focus();
-        }
-    }
-
-    function filterSchools() {
-        const filter = schoolInput.value.toLowerCase();
-        Array.from(schoolDropdown.children).forEach(option => {
-            const isSelected = selectedSchools.some(s => s.id === option.dataset.id);
-            if (isSelected) {
-                option.style.display = 'none';
-            } else {
-                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
-            }
-        });
-        schoolDropdown.style.display = 'block';
-    }
-
-    schoolDropdown.addEventListener('click', (e) => {
-        if (e.target.dataset.id) {
-            const id = e.target.dataset.id;
-            const name = e.target.textContent;
-            if (!selectedSchools.find(s => s.id === id)) {
-                selectedSchools.push({ id, name });
-                renderSchoolTags();
-            }
-            schoolInput.value = '';
-            filterSchools();
-            schoolDropdown.style.display = 'none';
-        }
-    });
-
-    function renderSchoolTags() {
-        // Clear current tags, but keep the input
-        while (schoolMultiSelect.firstChild && schoolMultiSelect.firstChild !== schoolInput) {
-            schoolMultiSelect.removeChild(schoolMultiSelect.firstChild);
-        }
-
-        selectedSchools.forEach(s => {
-            const tag = document.createElement('span');
-            tag.className = 'tag';
-            tag.innerHTML = `${s.name} <button type="button" onclick="removeSchoolTag('${s.id}')">×</button>`;
-            schoolMultiSelect.insertBefore(tag, schoolInput);
-        });
-        schoolHiddenInput.value = selectedSchools.map(s => s.id).join(',');
-    }
-
-    function removeSchoolTag(id) {
-        selectedSchools = selectedSchools.filter(s => s.id !== id);
-        renderSchoolTags();
-    }
-
-    // Multi-select functionality for Stages
-    const stageDropdown = document.getElementById('dropdownListStages');
-    const stageMultiSelect = document.getElementById('multiSelectStages');
-    const stageInput = document.getElementById('multiInputStages');
-    const stageHiddenInput = document.getElementById('selectedStages');
-    let selectedStages = [];
-
-    function toggleStageDropdown() {
-        stageDropdown.style.display = stageDropdown.style.display === 'block' ? 'none' : 'block';
-        if (stageDropdown.style.display === 'block') {
-            stageInput.focus();
-        }
-    }
-
-    function filterStages() {
-        const filter = stageInput.value.toLowerCase();
-        Array.from(stageDropdown.children).forEach(option => {
-            const isSelected = selectedStages.some(s => s.id === option.dataset.id);
-            if (isSelected) {
-                option.style.display = 'none';
-            } else {
-                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
-            }
-        });
-        stageDropdown.style.display = 'block';
-    }
-
-    stageDropdown.addEventListener('click', (e) => {
-        if (e.target.dataset.id) {
-            const id = e.target.dataset.id;
-            const name = e.target.textContent;
-            if (!selectedStages.find(s => s.id === id)) {
-                selectedStages.push({ id, name });
-                renderStageTags();
-            }
-            stageInput.value = '';
-            filterStages();
-            stageDropdown.style.display = 'none';
-        }
-    });
-
-    function renderStageTags() {
-        // Clear current tags, but keep the input
-        while (stageMultiSelect.firstChild && stageMultiSelect.firstChild !== stageInput) {
-            stageMultiSelect.removeChild(stageMultiSelect.firstChild);
-        }
-
-        selectedStages.forEach(s => {
-            const tag = document.createElement('span');
-            tag.className = 'tag';
-            tag.innerHTML = `${s.name} <button type="button" onclick="removeStageTag('${s.id}')">×</button>`;
-            stageMultiSelect.insertBefore(tag, stageInput);
-        });
-        stageHiddenInput.value = selectedStages.map(s => s.id).join(',');
-    }
-
-    function removeStageTag(id) {
-        selectedStages = selectedStages.filter(s => s.id !== id);
-        renderStageTags();
-    }
-
     // Multi-select functionality for Groups
     const groupDropdown = document.getElementById('dropdownListGroups');
     const groupMultiSelect = document.getElementById('multiSelectGroups');
@@ -561,80 +397,10 @@
         renderGroupTags();
     }
 
-    // Multi-select functionality for Subjects
-    const subjectDropdown = document.getElementById('dropdownListSubjects');
-    const subjectMultiSelect = document.getElementById('multiSelectSubjects');
-    const subjectInput = document.getElementById('multiInputSubjects');
-    const subjectHiddenInput = document.getElementById('selectedSubjects');
-    let selectedSubjects = [];
-
-    function toggleSubjectDropdown() {
-        subjectDropdown.style.display = subjectDropdown.style.display === 'block' ? 'none' : 'block';
-        if (subjectDropdown.style.display === 'block') {
-            subjectInput.focus();
-        }
-    }
-
-    function filterSubjects() {
-        const filter = subjectInput.value.toLowerCase();
-        Array.from(subjectDropdown.children).forEach(option => {
-            const isSelected = selectedSubjects.some(s => s.id === option.dataset.id);
-            if (isSelected) {
-                option.style.display = 'none';
-            } else {
-                option.style.display = option.textContent.toLowerCase().includes(filter) ? 'block' : 'none';
-            }
-        });
-        subjectDropdown.style.display = 'block';
-    }
-
-    subjectDropdown.addEventListener('click', (e) => {
-        if (e.target.dataset.id) {
-            const id = e.target.dataset.id;
-            const name = e.target.textContent;
-            if (!selectedSubjects.find(s => s.id === id)) {
-                selectedSubjects.push({ id, name });
-                renderSubjectTags();
-            }
-            subjectInput.value = '';
-            filterSubjects();
-            subjectDropdown.style.display = 'none';
-        }
-    });
-
-    function renderSubjectTags() {
-        // Clear current tags, but keep the input
-        while (subjectMultiSelect.firstChild && subjectMultiSelect.firstChild !== subjectInput) {
-            subjectMultiSelect.removeChild(subjectMultiSelect.firstChild);
-        }
-
-        selectedSubjects.forEach(s => {
-            const tag = document.createElement('span');
-            tag.className = 'tag';
-            tag.innerHTML = `${s.name} <button type="button" onclick="removeSubjectTag('${s.id}')">×</button>`;
-            subjectMultiSelect.insertBefore(tag, subjectInput);
-        });
-        subjectHiddenInput.value = selectedSubjects.map(s => s.id).join(',');
-    }
-
-    function removeSubjectTag(id) {
-        selectedSubjects = selectedSubjects.filter(s => s.id !== id);
-        renderSubjectTags();
-    }
-
     // Close dropdowns on outside click
     document.addEventListener('click', (e) => {
-        if (!schoolMultiSelect.parentElement.contains(e.target)) {
-            schoolDropdown.style.display = 'none';
-        }
-        if (!stageMultiSelect.parentElement.contains(e.target)) {
-            stageDropdown.style.display = 'none';
-        }
         if (!groupMultiSelect.parentElement.contains(e.target)) {
             groupDropdown.style.display = 'none';
-        }
-        if (!subjectMultiSelect.parentElement.contains(e.target)) {
-            subjectDropdown.style.display = 'none';
         }
     });
 

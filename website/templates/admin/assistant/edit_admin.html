@@ -26,52 +26,17 @@
             <input type="text" id="phone" name="phone_number" value="{{ user.phone_number or '' }}"
                 class="form-control" />
 
-            <label class="edit-label">Schools:</label>
-            <div class="multi" id="ms-schools">
-                <button type="button" class="multi-btn" id="ms-schools-btn">All Groups ▼</button>
-                <div class="multi-list" id="ms-schools-list">
-                    <label class="multi-all">
-                        <input type="checkbox" value="" id="all-schools-checkbox" {% if not user.managed_schools
-                            %}checked{% endif %}>
-                        All Groups
-                    </label>
-                    {% for school in schools %}
-                    <label>
-                        <input type="checkbox" name="school_ids" value="{{ school.id }}" {% if user.managed_schools and
-                            school.id in user.managed_schools|map(attribute='id' )|list %}checked{% endif %}>
-                        {{ school.name }}
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
 
-            <label class="edit-label">Stages:</label>
-            <div class="multi" id="ms-stages">
-                <button type="button" class="multi-btn" id="ms-stages-btn">All Stages ▼</button>
-                <div class="multi-list" id="ms-stages-list">
-                    <label class="multi-all">
-                        <input type="checkbox" value="" id="all-stages-checkbox" {% if not user.managed_stages
-                            %}checked{% endif %}>
-                        All Stages
-                    </label>
-                    {% for stage in stages %}
-                    <label>
-                        <input type="checkbox" name="stage_ids" value="{{ stage.id }}" {% if user.managed_stages and
-                            stage.id in user.managed_stages|map(attribute='id' )|list %}checked{% endif %}>
-                        {{ stage.name }}
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
 
-            <label class="edit-label">Classes:</label>
+
+            <label class="edit-label">Groups:</label>
             <div class="multi" id="ms-groups">
-                <button type="button" class="multi-btn" id="ms-groups-btn">All Classes ▼</button>
+                <button type="button" class="multi-btn" id="ms-groups-btn">All Groups ▼</button>
                 <div class="multi-list" id="ms-groups-list">
                     <label class="multi-all">
                         <input type="checkbox" value="" id="all-groups-checkbox" {% if not user.managed_groups
                             %}checked{% endif %}>
-                        All Classes
+                        All Groups
                     </label>
                     {% for group in groups %}
                     <label>
@@ -83,24 +48,8 @@
                 </div>
             </div>
 
-            <label class="edit-label">Subjects:</label>
-            <div class="multi" id="ms-subjects">
-                <button type="button" class="multi-btn" id="ms-subjects-btn">All Boards ▼</button>
-                <div class="multi-list" id="ms-subjects-list">
-                    <label class="multi-all">
-                        <input type="checkbox" value="" id="all-subjects-checkbox" {% if not user.managed_subjects
-                            %}checked{% endif %}>
-                        All Boards
-                    </label>
-                    {% for subject in subjects %}
-                    <label>
-                        <input type="checkbox" name="subject_ids" value="{{ subject.id }}" {% if user.managed_subjects
-                            and subject.id in user.managed_subjects|map(attribute='id' )|list %}checked{% endif %}>
-                        {{ subject.name }}
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
+
+
 
             <button type="submit" name="action" value="save" class="btn btn-save">Save Changes</button>
             <button type="submit" name="delete_user" value="1" class="btn btn-delete"
