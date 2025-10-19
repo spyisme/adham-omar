@@ -137,44 +137,12 @@
         </div>
 
         <div class="form-group">
-            <label for="group">Class:</label>
+            <label for="group">Group:</label>
             <select id="group" name="group" required class="form-control">
-                <option value="None" {% if not user.groupid %}selected{% endif %} disabled>Select a Class</option>
+                <option value="None" {% if not user.groupid %}selected{% endif %} disabled>Select a Group</option>
                 {% for group in groups %}
                 <option value="{{ group.id }}" {% if user.group.name==group.name %}selected{% endif %}>{{ group.name }}
                 </option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group">
-            <label for="stage">Year:</label>
-            <select id="stage" name="stage" required class="form-control">
-                <option value="None" {% if not user.stageid %}selected{% endif %} disabled>Select a Year</option>
-                {% for stage in stages %}
-                <option value="{{ stage.id }}" {% if user.stage.name==stage.name %}selected{% endif %}>{{ stage.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="school">Group:</label>
-            <select id="school" name="school" required class="form-control">
-                <option value="None" {% if not user.schoolid %}selected{% endif %} disabled>Select a Group</option>
-                {% for school in schools %}
-                <option value="{{ school.id }}" {% if user.school.name==school.name %}selected{% endif %}>{{ school.name
-                    }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="subject">Board:</label>
-            <select id="subject" name="subject" required class="form-control">
-                <option value="None" {% if not user.subjectid %}selected{% endif %} disabled>Select a Board</option>
-                {% for subject in subjects %}
-                <option value="{{ subject.id }}" {% if user.subject and user.subject.name==subject.name %}selected{%
-                    endif %}>{{ subject.name }}</option>
                 {% endfor %}
             </select>
         </div>

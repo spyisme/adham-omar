@@ -524,7 +524,8 @@ def approve_students():
         group_ids = get_user_scope_ids()
         
         if group_ids:
-            query = query.filter(Users.groupid.in_(group_ids))
+            # Filter by many-to-many groups relationship
+            query = query.join(Users.groups).filter(Groups.id.in_(group_ids))
 
     pagination = query.order_by(Users.id.asc()).paginate(page=page, per_page=per_page, error_out=False)
     users = pagination.items
@@ -555,10 +556,10 @@ def approve_students():
 
     last_group_indices = {}
     for group in groups:
-        # Query to find the highest numeric code for each group
-        students_with_codes = Users.query.filter(
+        # Query to find the highest numeric code for each group using many-to-many relationship
+        students_with_codes = Users.query.join(Users.groups).filter(
             Users.role == 'student',
-            Users.groupid == group.id,
+            Groups.id == group.id,
             Users.code != 'nth',
             Users.code != 'Nth',
             Users.code.ilike(f"{group_codes[group.id]}-%")
@@ -597,8 +598,9 @@ def approve_student(user_id):
     if current_user.role != "super_admin":
         group_ids = get_user_scope_ids()
         
-        # Verify the student is within admin's scope
-        if not (group_ids and user.groupid in group_ids):
+        # Verify the student is within admin's scope using many-to-many groups
+        user_group_ids = [g.id for g in user.groups]
+        if not (group_ids and any(gid in group_ids for gid in user_group_ids)):
             flash('You do not have permission to approve this student.', 'danger')
             return redirect(url_for('admin.approve_students'))
     
@@ -633,6 +635,9 @@ def approve_student(user_id):
 
         db.session.commit()
 
+        # Get group IDs for logging
+        user_group_ids = [g.id for g in user.groups]
+
         new_log = AssistantLogs(
             assistant_id=current_user.id,
             action='Create',
@@ -649,7 +654,7 @@ def approve_student(user_id):
                     "email": user.email,
                     "phone_number": user.phone_number,
                     "code": user.code,
-                    "groupid": user.groupid,
+                    "group_ids": user_group_ids,
                     "role": user.role,
                     "student_whatsapp": user.student_whatsapp,
                     "parent_whatsapp": user.parent_whatsapp,
@@ -677,10 +682,14 @@ def reject_student(user_id):
     if current_user.role != "super_admin":
         group_ids = get_user_scope_ids()
         
-        # Verify the student is within admin's scope
-        if not (group_ids and user.groupid in group_ids):
+        # Verify the student is within admin's scope using many-to-many groups
+        user_group_ids = [g.id for g in user.groups]
+        if not (group_ids and any(gid in group_ids for gid in user_group_ids)):
             flash('You do not have permission to reject this student.', 'danger')
             return redirect(url_for('admin.approve_students'))
+    
+    # Get group IDs for logging before deleting
+    user_group_ids = [g.id for g in user.groups]
     
     # Log the action before deleting
     new_log = AssistantLogs(
@@ -705,7 +714,7 @@ def reject_student(user_id):
                 "parent_name": user.parent_name,
                 "parent_type": user.parent_type,
                 "code": user.code,
-                "groupid": user.groupid,
+                "group_ids": user_group_ids,
                 "role": user.role
             },
             "after": None

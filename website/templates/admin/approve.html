@@ -325,42 +325,23 @@
     <div class="filter-section">
         <input type="text" id="searchInput" class="filter-input" placeholder="Search students..."
             style="flex-grow: 1; min-width: 250px;" />
-        <select id="sortSchool" class="sort-select" name="sortSchool">
-            <option value="">All Groups</option>
-            {% for school in schools|sort(attribute='name') %}
-            <option value="{{ school.name|e }}">{{ school.name }}</option>
-            {% endfor %}
-        </select>
-        <select id="sortGrade" class="sort-select" name="sortGrade">
-            <option value="">All Years</option>
-            {% for grade in stages|sort(attribute='name') %}
-            <option value="{{ grade.name|e }}">{{ grade.name }}</option>
-            {% endfor %}
-        </select>
         <select id="sortClass" class="sort-select" name="sortClass">
             <option value="">All Classes</option>
             {% for group in groups|sort(attribute='name') %}
             <option value="{{ group.name|e }}">{{ group.name }}</option>
             {% endfor %}
         </select>
-        <select id="sortSubject" class="sort-select" name="sortSubject">
-            <option value="">All Boards</option>
-            {% for subject in subjects|sort(attribute='name') %}
-            <option value="{{ subject.name|e }}">{{ subject.name }}</option>
-            {% endfor %}
-        </select>
     </div>
 
     <div class="student-cards-list" id="studentCardsList">
         {% for user in users %}
-        {% set school_key = user.school.id %}
-        {% set school_code = school_codes[school_key] %}
-        {% set last_index = last_school_indices[school_key] %}
+        {% set group_key = user.group.id %}
+        {% set group_code = group_codes[group_key] %}
+        {% set last_index = last_group_indices[group_key] %}
         {% set next_index = "%03d"|format(last_index + 1) %}
-        {% set suggested_code = school_code ~ '-' ~ next_index %}
+        {% set suggested_code = group_code ~ '-' ~ next_index %}
         <div class="student-card" data-name="{{ user.name|lower }}" data-phone="{{ user.phone_number|lower }}"
-            data-school="{{ user.school.name|lower }}" data-grade="{{ user.stage.name|lower }}"
-            data-class="{{ user.group.name|lower }}" data-subject="{{ user.subject.name|lower }}">
+            data-class="{{ user.group.name|lower }}">
             <div class="student-pfp">
                 {% if user.profile_picture %}
                 <img src="{{ url_for('website.profile_picture', user_id=user.id) }}" alt="Profile" loading="lazy"
@@ -374,13 +355,8 @@
                 <div class="student-name"><a href="{{ url_for('admin.student', user_id=user.id) }}" target="_blank">{{
                         user.name }}</a></div>
                 <div class="student-meta">
-                    <span>Board: {{ user.subject.name }}</span><br>
                     <span>Phone: {{ user.phone_number }}</span><br>
-                    <span>Year: {{ user.stage.name }}</span><br>
                     <span>Class: {{ user.group.name }}</span>
-                </div>
-                <div class="student-meta">
-                    <span>Group: {{ user.school.name }}</span>
                 </div>
             </div>
             <div class="student-actions">
@@ -440,39 +416,24 @@
         // Search filter logic
         var searchInput = document.getElementById("searchInput");
         var cardsList = document.getElementById("studentCardsList");
-        var sortSchool = document.getElementById("sortSchool");
-        var sortGrade = document.getElementById("sortGrade");
         var sortClass = document.getElementById("sortClass");
-        var sortSubject = document.getElementById("sortSubject");
         function filterAndSortCards() {
             var searchVal = searchInput.value.trim().toLowerCase();
-            var schoolVal = sortSchool.value.trim().toLowerCase();
-            var gradeVal = sortGrade.value.trim().toLowerCase();
             var classVal = sortClass.value.trim().toLowerCase();
-            var subjectVal = sortSubject.value.trim().toLowerCase();
             var cards = Array.from(cardsList.querySelectorAll(".student-card"));
 
             cards.forEach(function (card) {
                 var name = card.getAttribute("data-name") || '';
                 var phone = card.getAttribute("data-phone") || '';
-                var school = card.getAttribute("data-school") || '';
-                var grade = card.getAttribute("data-grade") || '';
                 var group = card.getAttribute("data-class") || '';
-                var subject = card.getAttribute("data-subject") || '';
                 var isVisible = (name.includes(searchVal) || phone.includes(searchVal)) &&
-                    (!schoolVal || school === schoolVal) &&
-                    (!gradeVal || grade === gradeVal) &&
-                    (!classVal || group === classVal) &&
-                    (!subjectVal || subject === subjectVal);
+                    (!classVal || group === classVal);
                 card.style.display = isVisible ? "" : "none";
             });
         }
 
         searchInput.addEventListener("input", filterAndSortCards);
-        sortSchool.addEventListener("change", filterAndSortCards);
-        sortGrade.addEventListener("change", filterAndSortCards);
         sortClass.addEventListener("change", filterAndSortCards);
-        sortSubject.addEventListener("change", filterAndSortCards);
         // Confirmation logic for approve/reject
         var approveBtns = document.querySelectorAll('.approve-btn');
         var rejectBtns = document.querySelectorAll('.reject-btn');

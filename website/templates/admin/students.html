@@ -297,31 +297,10 @@
         <input type="text" id="searchInput" name="search" class="filter-input"
             placeholder="Search by name, code, or phone..." value="{{ request.args.get('search', '') }}">
         <select id="groupFilter" name="group" class="filter-select">
-            <option value="">Filter by Class</option>
+            <option value="">Filter by Group</option>
             {% for group in groups %}
             <option value="{{ group.name }}" {% if request.args.get('group')==group.name %}selected{% endif %}>{{
                 group.name }}</option>
-            {% endfor %}
-        </select>
-        <select id="stageFilter" name="stage" class="filter-select">
-            <option value="">Filter by Year</option>
-            {% for stage in stages %}
-            <option value="{{ stage.name }}" {% if request.args.get('stage')==stage.name %}selected{% endif %}>{{
-                stage.name }}</option>
-            {% endfor %}
-        </select>
-        <select id="schoolFilter" name="school" class="filter-select">
-            <option value="">Filter by Group</option>
-            {% for school in schools %}
-            <option value="{{ school.name }}" {% if request.args.get('school')==school.name %}selected{% endif %}>{{
-                school.name }}</option>
-            {% endfor %}
-        </select>
-        <select id="subjectFilter" name="subject" class="filter-select">
-            <option value="">Filter by Board</option>
-            {% for subject in subjects %}
-            <option value="{{ subject.name }}" {% if request.args.get('subject')==subject.name %}selected{% endif %}>{{
-                subject.name }}</option>
             {% endfor %}
         </select>
         <button type="submit" class="btn btn-primary">Apply Filters</button>
@@ -340,8 +319,7 @@
     <div class="cards-container" id="userCardsContainer"> {# NEW: Renamed div to hold cards #}
         {% for user in users %}
         <a href="{{ url_for('admin.student', user_id=user.id) }}" class="student-card"
-            data-class="{{ user.group.name }}" data-year="{{ user.stage.name }}" data-school="{{ user.school.name }}"
-            data-subject="{{ user.subject.name }}">
+            data-group="{{ user.group.name }}">
 
             <div class="card-header">
                 <span>{{ user.code }} |</span> {{ user.name }}
@@ -372,16 +350,8 @@
                 </span>
             </div>
             <div class="card-item">
-                <span class="label">Year</span>
-                <span class="value">{{ user.stage.name }}</span>
-            </div>
-            <div class="card-item">
                 <span class="label">Group</span>
-                <span class="value">{{ user.school.name }}</span>
-            </div>
-            <div class="card-item">
-                <span class="label">Board</span>
-                <span class="value">{{ user.subject.name }}</span>
+                <span class="value">{{ user.group.name }}</span>
             </div>
         </a>
         {% endfor %}
@@ -399,10 +369,7 @@
         {{ url_for('admin.students',
         page=page,
         search=request.args.get('search', ''),
-        group=request.args.get('group', ''),
-        stage=request.args.get('stage', ''),
-        school=request.args.get('school', ''),
-        subject=request.args.get('subject', '')
+        group=request.args.get('group', '')
         ) }}
         {%- endmacro %}
 

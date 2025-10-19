@@ -2,7 +2,7 @@
 from flask import Blueprint, redirect, render_template, request, url_for, flash, send_from_directory, abort, jsonify
 from .models import (
     Users,   Assignments, Submissions, Announcements, Videos, Sessions,
-      Materials, Materials_folder,   NextQuiz, Attendance_student, Attendance_session , Upload_status)
+      Materials, Materials_folder,   NextQuiz, Attendance_student, Attendance_session , Upload_status , Groups)
 from sqlalchemy.sql import exists
 from sqlalchemy import or_, false, exists, and_ , not_
 
@@ -30,56 +30,18 @@ GMT_PLUS_2 = pytz.timezone('Africa/Cairo')
 #=================================================================
 
 
-def scope_match_mm_legacy(mm_rel, legacy_col, user_value):
-    """
-    One dimension (group / stage / school / subject):
-    - If user_value is not None: allow when the row targets the user's value
-      (via MM or legacy) OR is globally unspecified (no MM & legacy is NULL).
-    - If user_value is None: only allow globally unspecified rows.
-    """
-    mm_has_any  = mm_rel.any()                       # row targets something in this dim
-    mm_has_user = mm_rel.any() if user_value is None else mm_rel.any(id=user_value)
-
-    if user_value is None:
-        return and_(not_(mm_has_any), legacy_col.is_(None))
-    else:
-        return or_(
-            mm_has_user,
-            legacy_col == user_value,
-            and_(not_(mm_has_any), legacy_col.is_(None))
-        )
-
-DIMENSIONS = (
-    ("groups_mm",  "groupid",  "groupid"),
-    ("stages_mm",  "stageid",  "stageid"),
-    ("schools_mm", "schoolid", "schoolid"),
-    # subject is a single value, not mm, so just check legacy col
-    ("", "subjectid", "subjectid"),
-)
-
-def _scope_predicates_for(model, user):
-    preds = []
-    for mm_attr, legacy_name, user_attr in DIMENSIONS:
-        # For subject, mm_attr is empty string, so only check legacy col
-        if mm_attr and hasattr(model, mm_attr) and hasattr(model, legacy_name):
-            mm_rel     = getattr(model, mm_attr)
-            legacy_col = getattr(model, legacy_name)
-            user_val   = getattr(user, user_attr, None)
-            preds.append(scope_match_mm_legacy(mm_rel, legacy_col, user_val))
-        elif not mm_attr and hasattr(model, legacy_name):
-            # subject: only legacy col, no mm
-            legacy_col = getattr(model, legacy_name)
-            user_val   = getattr(user, user_attr, None)
-            if user_val is None:
-                preds.append(legacy_col.is_(None))
-            else:
-                preds.append(or_(legacy_col == user_val, legacy_col.is_(None)))
-    return preds
-
 def get_all(model, student_id, *, add_status_filter=True, base_query=None):
     """
     Return a Query for ALL rows of `model` visible to the student,
-    replicating your 'global/unspecified' dimension behavior.
+    using only the user's legacy groupid against assignment's groups_mm/groupid.
+    
+    Logic:
+    - User only has legacy groupid (NOT MM groups)
+    - Assignment can have groups_mm (list) or legacy groupid
+    - Row is visible if:
+      1. User's legacy groupid is in assignment's groups_mm
+      2. User's legacy groupid matches assignment's legacy groupid
+      3. Assignment is global (no groups_mm AND no legacy groupid)
     """
     user = Users.query.get(student_id)
     if user is None:
@@ -88,32 +50,99 @@ def get_all(model, student_id, *, add_status_filter=True, base_query=None):
     q = base_query or model.query
 
     if add_status_filter and hasattr(model, "status"):
-        q = q.filter(getattr(model, "status") == "Show")
+        q = q.filter(model.status == "Show")
 
-    preds = _scope_predicates_for(model, user)
-    for p in preds:
-        q = q.filter(p)
+    # Only check groups dimension
+    if hasattr(model, "groups_mm") and hasattr(model, "groupid"):
+        user_groupid = getattr(user, "groupid", None)
+        
+        if user_groupid is None:
+            # User has no group: only show globally unspecified rows
+            # (no MM groups AND legacy groupid is NULL)
+            q = q.filter(
+                and_(
+                    ~model.groups_mm.any(),
+                    model.groupid.is_(None)
+                )
+            )
+        else:
+            # User has a legacy groupid: show rows where user's group is targeted OR global
+            conditions = []
+            
+            # 1. User's legacy groupid is in assignment's groups_mm
+            conditions.append(model.groups_mm.any(Groups.id == user_groupid))
+            
+            # 2. User's legacy groupid matches assignment's legacy groupid
+            conditions.append(model.groupid == user_groupid)
+            
+            # 3. Assignment is global: has no MM groups AND legacy groupid is NULL
+            conditions.append(
+                and_(
+                    ~model.groups_mm.any(),
+                    model.groupid.is_(None)
+                )
+            )
+            
+            q = q.filter(or_(*conditions))
 
     return q
 
 def have_perms(model, record_id, student_id):
     """
     Boolean: does `student_id` have access to `model.id == record_id`?
-    Uses the same scope predicates.
+    Uses user's legacy groupid against record's groups.
+    
+    Logic:
+    - User only has legacy groupid (NOT MM groups)
+    - Record can have groups_mm (list) or legacy groupid
+    - Match if:
+      1. User's legacy groupid is in record's groups_mm
+      2. User's legacy groupid matches record's legacy groupid
+      3. Record is global (no groups)
     """
     user = Users.query.get(student_id)
     if user is None:
         return False
 
-    preds = _scope_predicates_for(model, user)
-    clause = (model.id == record_id)
-    for p in preds:
-        clause = and_(clause, p)
+    # Get the record
+    record = model.query.filter(model.id == record_id).first()
+    if not record:
+        return False
 
-    if hasattr(model, "status"):
-        clause = and_(clause, getattr(model, "status") == "Show")
+    # Check status if applicable
+    if hasattr(record, "status") and record.status != "Show":
+        return False
 
-    return db.session.query(exists().where(clause)).scalar()
+    # If no group scoping on this model, allow access
+    if not hasattr(model, "groups_mm") or not hasattr(model, "groupid"):
+        return True
+
+    # Get user's legacy groupid only
+    user_groupid = getattr(user, "groupid", None)
+
+    # Get record's groups
+    record_group_ids = [g.id for g in record.groups_mm]
+    record_groupid = getattr(record, "groupid", None)
+
+    # If user has no group
+    if user_groupid is None:
+        # User can only see global records (no MM groups AND no legacy groupid)
+        return len(record_group_ids) == 0 and record_groupid is None
+
+    # User has a legacy groupid - check for match:
+    # 1. User's legacy groupid is in record's groups_mm
+    if user_groupid in record_group_ids:
+        return True
+    
+    # 2. User's legacy groupid matches record's legacy groupid
+    if record_groupid == user_groupid:
+        return True
+    
+    # 3. Record is global (no groups at all)
+    if len(record_group_ids) == 0 and record_groupid is None:
+        return True
+
+    return False
 
 
 
@@ -261,11 +290,16 @@ def new_home():
     next_quiz = get_all(NextQuiz, current_user.id).order_by(NextQuiz.quiz_date.asc()).first()
     
 
-    classmates = Users.query.filter(
-        Users.groupid == current_user.groupid,
-        Users.schoolid == current_user.schoolid,
-        Users.stageid == current_user.stageid
-    ).order_by(Users.points.desc()).all()
+    # Get user's legacy groupid only (users don't have MM groups)
+    user_groupid = getattr(current_user, "groupid", None)
+    
+    # Build classmates query based on legacy groupid only
+    if user_groupid is not None:
+        # User has a group: find classmates in the same legacy group
+        classmates = Users.query.filter(Users.groupid == user_groupid).order_by(Users.points.desc()).all()
+    else:
+        # User has no group: no classmates
+        classmates = []
     
     place_on_class = 1
     for idx, student in enumerate(classmates, start=1):
@@ -294,6 +328,7 @@ def new_home():
         next_quiz=next_quiz,
         place_on_class=place_on_class,
         student_whatsapp=student_whatsapp,
+        classmates=classmates,
     )
 
 
@@ -1748,3 +1783,64 @@ def whatsapp():
         flash("You have already activated WhatsApp", "warning")
         return redirect(url_for("student.new_home"))
     return render_template("student/whatsapp/whatsapp.html")
+
+
+#===================================================
+# DEBUG ROUTE - Remove after testing
+#===================================================
+@student.route("/debug/groups")
+def debug_groups():
+    """Debug route to check group assignments"""
+    if current_user.role != "student":
+        return "Only for students"
+    
+    # Get user's legacy groupid only (users don't have MM groups)
+    user_groupid = current_user.groupid
+    
+    # Get all assignments (unfiltered)
+    all_assignments = Assignments.query.filter(Assignments.status == "Show", Assignments.type == "Assignment").all()
+    
+    # Get assignments using get_all (what the student actually sees)
+    filtered_assignments = get_all(Assignments, current_user.id).filter(Assignments.type == "Assignment").all()
+    
+    debug_info = {
+        "user_id": current_user.id,
+        "user_name": current_user.name,
+        "user_legacy_groupid": user_groupid,
+        "total_assignments_in_db": len(all_assignments),
+        "assignments_student_can_see": len(filtered_assignments),
+        "filtered_assignment_ids": [a.id for a in filtered_assignments],
+        "all_assignments_details": []
+    }
+    
+    for assignment in all_assignments:
+        assignment_groups = list(assignment.groups_mm)
+        assignment_group_ids = [g.id for g in assignment_groups]
+        
+        assignment_info = {
+            "id": assignment.id,
+            "title": assignment.title,
+            "groups_mm": [{"id": g.id, "name": g.name} for g in assignment_groups],
+            "legacy_groupid": assignment.groupid,
+            "visible_via_have_perms": have_perms(Assignments, assignment.id, current_user.id),
+            "visible_via_get_all": assignment.id in [a.id for a in filtered_assignments],
+            "match_reason": []
+        }
+        
+        # Check why it matches or doesn't (user only has legacy groupid)
+        if user_groupid:
+            # User's legacy groupid is in assignment's MM groups
+            if user_groupid in assignment_group_ids:
+                assignment_info["match_reason"].append("User legacy groupid in assignment MM groups")
+            
+            # User's legacy groupid matches assignment's legacy groupid
+            if assignment.groupid == user_groupid:
+                assignment_info["match_reason"].append("User legacy groupid matches assignment legacy groupid")
+        
+        # Global assignment (no groups at all)
+        if len(assignment_group_ids) == 0 and assignment.groupid is None:
+            assignment_info["match_reason"].append("Global assignment (no groups)")
+            
+        debug_info["all_assignments_details"].append(assignment_info)
+    
+    return jsonify(debug_info)

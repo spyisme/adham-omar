@@ -450,70 +450,11 @@
 
 
           <div class="form-group">
-            <label for="subject">Board</label>
-            <select name="subject" id="subject" required>
-              <option value="" disabled selected>Select Board</option>
-              {% for subject in subjects %}<option value="{{ subject.id }}">{{ subject.name }}</option>{% endfor %}
+            <label for="group">Group</label>
+            <select name="group" id="group" required>
+              <option value="" disabled selected>Select your group</option>
+              {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
             </select>
-          </div>
-
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="school">Group</label>
-              <select name="school" id="school" required disabled>
-                <option value="" disabled selected>Select your group</option>
-              </select>
-            </div>
-
-            <script>
-              // 1. Get the data from Flask and convert it to a JavaScript object
-              // The 'tojson' filter is crucial for safely embedding the data
-              const subjectSchoolMap = {{ subject_school_map| tojson }};
-
-              // 2. Get references to the dropdown elements
-              const subjectSelect = document.getElementById('subject');
-              const schoolSelect = document.getElementById('school');
-
-              // 3. Add an event listener to the subject dropdown
-              subjectSelect.addEventListener('change', function () {
-                // Get the selected subject's ID
-                const selectedSubjectId = this.value;
-
-                // Find the list of schools for the selected subject
-                const schoolsForSubject = subjectSchoolMap[selectedSubjectId] || [];
-
-                // Clear previous school options (keeping the first "Select..." option)
-                while (schoolSelect.options.length > 1) {
-                  schoolSelect.remove(1);
-                }
-
-                // Enable the school dropdown and reset its value
-                schoolSelect.disabled = false;
-                schoolSelect.value = "";
-
-                // Add the new school options
-                schoolsForSubject.forEach(function (school) {
-                  const option = new Option(school.name, school.id); // Create a new <option>
-                  schoolSelect.add(option); // Add it to the select box
-                });
-              });
-            </script>
-            <div class="form-group">
-              <label for="stage">Stage</label>
-              <select name="stage" id="stage" required>
-                <option value="" disabled selected>Select your stage</option>
-                {% for stage in stages %}<option value="{{ stage.id }}">{{ stage.name }}</option>{% endfor %}
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="group">Class</label>
-              <select name="group" id="group" required>
-                <option value="" disabled selected>Select your class</option>
-                {% for group in groups %}<option value="{{ group.id }}">{{ group.name }}</option>{% endfor %}
-              </select>
-            </div>
           </div>
 
           <div class="form-group">
@@ -701,7 +642,7 @@
         if (document.getElementById("password").value.length < 8) {
           addError("Password must be at least 8 characters long.");
         }
-        ["subject", "school", "group", "stage", "parent_type"].forEach(id => {
+        ["group", "parent_type"].forEach(id => {
           if (document.getElementById(id).value === "") {
             const friendlyName = id.replace("_", " ");
             addError(`Please select a value for ${friendlyName}.`);

@@ -564,9 +564,6 @@ def register():
             password = request.form.get("password", "")
             parent_type = request.form.get("parent_type", "")
             group = request.form.get("group", "")
-            stage = request.form.get("stage", "")
-            school = request.form.get("school", "")
-            subject = request.form.get("subject", "")
 
 
 
@@ -589,20 +586,15 @@ def register():
                 missing_fields.append("Parent Type")
             if not group:
                 missing_fields.append("Group")
-            if not stage:
-                missing_fields.append("Stage")
             if missing_fields:
                 flash("Please fill all the fields. Missing: " + ", ".join(missing_fields), "danger")
                 return redirect(url_for("website.register"))
 
-            # Check if group and stage are valid integers
+            # Check if group is valid integer
             try:
                 group_id = int(group)
-                stage_id = int(stage)
-                school_id = int(school)
-                subject_id = int(subject)
             except (ValueError, TypeError):
-                flash("Invalid group or stage selection.", "danger")
+                flash("Invalid group selection.", "danger")
                 return redirect(url_for("website.register"))
 
             # Check for existing user
@@ -646,10 +638,7 @@ def register():
                 parent_phone_number=parent_phone,
                 parent_type=parent_type,
                 groupid=group_id,
-                stageid=stage_id,
                 role="student",
-                schoolid=school_id,
-                subjectid=subject_id,
                 profile_picture=profile_picture_filename,
                 otp = verification_code,
                 phone_number_country_code=student_phone_country_code,
@@ -672,23 +661,13 @@ def register():
             return redirect(url_for("website.login"))
 
 
-        subjects = Subjects.query.all()
         groups = Groups.query.all()
-        stages = Stages.query.all()
-
-        subject_school_map = {}
-        for subject in subjects:
-            # For each subject, get its associated schools and format them for JavaScript
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            # Sort schools to put "Online" schools first, then alphabetically
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
 
     except Exception as e:
         send_whatsapp_message("01111251681", "Error on register page : " + str(e))
         flash("Please try again later.", "danger")
         return redirect(url_for("website.register"))
-    return render_template("auth_pages/register.html", subjects=subjects, groups=groups, stages=stages, subject_school_map=subject_school_map)
+    return render_template("auth_pages/register.html", groups=groups)
 
 
 @website.route("/logout")
