@@ -222,7 +222,16 @@ class Users(db.Model, UserMixin):
     school = db.relationship('Schools', back_populates='users')
     subject = db.relationship('Subjects', back_populates='users')
 
-    submissions = db.relationship('Submissions', back_populates='student', lazy='dynamic', cascade="all, delete-orphan")
+    submissions = db.relationship('Submissions', back_populates='student', lazy='dynamic', cascade="all, delete-orphan" ,
+                                  foreign_keys='Submissions.student_id')
+
+
+    reviewed_submissions = db.relationship('Submissions', 
+                                           back_populates='reviewer', 
+                                           lazy='dynamic', 
+                                           foreign_keys='Submissions.reviewed_by_id')
+
+
     quiz_grades = db.relationship('QuizGrades', back_populates='student', lazy='dynamic', cascade="all, delete-orphan", foreign_keys='QuizGrades.student_id')
     video_views = db.relationship('VideoViews', back_populates='student', lazy='dynamic', cascade="all, delete-orphan")
     corrected_quizzes = db.relationship('QuizGrades', back_populates='corrector', lazy='dynamic', foreign_keys='QuizGrades.corrector_id')
@@ -413,6 +422,9 @@ class Assignments(db.Model):
     last_edited_at = db.Column(db.DateTime, nullable=True)
     last_edited_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
+    #Close after deadline
+    close_after_deadline = db.Column(db.Boolean, default=False)
+
 
     # Legacy single-scope fields (kept for backward compatibility)
     stageid = db.Column(db.Integer, db.ForeignKey('stages.id'), nullable=True)
@@ -446,16 +458,26 @@ class Assignments(db.Model):
 class Submissions(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id'), nullable=False)
-    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     upload_time = db.Column(db.DateTime, default=lambda: datetime.now(gmt_plus_2))
     file_url = db.Column(db.Text, nullable=False)
-
-    # As requested: feedback not just a number → keep as string/text
     mark = db.Column(db.Text, nullable=True)
-
-    assignment = db.relationship('Assignments', back_populates='submissions')
-    student = db.relationship('Users', back_populates='submissions')
     corrected = db.Column(db.Boolean, default=False)
+    reviewed = db.Column(db.Boolean, default=False)
+
+    # --- Link 1: The Student ---
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    student = db.relationship('Users', 
+                              back_populates='submissions', 
+                              foreign_keys=[student_id])
+
+    # --- Link 2: The Admin/Reviewer ---
+    reviewed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) # Renamed from 'reviewed_by'
+    reviewer = db.relationship('Users', 
+                               back_populates='reviewed_submissions', 
+                               foreign_keys=[reviewed_by_id])
+
+    # Other relationships
+    assignment = db.relationship('Assignments', back_populates='submissions')
 
 
 class Announcements(db.Model):
