@@ -5663,6 +5663,92 @@ def edit_pdf_exam(submission_id):
     return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id)
 
 
+@admin.route("/online/exam/annotate2/<int:submission_id>")
+def edit_pdf2_exam(submission_id):
+    submission = Submissions.query.get_or_404(submission_id)
+    pdfurl = f"/admin/getpdf2/{submission_id}"
+    filename = submission.file_url
+
+    assignment = Assignments.query.get(submission.assignment_id)
+    student_name = submission.student.name
+    #take only first 2 names then truntcate 
+    student_name = student_name.split(" ")[0] + " " + student_name.split(" ")[1]
+    student_name = student_name[:20] + "..."
+    if assignment.out_of > 0:
+        show_grade = True
+    else:
+        show_grade = False
+    return render_template("admin/editpdf.html", pdfurl=pdfurl, filename=filename , submission_id=submission_id, show_grade=show_grade, student_name=student_name)
+
+
+@admin.route("/online/exam/delete_submission/<int:submission_id>", methods=["POST"])
+def delete_submission_exam(submission_id):
+
+    if current_user.role != "super_admin":
+        flash("You are not allowed to delete student's submissions.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", assignment_id=submission.assignment_id))
+
+    submission = Submissions.query.get_or_404(submission_id)
+    assignment = Assignments.query.get(submission.assignment_id)
+    if not assignment:
+        flash("Assignment not found.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", assignment_id=submission.assignment_id))
+
+    if assignment.type != "Exam":
+        flash("This route is only for exam submissions.", "danger")
+        return redirect(url_for("admin.view_exam_submissions", assignment_id=submission.assignment_id))
+
+    try:
+        # Delete all upload status records for this submission
+        Upload_status.query.filter_by(
+            assignment_id=submission.assignment_id,
+            user_id=submission.student_id
+        ).delete()
+
+        deadline_date = assignment.deadline_date
+        upload_time = submission.upload_time
+
+        if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
+            if upload_time.tzinfo is None:
+                upload_time = GMT_PLUS_2.localize(upload_time)
+        else:
+            if upload_time.tzinfo is not None:
+                upload_time = upload_time.replace(tzinfo=None)
+
+        if deadline_date > upload_time:
+            if assignment.points:
+                submission.student.points = (submission.student.points or 0) - assignment.points
+        else:
+            if assignment.points:
+                submission.student.points = (submission.student.points or 0) - (assignment.points / 2)
+
+        # Delete file from local storage
+        local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+        if os.path.exists(local_path):
+            os.remove(local_path)
+
+        try :
+            local_path2 = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            if os.path.exists(local_path2):
+                os.remove(local_path2)
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+        except Exception:
+            pass
+        # Delete file from remote storage
+        try:
+            storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+        except Exception:
+            flash("Error deleting file from storage.", "warning")
+        db.session.delete(submission)
+        db.session.commit()
+        flash("Submission deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred while deleting the submission: {str(e)}", "danger")
+
+    return redirect(url_for("admin.view_exam_submissions", assignment_id=assignment.id))
+
+
 #=================================================================
 #Account
 #=================================================================

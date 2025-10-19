@@ -111,8 +111,10 @@
                             <th>#</th>
                             <th>Student</th>
                             <th>Submission Time</th>
-                            {% if exam.points > 0 %}
+                            {% if exam.out_of > 0 %}
                             <th>Grade</th>
+                            {%else%}
+                            <th>Corrected</th>
                             {% endif %}
                             <th>Status</th>
                             <th>Original File</th>
@@ -134,8 +136,8 @@
                                 class="submission-time {% if submission.upload_time > submission.assignment.deadline_date %}late{% endif %}">
                                 {{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}
                             </td>
-                            {% if exam.points > 0 %}
-                                <td data-label="Grade">
+                            {% if exam.out_of > 0 %}
+                            <td data-label="Grade">
                                 <form method="POST" class="grade-form"
                                     style="display: flex; align-items: center; gap: 0.5rem;">
                                     <input type="hidden" name="submission_id" value="{{ submission.id }}">
@@ -164,6 +166,19 @@
                                         onmouseout="this.style.backgroundColor='#007bff';">Save</button>
                                 </form>
                             </td>
+                            {%else%}
+                            {% if submission.corrected %}
+                            <td>
+                                <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
+                                    class="btn btn-primary btn-open btn-small">Open Corrected File</a>
+                            </td>
+                            {% else %}
+                            <td>
+                                Not Corrected
+                                {{submission.corrected}}
+                            </td>
+                            {% endif %}
+
                             {% endif %}
                             <td data-label="Status">
                                 {% if submission.corrected and submission.reviewed %}
@@ -208,14 +223,27 @@
                                             📤 Upload Corrected PDF
                                         </button>
                                         <a href="{{ url_for('admin.edit_pdf_exam', submission_id=submission.id) }}"
-                                            target="_blank" class="actions-menu-item">
-                                            📝 Correct Online
+                                            class="actions-menu-item">
+                                            ✏️ Correct Student PDF
                                         </a>
-                                        {% if submission.corrected %}
+                                        {% if submission.mark or submission.corrected %}
+                                        <a href="{{ url_for('admin.edit_pdf2_exam', submission_id=submission.id) }}"
+                                            class="actions-menu-item">
+                                            🖊️ Edit on Corrected PDF
+                                        </a>
                                         <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}"
                                             target="_blank" class="actions-menu-item">
-                                            📄 Open Corrected PDF
+                                            👁️ Open Corrected PDF
                                         </a>
+
+                                        <form method="POST"
+                                            action="{{ url_for('admin.delete_submission_exam', submission_id=submission.id) }}"
+                                            style="display:inline; margin: 0;"
+                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission? <br> <p style=&quot;color: red;&quot;>This can\'t be undone</p>');">
+                                            <button type="submit" class="actions-menu-item actions-menu-item-danger">
+                                                🗑️ Delete Student Submission
+                                            </button>
+                                        </form>
                                         {% endif %}
                                     </div>
                                 </div>
@@ -408,12 +436,14 @@
         <form id="upload-corrected-form">
             <input type="hidden" id="modal-submission-id" value="">
 
+            {% if exam.points > 0 %}
             <div style="margin-bottom: 1rem;">
                 <label for="modal-mark"
                     style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Grade/Mark:</label>
                 <input type="text" id="modal-mark" name="mark" placeholder="Enter grade"
                     style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
             </div>
+            {% endif %}
 
             <div style="margin-bottom: 1rem;">
                 <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Corrected PDF File:</label>
@@ -544,19 +574,28 @@
         currentSubmissionId = submissionId;
         document.getElementById('modal-submission-id').value = submissionId;
         document.getElementById('modal-student-name').textContent = 'Student: ' + studentName;
+        {% if exam.points > 0 %}
         document.getElementById('modal-mark').value = currentMark || '';
-
+        {% endif %}
         // Reset file input
         document.getElementById('modal-file').value = '';
         document.getElementById('file-selected').style.display = 'none';
         document.getElementById('drop-zone-content').style.display = 'block';
         document.getElementById('upload-progress-container').style.display = 'none';
         document.getElementById('upload-progress-bar').style.width = '0%';
-        document.getElementById('submit-upload-btn').disabled = true;
+
+        // Hide alert
         document.getElementById('upload-alert').style.display = 'none';
         document.getElementById('upload-alert').textContent = '';
 
+        // Disable submit button initially
+        document.getElementById('submit-upload-btn').disabled = true;
+        document.getElementById('submit-upload-btn').textContent = 'Submit';
+
         document.getElementById('uploadModal').style.display = 'block';
+
+        // Trigger validation in case mark is prefilled
+        validateUploadForm();
     }
 
     function closeUploadModal() {
@@ -575,7 +614,9 @@
     // Drag and drop functionality
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('modal-file');
+    {% if exam.points > 0 %}
     const markInput = document.getElementById('modal-mark');
+    {% endif %}
     const submitBtn = document.getElementById('submit-upload-btn');
     const alertBox = document.getElementById('upload-alert');
 
@@ -609,7 +650,9 @@
         validateUploadForm();
     });
 
+    {% if exam.points > 0 %}
     markInput.addEventListener('input', validateUploadForm);
+    {% endif %}
 
     function updateFileDisplay(file) {
         document.getElementById('selected-file-name').textContent = file.name;
@@ -619,6 +662,7 @@
 
     function validateUploadForm() {
         const file = fileInput.files[0];
+        {% if exam.points > 0 %}
         const mark = markInput.value.trim();
         // Enable only if both file and mark are present and mark is not empty
         if (file && mark.length > 0) {
@@ -626,6 +670,14 @@
         } else {
             submitBtn.disabled = true;
         }
+        {% else %}
+        // Enable if file is present (no mark required for ungraded exams)
+        if (file) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+        {% endif %}
     }
 
     // Chunked upload form submission
@@ -636,14 +688,24 @@
         alertBox.textContent = '';
 
         const submissionId = document.getElementById('modal-submission-id').value;
+        {% if exam.points > 0 %}
         const mark = document.getElementById('modal-mark').value;
+        {% else %}
+        const mark = '';
+        {% endif %}
         const file = fileInput.files[0];
 
+        // Hide previous alert
+        alertBox.style.display = 'none';
+        alertBox.textContent = '';
+
+        {% if exam.points > 0 %}
         if (!mark) {
             alertBox.textContent = 'Please enter a grade/mark.';
             alertBox.style.display = 'block';
             return;
         }
+        {% endif %}
 
         if (!file) {
             alertBox.textContent = 'Please select a PDF file to upload.';
@@ -1050,6 +1112,26 @@
                     });
             }
         });
+    }
+
+    // Confirm action function for delete operations
+    function confirmAction(event, message) {
+        event.preventDefault();
+        Swal.fire({
+            title: 'Are you sure?',
+            html: message,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                event.target.closest('form').submit();
+            }
+        });
+        return false;
     }
 </script>
 {% endblock %}
