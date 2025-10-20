@@ -1038,7 +1038,7 @@
 
     // --- GENERAL ACTION CONFIRMATION (Promise-based, no form submit) ---
     function confirmAction(event, message) {
-        if (event && typeof event.preventDefault === 'function') {
+        if (event && event.preventDefault) {
             event.preventDefault();
         }
         return Swal.fire({
@@ -1576,7 +1576,7 @@
                     </div>
                     <button type="button" 
                             class="existing-attachment-delete" 
-                            onclick="deleteExistingAttachment(${assignmentId}, ${index})">
+                            onclick="deleteExistingAttachment(event, ${assignmentId}, ${index})">
                         Delete
                     </button>
                 </div>
@@ -1585,8 +1585,8 @@
     }
 
     // Make deleteExistingAttachment globally available
-    window.deleteExistingAttachment = async function (assignmentId, attachmentIndex) {
-        const confirmed = await confirmAction(null, 'Are you sure you want to delete this attachment?');
+    window.deleteExistingAttachment = async function (event, assignmentId, attachmentIndex) {
+        const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
         if (!confirmed) return;
 
         try {
