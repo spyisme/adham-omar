@@ -1610,7 +1610,8 @@
             }
 
             // =================================================================
-            // --- FIX 1: Removed inline 'onclick' and added 'data-' attributes ---
+            // --- THIS IS THE CRITICAL CHANGE ---
+            // --- NO 'onclick' attribute ---
             // =================================================================
             return `
                 <div class="existing-attachment-item" data-index="${index}">
@@ -1627,15 +1628,15 @@
                 </div>
             `;
             // =================================================================
-            // --- END FIX 1 ---
+            // --- END CHANGE ---
             // =================================================================
         }).join('');
     }
 
     // =================================================================
-    // --- FIX 2: Removed the entire 'window.deleteExistingAttachment' function ---
-    // (The old function from line 1863 to 1923 has been deleted)
-    // --- The new logic is handled by an event listener below ---
+    // --- THIS IS THE CRITICAL CHANGE ---
+    // --- 'window.deleteExistingAttachment' function is REMOVED ---
+    // --- The logic is now in the 'DOMContentLoaded' listener below ---
     // =================================================================
 
 
@@ -1644,8 +1645,9 @@
         const editForm = document.getElementById('editAssignmentForm');
         if (!editForm) return;
 
+        // This listener intercepts the "Save Changes" submit button
         editForm.addEventListener('submit', async function (e) {
-            e.preventDefault();
+            e.preventDefault(); // <-- Prevents native form submission
 
             if (!currentEditingAssignmentId) return;
 
@@ -1683,7 +1685,8 @@
                         editAttachmentCount++;
                     }
                 });
-
+                
+                // This fetch goes to the CORRECT /edit/ URL
                 const resp = await fetch(`/admin/assignments/edit/${currentEditingAssignmentId}`, {
                     method: 'POST',
                     body: formData,
@@ -1722,27 +1725,27 @@
         });
 
         // =================================================================
-        // --- FIX 3: Added new event listener for attachment deletion ---
+        // --- THIS IS THE CRITICAL FIX ---
+        // --- This listener handles the "Delete" button click ---
         // =================================================================
-        // Handle deleting existing attachments using event delegation
         editForm.addEventListener('click', async function(event) {
             // Check if the clicked element is our delete button
             const deleteButton = event.target.closest('.existing-attachment-delete');
 
             if (!deleteButton) {
-                return; // Click was not on a delete button
+                return; // Click was not on a delete button, do nothing.
             }
 
-            // --- THIS IS THE CRUCIAL FIX ---
-            // We are in a click event handler, so we can prevent default behavior
-            // synchronously, BEFORE any await call.
+            // --- THIS STOPS THE FORM SUBMISSION ---
+            // It runs *before* any 'await'
             event.preventDefault();
-            event.stopPropagation(); // Stop the event from bubbling further
+            event.stopPropagation();
+            // --- END ---
 
             const assignmentId = deleteButton.dataset.assignmentId;
             const attachmentIndex = deleteButton.dataset.attachmentIndex;
 
-            // Re-implement the logic from the old window.deleteExistingAttachment
+            // Now we can safely await the confirmation
             const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
             if (!confirmed) return;
 
@@ -1755,7 +1758,8 @@
                 } else {
                     deleteUrl = `/admin/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
                 }
-
+                
+                // This fetch goes to the CORRECT /delete-attachment/ URL
                 const resp = await fetch(deleteUrl, {
                     method: 'POST',
                     headers: {
@@ -1787,7 +1791,7 @@
             }
         });
         // =================================================================
-        // --- END FIX 3 ---
+        // --- END FIX ---
         // =================================================================
 
     });
