@@ -92,6 +92,15 @@
         background: #1e40af;
     }
 
+    .btn-warning {
+        background: #f59e0b;
+        color: #fff;
+    }
+
+    .btn-warning:hover {
+        background: #d97706;
+    }
+
     .btn-danger {
         background: #ef4444;
         color: #fff;
@@ -99,6 +108,11 @@
 
     .btn-danger:hover {
         background: #b91c1c;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
     }
 
     .w-100 {
@@ -168,7 +182,7 @@
                             <th>ID</th>
                             <th>Name</th>
                             <th>Students</th>
-                            <th>Delete</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -178,8 +192,10 @@
                             <td>{{ group.name }}</td>
                             <td>{{ group.count }}</td>
                             <td>
+                                <button type="button" class="btn btn-warning btn-sm" title="Edit" 
+                                    onclick="editGroup({{ group.id }}, '{{ group.name }}')">✏️</button>
                                 <form method="POST"
-                                    action="{{ url_for('admin.delete_entity', entity='school', item_id=group.id) }}"
+                                    action="{{ url_for('admin.delete_entity', item_id=group.id) }}"
                                     style="display:inline;">
                                     <button type="submit" class="btn btn-danger btn-sm" title="Delete"
                                         onclick="return confirm('Are you sure you want to delete this group?');">🗑️</button>
@@ -196,4 +212,47 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+function editGroup(groupId, currentName) {
+    Swal.fire({
+        title: 'Edit Group Name',
+        input: 'text',
+        inputLabel: 'Group Name',
+        inputValue: currentName,
+        showCancelButton: true,
+        confirmButtonText: 'Update',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#2563eb',
+        cancelButtonColor: '#6b7280',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Group name is required!';
+            }
+            if (value.trim().length === 0) {
+                return 'Group name cannot be empty!';
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const newName = result.value.trim();
+            
+            // Create a form and submit it
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = "{{ url_for('admin.update_entity', item_id=0) }}".replace('/0', '/' + groupId);
+            
+            const nameInput = document.createElement('input');
+            nameInput.type = 'hidden';
+            nameInput.name = 'name';
+            nameInput.value = newName;
+            
+            form.appendChild(nameInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+}
+</script>
 {% endblock %}

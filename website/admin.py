@@ -4282,6 +4282,75 @@ def students_setup():
     )
 
 
+@admin.route('/students/setup/update/<int:item_id>', methods=['POST'])
+def update_entity(item_id):
+    """Update a group name."""
+    if current_user.role != "super_admin":
+        flash("You are not authorized to update this group.", "danger")
+        return redirect(url_for("admin.students_setup"))
+    
+    group = Groups.query.get(item_id)
+    if not group:
+        flash('Group not found.', 'error')
+        return redirect(url_for('admin.students_setup'))
+    
+    new_name = request.form.get('name')
+    if not new_name:
+        flash('Group name is required.', 'error')
+        return redirect(url_for('admin.students_setup'))
+    
+    new_name_clean = new_name.strip()
+    
+    # Check if the new name already exists (excluding the current group)
+    existing = Groups.query.filter(
+        db.func.lower(Groups.name) == new_name_clean.lower(),
+        Groups.id != item_id
+    ).first()
+    
+    if existing:
+        flash('A group with this name already exists.', 'error')
+        return redirect(url_for('admin.students_setup'))
+    
+    # Store old name for logging
+    old_name = group.name
+    
+    # Update the group name
+    group.name = new_name_clean
+    
+    try:
+        db.session.commit()
+        flash('Group updated successfully!', 'success')
+        
+        # Log the action
+        new_log = AssistantLogs(
+            assistant_id=current_user.id,
+            action='Update',
+            log={
+                "action_name": "Update",
+                "resource_type": "group",
+                "action_details": {
+                    "id": group.id,
+                    "title": group.name,
+                    "summary": f"Group name changed from '{old_name}' to '{group.name}'."
+                },
+                "data": None,
+                "before": {
+                    "name": old_name
+                },
+                "after": {
+                    "name": group.name
+                }
+            }
+        )
+        db.session.add(new_log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error updating group: {str(e)}', 'error')
+    
+    return redirect(url_for('admin.students_setup'))
+
+
 @admin.route('/students/setup/delete/<int:item_id>', methods=['POST'])
 def delete_entity(item_id):
     """Delete a group - simplified to groups only."""
