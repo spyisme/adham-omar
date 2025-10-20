@@ -3736,7 +3736,7 @@ def get_folder_data(folder_id):
 
 @admin.route("/folders", methods=["GET", "POST"])
 def folders():
-
+    return "Paused for now"
 
 
     if request.method == "POST":
@@ -3889,6 +3889,7 @@ def folders():
     
 @admin.route("/folders/<int:folder_id>/edit", methods=["GET", "POST"])
 def edit_folder(folder_id):
+    return "Paused for now"
     folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
     if not folder:
         flash("Folder not found or you do not have permission to edit it.", "danger")
@@ -4459,7 +4460,7 @@ def get_session_data(session_id):
 
 @admin.route("/sessions", methods=["GET", "POST"])
 def manage_sessions():
-
+    return "Paused for now"
     if request.method == "POST":
 
 
@@ -4627,6 +4628,7 @@ def manage_sessions():
 
 @admin.route("/session/<int:session_id>", methods=["GET", "POST"])
 def session_details(session_id):
+    return "Paused for now"
     """
     Displays a single session and its videos.
     Handles adding new videos TO THIS session.
@@ -4670,6 +4672,8 @@ def session_details(session_id):
 
 @admin.route("/session/edit/<int:session_id>", methods=["GET", "POST"])
 def edit_session(session_id):
+    return "Paused for now"
+
     """
     Handles editing the details and scope of a session.
     """
@@ -4760,6 +4764,7 @@ def edit_session(session_id):
 
 @admin.route("/session/<int:session_id>/delete", methods=["POST"])
 def delete_session(session_id):
+    return "Paused for now"
     """
     Deletes a session and all its associated videos.
     """
@@ -4799,6 +4804,8 @@ def delete_session(session_id):
 
 @admin.route("/videos/edit/<int:video_id>", methods=["GET", "POST"])
 def manage_videos(video_id):
+    return "Paused for now"
+
     """
     Edits an individual video. Now redirects back to its parent session.
     Scope management is removed as it's handled by the session.
@@ -4829,6 +4836,8 @@ def manage_videos(video_id):
 
 @admin.route("/videos/<int:video_id>/delete", methods=["POST"])
 def delete_video(video_id):
+    return "Paused for now"
+
     """
     Deletes a single video. Now redirects back to its parent session.
     """
@@ -4847,6 +4856,8 @@ def delete_video(video_id):
 
 @admin.route("/videos/play/<int:video_id>")
 def play_videos(video_id):
+    return "Paused for now"
+
     video = Videos.query.get_or_404(video_id)
     return render_template("admin/video_play.html", video=video)
 
@@ -4894,6 +4905,8 @@ def get_qualified_students_for_attendance_session(session):
 
 @admin.route('/api/attendance-data', methods=["GET"])
 def attendance_data():
+    return "Paused for now"
+
     attendance_query = get_visible_to_admin_query(Attendance_session, current_user)
     sessions = attendance_query.order_by(Attendance_session.session_date.desc()).all()
 
@@ -4946,6 +4959,8 @@ def attendance_data():
 
 @admin.route('/api/attendance/<int:session_id>', methods=["GET"])
 def get_attendance_data(session_id):
+    return "Paused for now"
+
     """API endpoint to fetch single attendance session data for editing"""
     session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
     if not session:
@@ -4981,6 +4996,7 @@ def get_attendance_data(session_id):
 @admin.route("/attendance", methods=["GET", "POST"])
 def attendance():
 
+    return "Paused for now"
 
 
 
@@ -5118,6 +5134,8 @@ def attendance():
 
 @admin.route("/attendance/edit/<int:session_id>", methods=["GET", "POST"])
 def edit_attendance_session(session_id):
+    return "Paused for now"
+
     session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
 
     if not session:
@@ -5200,6 +5218,8 @@ def edit_attendance_session(session_id):
 
 @admin.route("/attendance/delete/<int:session_id>", methods=["POST"])
 def delete_attendance_session(session_id):
+    return "Paused for now"
+
     session = Attendance_session.query.get_or_404(session_id)
     students = session.attendance_student.all()
     try:
@@ -5225,6 +5245,8 @@ def delete_attendance_session(session_id):
 
 @admin.route("/attendance/<int:session_id>", methods=["GET", "POST"])
 def attendance_session_detail(session_id):
+    return "Paused for now"
+
     session = Attendance_session.query.get_or_404(session_id)
     students = get_qualified_students_for_attendance_session(session)
 
@@ -5253,6 +5275,8 @@ def attendance_session_detail(session_id):
 
 @admin.route("/attendance/<int:session_id>/update", methods=["POST"])
 def update_student_attendance(session_id):
+    return "Paused for now"
+
     if not request.is_json:
         return jsonify({"success": False, "error": "Invalid request format"}), 400
     
@@ -6520,6 +6544,8 @@ def account():
 
 @admin.route('/leaderboard', methods=['GET'])
 def leaderboard():
+    return "Paused for now"
+
     # Pagination parameters
     try:
         page = int(request.args.get('page', 1))
@@ -6828,6 +6854,8 @@ def critical_students():
     
 @admin.route("/critical/api")
 def critical_students_api():
+    return "Paused for now"
+
     """
     API endpoint: Detect critical students (low exam % and missing assignments), JSON response.
     Uses efficient single queries and robust type checking to avoid errors.
@@ -7123,6 +7151,8 @@ def view_zoom_meeting(meeting_id):
 
 @admin.route('/zoom/create', methods=['POST'])
 def create_zoom_meeting():
+    return "Paused for now"
+
     try:
         import re
         # Handle AJAX form submission to create a new Zoom meeting
