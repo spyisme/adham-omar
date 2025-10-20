@@ -2,7 +2,7 @@
 {% block title %}Manage Assignments{% endblock %}
 
 {% block additional_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<link href="{{ url_for('static', filename='css/admin_style.css') }}" rel="stylesheet"/>
 <style>
     /* --- Page & Filter Layout --- */
     .container {
@@ -558,199 +558,183 @@
 
 {% block content %}
 <header class="page-header">
-
-    <div class="page-header-content">
-        <h1 class="page-title">{% if filter_group_id %}{{ group.name }} Assignments{% else %}All Assignments{% endif %}
+<div class="page-header-content">
+<h1 class="page-title">{% if filter_group_id %}{{ group.name }} Assignments{% else %}All Assignments{% endif %}
         </h1>
         {% if current_user.role == "super_admin" %}
-        <button id="openAddAssignmentDesktop" class="btn btn-primary">Create Assignment</button>
+        <button class="btn btn-primary" id="openAddAssignmentDesktop" type="button">Create Assignment</button>
         {% endif %}
     </div>
 </header>
-
 <main class="container">
-    <div class="card filters-card">
-        <div class="card-content">
-            <div class="search-row-wrapper">
-                <input type="text" id="searchInput" class="form-input" placeholder="Search by assignment title..."
-                    disabled>
-            </div>
+<div class="card filters-card">
+<div class="card-content">
+<div class="search-row-wrapper">
+<input class="form-input" disabled="" id="searchInput" placeholder="Search by assignment title..." type="text"/>
+</div>
             {% if not filter_group_id %}
             <div class="filters-row-wrapper">
-                <div class="filter-dropdown disabled" id="groupDropdown">
-                    <button type="button" class="btn form-input filter-dropdown-btn" id="groupDropdownBtn">All Groups
+<div class="filter-dropdown disabled" id="groupDropdown">
+<button class="btn form-input filter-dropdown-btn" id="groupDropdownBtn" type="button">All Groups
                         ▼</button>
-                    <div class="filter-dropdown-list" id="groupDropdownList">
-                        <label class="dropdown-all"><input type="checkbox" value="" checked>All Groups</label>
-                    </div>
-                </div>
-            </div>
+<div class="filter-dropdown-list" id="groupDropdownList">
+<label class="dropdown-all"><input checked="" type="checkbox" value=""/>All Groups</label>
+</div>
+</div>
+</div>
             {% endif %}
         </div>
-    </div>
-
-    <div id="assignmentsGrid" class="assignments-grid">
-        <div class="skeleton-card">
-            <div class="skeleton skeleton-h3"></div>
-            <div class="skeleton skeleton-p"></div>
-            <div class="skeleton skeleton-p short"></div>
-            <div class="skeleton-footer">
-                <div class="skeleton skeleton-badge"></div>
-                <div class="skeleton skeleton-badge"></div>
-            </div>
-        </div>
-        <div class="skeleton-card">
-            <div class="skeleton skeleton-h3"></div>
-            <div class="skeleton skeleton-p"></div>
-            <div class="skeleton skeleton-p short"></div>
-            <div class="skeleton-footer">
-                <div class="skeleton skeleton-badge"></div>
-                <div class="skeleton skeleton-badge"></div>
-            </div>
-        </div>
-        <div class="skeleton-card">
-            <div class="skeleton skeleton-h3"></div>
-            <div class="skeleton skeleton-p"></div>
-            <div class="skeleton skeleton-p short"></div>
-            <div class="skeleton-footer">
-                <div class="skeleton skeleton-badge"></div>
-                <div class="skeleton skeleton-badge"></div>
-            </div>
-        </div>
-    </div>
+</div>
+<div class="assignments-grid" id="assignmentsGrid">
+<div class="skeleton-card">
+<div class="skeleton skeleton-h3"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p short"></div>
+<div class="skeleton-footer">
+<div class="skeleton skeleton-badge"></div>
+<div class="skeleton skeleton-badge"></div>
+</div>
+</div>
+<div class="skeleton-card">
+<div class="skeleton skeleton-h3"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p short"></div>
+<div class="skeleton-footer">
+<div class="skeleton skeleton-badge"></div>
+<div class="skeleton skeleton-badge"></div>
+</div>
+</div>
+<div class="skeleton-card">
+<div class="skeleton skeleton-h3"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p short"></div>
+<div class="skeleton-footer">
+<div class="skeleton skeleton-badge"></div>
+<div class="skeleton skeleton-badge"></div>
+</div>
+</div>
+</div>
 </main>
-
-<div id="assignmentModal" class="modal-overlay">
-    <div class="modal-content">
-        <form method="POST" enctype="multipart/form-data">
+<div class="modal-overlay" id="assignmentModal">
+<div class="modal-content">
+<form enctype="multipart/form-data" method="POST">
             {% if filter_group_id %}
-            <input type="hidden" name="locked_group_id" value="{{ filter_group_id }}">
+            <input name="locked_group_id" type="hidden" value="{{ filter_group_id }}"/>
             {% endif %}
             <div class="modal-header">
-                <h2>Add New Assignment</h2>
-                <button type="button" class="modal-close">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div>
-                    <label class="form-label">Title (Required)</label>
-                    <input type="text" name="title" required placeholder="e.g., Chapter 5 Review Questions"
-                        class="form-input">
-                </div>
-                <div>
-                    <label class="form-label">Description</label>
-                    <textarea name="description" rows="4" placeholder="Provide instructions, topics, or details here..."
-                        class="form-textarea"></textarea>
-                </div>
-                <div>
-                    <label class="form-label">
-                        <input type="checkbox" name="student_whatsapp" value="true" checked>
+<h2>Add New Assignment</h2>
+<button class="modal-close" type="button">×</button>
+</div>
+<div class="modal-body">
+<div>
+<label class="form-label">Title (Required)</label>
+<input class="form-input" name="title" placeholder="e.g., Chapter 5 Review Questions" required="" type="text"/>
+</div>
+<div>
+<label class="form-label">Description</label>
+<textarea class="form-textarea" name="description" placeholder="Provide instructions, topics, or details here..." rows="4"></textarea>
+</div>
+<div>
+<label class="form-label">
+<input checked="" name="student_whatsapp" type="checkbox" value="true"/>
                         Send WhatsApp notification to student
                     </label>
-                </div>
-                <div>
-                    <label class="form-label">
-                        <input type="checkbox" name="parent_whatsapp" value="true" checked>
+</div>
+<div>
+<label class="form-label">
+<input checked="" name="parent_whatsapp" type="checkbox" value="true"/>
                         Send WhatsApp notification to parent
                     </label>
-                </div>
-
-                <div>
-                    <label class="form-label">
-                        <input type="checkbox" name="close_after_deadline" value="true">
+</div>
+<div>
+<label class="form-label">
+<input name="close_after_deadline" type="checkbox" value="true"/>
                         Close after deadline (Disable submissions after deadline)
                     </label>
-                </div>
-
-
-                <div>
-                    <label class="form-label">Out of (Full Mark)</label>
-                    <input type="number" name="out_of" min="0"
-                        placeholder="e.g., 100 (leave empty for ungraded assignment)" class="form-input">
-                </div>
-
-                <div>
-                    <label class="form-label">Group</label>
+</div>
+<div>
+<label class="form-label">Out of (Full Mark)</label>
+<input class="form-input" min="0" name="out_of" placeholder="e.g., 100 (leave empty for ungraded assignment)" type="number"/>
+</div>
+<div>
+<label class="form-label">Group</label>
                     {% if filter_group_id %}
                     <div class="form-input" style="background-color: #f0f0f0; cursor: not-allowed; opacity: 0.7;">
                         {{ group.name }}
                     </div>
-                    <input type="hidden" name="groups[]" value="{{ filter_group_id }}">
+<input name="groups[]" type="hidden" value="{{ filter_group_id }}"/>
                     {% else %}
                     <div class="multi" id="ms-groups">
-                        <button type="button" class="btn form-input multi-btn" id="ms-groups-btn">All Groups
+<button class="btn form-input multi-btn" id="ms-groups-btn" type="button">All Groups
                             ▼</button>
-                        <div class="multi-list" id="ms-groups-list">
-                            <label class="multi-all"><input type="checkbox" value="" checked>All Groups</label>
-                        </div>
-                    </div>
+<div class="multi-list" id="ms-groups-list">
+<label class="multi-all"><input checked="" type="checkbox" value=""/>All Groups</label>
+</div>
+</div>
                     {% endif %}
                 </div>
-                <div>
-                    <label class="form-label">Deadline Date (Required)</label>
-                    <input type="datetime-local" name="deadline_date" required class="form-input">
-                </div>
-                <div>
-                    <label class="form-label">Attachments</label>
-                    <div id="attachments-container">
-                        </div>
-                    <button type="button" class="btn btn-secondary" id="add-attachment-btn" style="margin-top: 0.5rem;">
+<div>
+<label class="form-label">Deadline Date (Required)</label>
+<input class="form-input" name="deadline_date" required="" type="datetime-local"/>
+</div>
+<div>
+<label class="form-label">Attachments</label>
+<div id="attachments-container">
+</div>
+<button class="btn btn-secondary" id="add-attachment-btn" style="margin-top: 0.5rem;" type="button">
                         + Add Attachment
                     </button>
-                </div>
-                <div>
-                    <label class="form-label">Points (Optional)</label>
-                    <input type="number" name="points" placeholder="0 (for the website leaderboard)" class="form-input">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary">Add Assignment</button>
-            </div>
-        </form>
-    </div>
 </div>
-
-<div id="editAssignmentModal" class="modal-overlay">
-    <div class="modal-content">
-        
-        <form id="editAssignmentForm" method="POST" enctype="multipart/form-data" action="/admin/assignments/edit/JS_FAILED_SUBMIT">
-        <div class="modal-header">
-                <h2>Edit Assignment</h2>
-                <button type="button" class="modal-close" id="editModalClose">&times;</button>
-            </div>
-            <div class="modal-body" id="editModalBody">
-                <div class="skeleton-form">
-                    <div class="skeleton skeleton-p"></div>
-                    <div class="skeleton skeleton-p"></div>
-                    <div class="skeleton skeleton-p"></div>
-                    <div class="skeleton skeleton-p"></div>
-                    <div class="skeleton skeleton-p"></div>
-                    <div class="skeleton skeleton-p"></div>
-                </div>
-            </div>
-            <div class="modal-footer" id="editModalFooter" style="display: none;">
-                <button type="submit" class="btn btn-primary">Save Changes</button>
-            </div>
-        </form>
-    </div>
+<div>
+<label class="form-label">Points (Optional)</label>
+<input class="form-input" name="points" placeholder="0 (for the website leaderboard)" type="number"/>
 </div>
-
-<div id="settingsModal" class="modal-overlay">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h2>Assignment Settings</h2>
-            <button type="button" class="modal-close" id="settingsModalClose">&times;</button>
-        </div>
-        <div class="modal-body" id="settingsModalBody">
-            <div class="skeleton-form">
-                <div class="skeleton skeleton-p"></div>
-                <div class="skeleton skeleton-p"></div>
-                <div class="skeleton skeleton-p"></div>
-            </div>
-        </div>
-    </div>
 </div>
-
-<script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
+<div class="modal-footer">
+<button class="btn btn-primary" type="submit">Add Assignment</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="editAssignmentModal">
+<div class="modal-content">
+<form enctype="multipart/form-data" id="editAssignmentForm" method="POST">
+<div class="modal-header">
+<h2>Edit Assignment</h2>
+<button class="modal-close" id="editModalClose" type="button">×</button>
+</div>
+<div class="modal-body" id="editModalBody">
+<div class="skeleton-form">
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+</div>
+</div>
+<div class="modal-footer" id="editModalFooter" style="display: none;">
+<button class="btn btn-primary" type="submit">Save Changes</button>
+</div>
+</form>
+</div>
+</div>
+<div class="modal-overlay" id="settingsModal">
+<div class="modal-content" style="max-width: 500px;">
+<div class="modal-header">
+<h2>Assignment Settings</h2>
+<button class="modal-close" id="settingsModalClose" type="button">×</button>
+</div>
+<div class="modal-body" id="settingsModalBody">
+<div class="skeleton-form">
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+<div class="skeleton skeleton-p"></div>
+</div>
+</div>
+</div>
+</div>
+<script data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}" id="assignmentsScript">
     // Global state
     let allAssignments = [];
     let groups = [];
@@ -1073,65 +1057,64 @@
     // --- Intercept form submit to POST without refresh ---
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('#assignmentModal form');
-        if (form) {
-            form.addEventListener('submit', async function (e) {
-                e.preventDefault();
-                const submitBtn = form.querySelector('button[type="submit"]');
-                const originalText = submitBtn ? submitBtn.textContent : '';
-                if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
-                try {
-                    const formData = new FormData(form);
+        if (!form) return;
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+            try {
+                const formData = new FormData(form);
 
-                    // Process attachments
-                    const attachmentItems = document.querySelectorAll('#attachments-container .attachment-item');
-                    let attachmentCount = 0;
-                    attachmentItems.forEach((item) => {
-                        const itemId = item.id;
-                        const counter = itemId.replace('attachment-', '');
+                // Process attachments
+                const attachmentItems = document.querySelectorAll('#attachments-container .attachment-item');
+                let attachmentCount = 0;
+                attachmentItems.forEach((item) => {
+                    const itemId = item.id;
+                    const counter = itemId.replace('attachment-', '');
 
-                        const nameInput = item.querySelector(`input[name="attachment_name_${counter}"]`);
-                        const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
-                        const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
-                        const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
+                    const nameInput = item.querySelector(`input[name="attachment_name_${counter}"]`);
+                    const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
+                    const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
+                    const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
 
-                        if (nameInput && typeInput) {
-                            formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
-                            formData.append(`attachments[${attachmentCount}][type]`, typeInput.value);
+                    if (nameInput && typeInput) {
+                        formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
+                        formData.append(`attachments[${attachmentCount}][type]`, typeInput.value);
 
-                            if (typeInput.value === 'file' && fileInput && fileInput.files.length > 0) {
-                                formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
-                            } else if (typeInput.value === 'link' && linkInput) {
-                                formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
-                            }
-                            attachmentCount++;
+                        if (typeInput.value === 'file' && fileInput && fileInput.files.length > 0) {
+                            formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
+                        } else if (typeInput.value === 'link' && linkInput) {
+                            formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
                         }
-                    });
-
-                    const resp = await fetch('/admin/assignments', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
-                    const data = await resp.json().catch(() => ({}));
-                    if (resp.ok && data.success && data.assignment) {
-                        allAssignments.unshift(data.assignment);
-                        filterAssignments();
-                        modal.classList.remove('show');
-                        form.reset();
-                        document.getElementById('attachments-container').innerHTML = '';
-                        attachmentCounter = 0;
-                        const msGroupsBtn = document.getElementById('ms-groups-btn');
-                        if (msGroupsBtn) {
-                            msGroupsBtn.textContent = 'All Groups ▼';
-                        }
-                        showToast(data.message || 'Assignment created successfully', 'success');
-                    } else {
-                        showToast((data && data.message) || 'Failed to create assignment', 'error');
+                        attachmentCount++;
                     }
-                } catch (err) {
-                    console.error('Create assignment failed', err);
-                    showToast('Failed to create assignment', 'error');
-                } finally {
-                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Add Assignment'; }
+                });
+
+                const resp = await fetch('/admin/assignments', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data.success && data.assignment) {
+                    allAssignments.unshift(data.assignment);
+                    filterAssignments();
+                    modal.classList.remove('show');
+                    form.reset();
+                    document.getElementById('attachments-container').innerHTML = '';
+                    attachmentCounter = 0;
+                    const msGroupsBtn = document.getElementById('ms-groups-btn');
+                    if (msGroupsBtn) {
+                        msGroupsBtn.textContent = 'All Groups ▼';
+                    }
+                    showToast(data.message || 'Assignment created successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to create assignment', 'error');
                 }
-            });
-        }
+            } catch (err) {
+                console.error('Create assignment failed', err);
+                showToast('Failed to create assignment', 'error');
+            } finally {
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Add Assignment'; }
+            }
+        });
     });
 
 
@@ -1612,7 +1595,8 @@
             }
 
             // =================================================================
-            // --- JAVASCRIPT FIX: No inline 'onclick' attribute ---
+            // --- THIS IS THE CRITICAL CHANGE ---
+            // --- NO 'onclick' attribute ---
             // =================================================================
             return `
                 <div class="existing-attachment-item" data-index="${index}">
@@ -1620,20 +1604,22 @@
                         <span class="existing-attachment-name">${escapeHtml(name)}</span>
                         <span class="existing-attachment-type">${type}</span>
                     </div>
-    <!--                <button type="button" 
+                    <button type="button" 
                             class="existing-attachment-delete"
                             data-assignment-id="${assignmentId}"
                             data-attachment-index="${index}">
-                        Delete  
-                    </button> -->
+                        Delete
+                    </button>
                 </div>
             `;
             // =================================================================
-            
+            // --- END CHANGE ---
+            // =================================================================
         }).join('');
     }
 
     // =================================================================
+    // --- THIS IS THE CRITICAL CHANGE ---
     // --- 'window.deleteExistingAttachment' function is REMOVED ---
     // --- The logic is now in the 'DOMContentLoaded' listener below ---
     // =================================================================
@@ -1724,7 +1710,8 @@
         });
 
         // =================================================================
-        // --- JAVASCRIPT FIX: This listener handles the "Delete" button click ---
+        // --- THIS IS THE CRITICAL FIX ---
+        // --- This listener handles the "Delete" button click ---
         // =================================================================
         editForm.addEventListener('click', async function(event) {
             // Check if the clicked element is our delete button
@@ -1789,7 +1776,7 @@
             }
         });
         // =================================================================
-        // --- END JAVASCRIPT FIX ---
+        // --- END FIX ---
         // =================================================================
 
     });
