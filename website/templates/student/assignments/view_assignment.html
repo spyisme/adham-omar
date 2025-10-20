@@ -368,7 +368,13 @@
       {% if attachments %}
       <ul class="attachments-list">
         {% for attachment in attachments %}
-        {% if "http" in attachment %}
+        {% if attachment is mapping %}
+          {% if attachment.type == 'link' %}
+          <li>🔗 <a href="{{ attachment.url }}" target="_blank" rel="noopener">{{ attachment.name }}</a></li>
+          {% elif attachment.type == 'file' %}
+          <li>📎 <a href="{{ attachment.url }}" target="_blank" rel="noopener">{{ attachment.name }}</a></li>
+          {% endif %}
+        {% elif "http" in attachment %}
         <li>🔗 <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a></li>
         {% else %}
         <li>📎 <a href="{{ url_for('student.assignment_media', filename=attachment) }}" target="_blank"

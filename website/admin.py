@@ -1723,17 +1723,17 @@ def assignments():
             
             if attachment_type == 'file':
                 file = request.files.get(f'attachments[{idx}][file]')
-                if file and file.filename:
-                    original_filename = secure_filename(file.filename)
-                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+            if file and file.filename:
+                original_filename = secure_filename(file.filename)
+                filename = f"{uuid.uuid4().hex}_{original_filename}"
                     file_path = os.path.join(upload_dir, filename)
                     file.save(file_path)
-                    try:
+                try:
                         with open(file_path, "rb") as f:
-                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
                     except Exception as e:
                         flash(f"Error uploading file to storage: {str(e)}", "danger")
-                        return redirect(url_for("admin.assignments"))
+                    return redirect(url_for("admin.assignments"))
                     attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
                     attachments.append(attachment_obj)
             elif attachment_type == 'link':
@@ -2992,12 +2992,12 @@ def edit_assignment(assignment_id):
                     filename = f"{uuid.uuid4().hex}_{original_filename}"
                     file_path = os.path.join(upload_dir, filename)
                     file.save(file_path)
-                    try:
-                        with open(file_path, "rb") as f:
-                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+            try:
+                with open(file_path, "rb") as f:
+                    storage.upload_file(f, folder="assignments/uploads", file_name=filename)
                     except Exception as e:
                         flash(f"Error uploading file to storage: {str(e)}", "danger")
-                        return redirect(url_for("admin.assignments"))
+                return redirect(url_for("admin.assignments"))
                     attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
                     existing_attachments.append(attachment_obj)
             elif attachment_type == 'link':
