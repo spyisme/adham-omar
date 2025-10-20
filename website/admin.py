@@ -2972,40 +2972,70 @@ def delete_group_assignment(group_id, assignment_id):
     deleted_attachments = []
 
     for submission in submissions:
+        if assignment.deadline_date > submission.upload_time:
+            if assignment.points:
+                student = Users.query.get(submission.student_id)
+                student.points = student.points - assignment.points
+                db.session.commit()
+        else:
+            if assignment.points:
+                student = Users.query.get(submission.student_id)
+                student.points = student.points - (assignment.points / 2)
+                db.session.commit()
         try:
-            # Delete submission files
-            if submission.file_path:
-                local_path = os.path.join("website/submissions/uploads", submission.file_path)
-                if os.path.exists(local_path):
-                    os.remove(local_path)
-                try:
-                    storage.delete_file(folder="submissions/uploads", file_name=submission.file_path)
-                except Exception:
-                    pass
-                deleted_submissions.append(submission.file_path)
+            local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
+            if os.path.exists(local_path):
+                os.remove(local_path)
+
+            annotated_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            if os.path.exists(annotated_path):
+                os.remove(annotated_path)
+
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url.replace(".pdf", "_annotated.pdf"))
+            except Exception as e:
+                # Ignore S3 errors, continue deleting
+                pass
+            try:
+                storage.delete_file(f"submissions/uploads/student_{submission.student_id}", submission.file_url)
+            except Exception as e:
+                # Ignore S3 errors, continue deleting
+                pass
+            db.session.delete(submission)
+            deleted_submissions.append({
+                "submission_id": submission.id,
+                "student_id": submission.student_id,
+                "file_url": submission.file_url
+            })
         except Exception:
             pass
 
-    # Delete all submissions
-    Submissions.query.filter_by(assignment_id=assignment_id).delete()
-    db.session.commit()
-
     if assignment.attachments:
         try:
-            attachment_paths = json.loads(assignment.attachments)
-            for file_path in attachment_paths:
-                if isinstance(file_path, dict) and file_path.get('type') == 'file':
-                    file_name = file_path.get('name', '')
-                    if file_name:
-                        local_path = os.path.join("website/assignments/uploads", file_name)
+            attachment_list = json.loads(assignment.attachments)
+            for attachment in attachment_list:
+                # Handle both old format (strings) and new format (dicts with type/url/name)
+                if isinstance(attachment, dict):
+                    if attachment.get('type') == 'file':
+                        file_path = attachment.get('url', '')
+                        # Extract filename from URL if it's a full path
+                        if '/' in file_path:
+                            file_path = file_path.split('/')[-1]
+                        
+                        local_path = os.path.join("website/assignments/uploads", file_path)
                         if os.path.exists(local_path):
                             os.remove(local_path)
                         try:
-                            storage.delete_file(folder="assignments/uploads", file_name=file_name)
+                            storage.delete_file(folder="assignments/uploads", file_name=file_path)
                         except Exception:
                             pass
-                        deleted_attachments.append(file_name)
-                elif isinstance(file_path, str):
+                        deleted_attachments.append(file_path)
+                    # Links don't need file deletion, just log them
+                    elif attachment.get('type') == 'link':
+                        deleted_attachments.append(attachment.get('name', attachment.get('url', '')))
+                else:
+                    # Old format: plain string filename
+                    file_path = attachment
                     local_path = os.path.join("website/assignments/uploads", file_path)
                     if os.path.exists(local_path):
                         os.remove(local_path)
