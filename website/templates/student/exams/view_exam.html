@@ -449,24 +449,23 @@
         {% if attachments %}
         <ul class="attachments-list">
           {% for attachment in attachments %}
-          {% if "http" in attachment %}
-          <li>
-            <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a>
-          </li>
+          {% if attachment is mapping %}
+            {% if attachment.type == 'link' %}
+            <li>🔗 <a href="{{ attachment.url }}" target="_blank" rel="noopener">{{ attachment.name }}</a></li>
+            {% elif attachment.type == 'file' %}
+            <li>📎 <a href="{{ attachment.url }}" target="_blank" rel="noopener">{{ attachment.name }}</a></li>
+            {% endif %}
+          {% elif "http" in attachment %}
+          <li>🔗 <a href="{{ attachment }}" target="_blank" rel="noopener">External Link</a></li>
           {% else %}
-          <li>
-            <a href="{{ url_for('student.exam_media', filename=attachment) }}" target="_blank" rel="noopener">
-              {{ attachment }}
-            </a>
-          </li>
+          <li>📎 <a href="{{ url_for('student.assignment_media', filename=attachment) }}" target="_blank"
+              rel="noopener">{{ attachment }}</a></li>
           {% endif %}
           {% endfor %}
         </ul>
         {% else %}
         <p class="description-text">No attachments provided.</p>
         {% endif %}
-      </section>
-
       <section class="card-section">
         {% if submission %}
         <h3 class="section-title">Your Submission</h3>
