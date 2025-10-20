@@ -1632,8 +1632,10 @@
 
     // Make deleteExistingAttachment globally available
     window.deleteExistingAttachment = async function (event, assignmentId, attachmentIndex) {
-        const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
-        if (!confirmed) return;
+            if (event) event.preventDefault(); // <-- ADD THIS LINE
+
+            const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
+            if (!confirmed) return;
 
         try {
             // Check if we're on a group-filtered page
