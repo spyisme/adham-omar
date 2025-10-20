@@ -711,8 +711,9 @@
 
 <div id="editAssignmentModal" class="modal-overlay">
     <div class="modal-content">
-        <form id="editAssignmentForm" method="POST" enctype="multipart/form-data">
-            <div class="modal-header">
+        
+        <form id="editAssignmentForm" method="POST" enctype="multipart/form-data" action="/admin/assignments/edit/JS_FAILED_SUBMIT">
+        <div class="modal-header">
                 <h2>Edit Assignment</h2>
                 <button type="button" class="modal-close" id="editModalClose">&times;</button>
             </div>
@@ -1072,64 +1073,65 @@
     // --- Intercept form submit to POST without refresh ---
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.querySelector('#assignmentModal form');
-        if (!form) return;
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn ? submitBtn.textContent : '';
-            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
-            try {
-                const formData = new FormData(form);
+        if (form) {
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const originalText = submitBtn ? submitBtn.textContent : '';
+                if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Posting...'; }
+                try {
+                    const formData = new FormData(form);
 
-                // Process attachments
-                const attachmentItems = document.querySelectorAll('#attachments-container .attachment-item');
-                let attachmentCount = 0;
-                attachmentItems.forEach((item) => {
-                    const itemId = item.id;
-                    const counter = itemId.replace('attachment-', '');
+                    // Process attachments
+                    const attachmentItems = document.querySelectorAll('#attachments-container .attachment-item');
+                    let attachmentCount = 0;
+                    attachmentItems.forEach((item) => {
+                        const itemId = item.id;
+                        const counter = itemId.replace('attachment-', '');
 
-                    const nameInput = item.querySelector(`input[name="attachment_name_${counter}"]`);
-                    const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
-                    const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
-                    const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
+                        const nameInput = item.querySelector(`input[name="attachment_name_${counter}"]`);
+                        const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
+                        const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
+                        const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
 
-                    if (nameInput && typeInput) {
-                        formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
-                        formData.append(`attachments[${attachmentCount}][type]`, typeInput.value);
+                        if (nameInput && typeInput) {
+                            formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
+                            formData.append(`attachments[${attachmentCount}][type]`, typeInput.value);
 
-                        if (typeInput.value === 'file' && fileInput && fileInput.files.length > 0) {
-                            formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
-                        } else if (typeInput.value === 'link' && linkInput) {
-                            formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
+                            if (typeInput.value === 'file' && fileInput && fileInput.files.length > 0) {
+                                formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
+                            } else if (typeInput.value === 'link' && linkInput) {
+                                formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
+                            }
+                            attachmentCount++;
                         }
-                        attachmentCount++;
-                    }
-                });
+                    });
 
-                const resp = await fetch('/admin/assignments', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
-                const data = await resp.json().catch(() => ({}));
-                if (resp.ok && data.success && data.assignment) {
-                    allAssignments.unshift(data.assignment);
-                    filterAssignments();
-                    modal.classList.remove('show');
-                    form.reset();
-                    document.getElementById('attachments-container').innerHTML = '';
-                    attachmentCounter = 0;
-                    const msGroupsBtn = document.getElementById('ms-groups-btn');
-                    if (msGroupsBtn) {
-                        msGroupsBtn.textContent = 'All Groups ▼';
+                    const resp = await fetch('/admin/assignments', { method: 'POST', body: formData, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                    const data = await resp.json().catch(() => ({}));
+                    if (resp.ok && data.success && data.assignment) {
+                        allAssignments.unshift(data.assignment);
+                        filterAssignments();
+                        modal.classList.remove('show');
+                        form.reset();
+                        document.getElementById('attachments-container').innerHTML = '';
+                        attachmentCounter = 0;
+                        const msGroupsBtn = document.getElementById('ms-groups-btn');
+                        if (msGroupsBtn) {
+                            msGroupsBtn.textContent = 'All Groups ▼';
+                        }
+                        showToast(data.message || 'Assignment created successfully', 'success');
+                    } else {
+                        showToast((data && data.message) || 'Failed to create assignment', 'error');
                     }
-                    showToast(data.message || 'Assignment created successfully', 'success');
-                } else {
-                    showToast((data && data.message) || 'Failed to create assignment', 'error');
+                } catch (err) {
+                    console.error('Create assignment failed', err);
+                    showToast('Failed to create assignment', 'error');
+                } finally {
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Add Assignment'; }
                 }
-            } catch (err) {
-                console.error('Create assignment failed', err);
-                showToast('Failed to create assignment', 'error');
-            } finally {
-                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalText || 'Add Assignment'; }
-            }
-        });
+            });
+        }
     });
 
 
@@ -1610,8 +1612,7 @@
             }
 
             // =================================================================
-            // --- THIS IS THE CRITICAL CHANGE ---
-            // --- NO 'onclick' attribute ---
+            // --- JAVASCRIPT FIX: No inline 'onclick' attribute ---
             // =================================================================
             return `
                 <div class="existing-attachment-item" data-index="${index}">
@@ -1628,13 +1629,11 @@
                 </div>
             `;
             // =================================================================
-            // --- END CHANGE ---
-            // =================================================================
+            
         }).join('');
     }
 
     // =================================================================
-    // --- THIS IS THE CRITICAL CHANGE ---
     // --- 'window.deleteExistingAttachment' function is REMOVED ---
     // --- The logic is now in the 'DOMContentLoaded' listener below ---
     // =================================================================
@@ -1725,8 +1724,7 @@
         });
 
         // =================================================================
-        // --- THIS IS THE CRITICAL FIX ---
-        // --- This listener handles the "Delete" button click ---
+        // --- JAVASCRIPT FIX: This listener handles the "Delete" button click ---
         // =================================================================
         editForm.addEventListener('click', async function(event) {
             // Check if the clicked element is our delete button
@@ -1791,7 +1789,7 @@
             }
         });
         // =================================================================
-        // --- END FIX ---
+        // --- END JAVASCRIPT FIX ---
         // =================================================================
 
     });
