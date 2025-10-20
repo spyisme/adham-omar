@@ -6221,16 +6221,38 @@ def delete_exam(exam_id):
 
     if exam.attachments:
         try:
-            attachment_paths = json.loads(exam.attachments)
-            for file_path in attachment_paths:
-                local_path = os.path.join("website/assignments/uploads", file_path)
-                if os.path.exists(local_path):
-                    os.remove(local_path)
-                try:
-                    storage.delete_file(folder="assignments/uploads", file_name=file_path)
-                except Exception:
-                    pass
-                deleted_attachments.append(file_path)
+            attachment_list = json.loads(exam.attachments)
+            for attachment in attachment_list:
+                # Handle both old format (strings) and new format (dicts with type/url/name)
+                if isinstance(attachment, dict):
+                    if attachment.get('type') == 'file':
+                        file_path = attachment.get('url', '')
+                        # Extract filename from URL if it's a full path
+                        if '/' in file_path:
+                            file_path = file_path.split('/')[-1]
+                        
+                        local_path = os.path.join("website/assignments/uploads", file_path)
+                        if os.path.exists(local_path):
+                            os.remove(local_path)
+                        try:
+                            storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                        except Exception:
+                            pass
+                        deleted_attachments.append(file_path)
+                    # Links don't need file deletion, just log them
+                    elif attachment.get('type') == 'link':
+                        deleted_attachments.append(attachment.get('name', attachment.get('url', '')))
+                else:
+                    # Old format: plain string filename
+                    file_path = attachment
+                    local_path = os.path.join("website/assignments/uploads", file_path)
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                    try:
+                        storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                    except Exception:
+                        pass
+                    deleted_attachments.append(file_path)
         except Exception as e:
             flash(f"Error while deleting attachments: {str(e)}", "danger")
     
