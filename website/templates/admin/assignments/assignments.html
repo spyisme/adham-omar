@@ -1038,7 +1038,7 @@
 
     // --- GENERAL ACTION CONFIRMATION (Promise-based, no form submit) ---
     function confirmAction(event, message) {
-        if (event && event.preventDefault) {
+        if (event && typeof event.preventDefault === 'function') {
             event.preventDefault();
         }
         return Swal.fire({
