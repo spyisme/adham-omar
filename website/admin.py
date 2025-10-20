@@ -1695,27 +1695,52 @@ def assignments():
         points_raw = request.form.get("points", 0)
         points = int(points_raw) if str(points_raw).isdigit() else 0
 
-        # attachments
+        # Process new attachment format
         upload_dir = "website/assignments/uploads/"
         attachments = []
         os.makedirs(upload_dir, exist_ok=True)
 
-        for file in request.files.getlist("files[]"):
-            if file and file.filename:
-                original_filename = secure_filename(file.filename)
-                filename = f"{uuid.uuid4().hex}_{original_filename}"
-                file.save(os.path.join(upload_dir, filename))
-                try:
-                    with open(os.path.join(upload_dir, filename), "rb") as f:
-                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
-                except Exception:
-                    flash("Error uploading file to storage", "danger")
-                    return redirect(url_for("admin.assignments"))
-                attachments.append(filename)
-
-        link = request.form.get("link")
-        if link:
-            attachments.append(link)
+        # Get all attachment indices
+        attachment_indices = []
+        for key in request.form.keys():
+            if key.startswith('attachments[') and '][name]' in key:
+                index = key.split('[')[1].split(']')[0]
+                if index not in attachment_indices:
+                    attachment_indices.append(index)
+        
+        # Process each attachment
+        for idx in attachment_indices:
+            attachment_name = request.form.get(f'attachments[{idx}][name]')
+            attachment_type = request.form.get(f'attachments[{idx}][type]')
+            
+            if not attachment_name:
+                continue
+                
+            attachment_obj = {
+                'name': attachment_name,
+                'type': attachment_type
+            }
+            
+            if attachment_type == 'file':
+                file = request.files.get(f'attachments[{idx}][file]')
+                if file and file.filename:
+                    original_filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    try:
+                        with open(file_path, "rb") as f:
+                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                    except Exception as e:
+                        flash(f"Error uploading file to storage: {str(e)}", "danger")
+                        return redirect(url_for("admin.assignments"))
+                    attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
+                    attachments.append(attachment_obj)
+            elif attachment_type == 'link':
+                attachment_url = request.form.get(f'attachments[{idx}][url]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    attachments.append(attachment_obj)
 
 
 
@@ -2768,6 +2793,74 @@ def delete_submission(submission_id):
     return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment.id))
 
 
+#Delete attachment from assignment
+@admin.route('/assignments/delete-attachment/<int:assignment_id>/<int:attachment_index>', methods=['POST'])
+def delete_assignment_attachment(assignment_id, attachment_index):
+    if current_user.role != "super_admin":
+        return jsonify({"success": False, "message": "You are not allowed to delete attachments."}), 403
+    
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        return jsonify({"success": False, "message": "Assignment not found or you do not have permission to edit it."}), 404
+    
+    try:
+        existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
+        
+        if 0 <= attachment_index < len(existing_attachments):
+            # If it's a file attachment, try to delete the file
+            attachment = existing_attachments[attachment_index]
+            if isinstance(attachment, dict) and attachment.get('type') == 'file':
+                # Extract filename from URL
+                url = attachment.get('url', '')
+                if '/student/assignments/uploads/' in url:
+                    filename = url.split('/student/assignments/uploads/')[-1]
+                    file_path = os.path.join("website/assignments/uploads", filename)
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                        except Exception:
+                            pass  # Continue even if file deletion fails
+            
+            # Remove the attachment from the list
+            deleted_attachment = existing_attachments.pop(attachment_index)
+            
+            # Update the assignment
+            assignment.attachments = json.dumps(existing_attachments)
+            assignment.last_edited_by = current_user.id
+            cairo_tz = pytz.timezone('Africa/Cairo')
+            aware_local_time = datetime.now(cairo_tz)
+            naive_local_time = aware_local_time.replace(tzinfo=None)
+            assignment.last_edited_at = naive_local_time
+            
+            db.session.commit()
+            
+            # Log the action
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Delete Attachment',
+                log={
+                    "action_name": "Delete Attachment",
+                    "resource_type": "assignment",
+                    "action_details": {
+                        "id": assignment.id,
+                        "title": assignment.title,
+                        "summary": f"Attachment deleted from assignment '{assignment.title}'.",
+                        "deleted_attachment": deleted_attachment
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+            
+            return jsonify({"success": True, "message": "Attachment deleted successfully"})
+        else:
+            return jsonify({"success": False, "message": "Invalid attachment index"}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"Error deleting attachment: {str(e)}"}), 500
+
+
 #Edit an assignment 
 @admin.route("/assignments/edit/<int:assignment_id>", methods=["GET", "POST"])
 def edit_assignment(assignment_id):
@@ -2867,21 +2960,51 @@ def edit_assignment(assignment_id):
         if hasattr(assignment, "groups_mm"):
             assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
 
-        # Handle file upload
-        if "attachments" in request.files and request.files["attachments"].filename != "":
-            uploaded_file = request.files["attachments"]
-            original_filename = secure_filename(uploaded_file.filename)
-            random_uuid = uuid.uuid4().hex
-            filename = f"{random_uuid}_{original_filename}"
-            file_path = os.path.join("website/assignments/uploads", filename)
-            uploaded_file.save(file_path)
-            try:
-                with open(file_path, "rb") as f:
-                    storage.upload_file(f, folder="assignments/uploads", file_name=filename)
-            except Exception:
-                flash("Error uploading file to storage", "danger")
-                return redirect(url_for("admin.assignments"))
-            existing_attachments.append(filename)
+        # Process new attachments with the new format
+        upload_dir = "website/assignments/uploads/"
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Get all new attachment indices
+        new_attachment_indices = []
+        for key in request.form.keys():
+            if key.startswith('new_attachments[') and '][name]' in key:
+                index = key.split('[')[1].split(']')[0]
+                if index not in new_attachment_indices:
+                    new_attachment_indices.append(index)
+        
+        # Process each new attachment
+        for idx in new_attachment_indices:
+            attachment_name = request.form.get(f'new_attachments[{idx}][name]')
+            attachment_type = request.form.get(f'new_attachments[{idx}][type]')
+            
+            if not attachment_name:
+                continue
+                
+            attachment_obj = {
+                'name': attachment_name,
+                'type': attachment_type
+            }
+            
+            if attachment_type == 'file':
+                file = request.files.get(f'new_attachments[{idx}][file]')
+                if file and file.filename:
+                    original_filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    try:
+                        with open(file_path, "rb") as f:
+                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                    except Exception as e:
+                        flash(f"Error uploading file to storage: {str(e)}", "danger")
+                        return redirect(url_for("admin.assignments"))
+                    attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
+                    existing_attachments.append(attachment_obj)
+            elif attachment_type == 'link':
+                attachment_url = request.form.get(f'new_attachments[{idx}][url]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    existing_attachments.append(attachment_obj)
 
         assignment.attachments = json.dumps(existing_attachments)
         db.session.commit()
