@@ -1242,8 +1242,13 @@
 
             settingsModalBody.querySelectorAll('.settings-action-btn').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
                     const action = btn.getAttribute('data-action');
                     const id = btn.getAttribute('data-id');
+
+                    console.log('Settings button clicked:', { action, id });
 
                     if (action === 'edit') {
                         settingsModal.classList.remove('show');
@@ -1269,11 +1274,15 @@
                             const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
                             let deleteUrl;
 
+                            console.log('Filter group ID:', filterGroupId);
+
                             if (filterGroupId) {
                                 deleteUrl = `/admin/group/${filterGroupId}/assignments/delete/${id}`;
                             } else {
                                 deleteUrl = `/admin/assignments/delete/${id}`;
                             }
+
+                            console.log('Delete URL:', deleteUrl);
 
                             const resp = await fetch(deleteUrl, {
                                 method: 'POST',
@@ -1282,7 +1291,12 @@
                                     'Accept': 'application/json'
                                 }
                             });
+
+                            console.log('Delete response:', resp.status, resp.statusText);
+
                             const data = await resp.json().catch(() => ({}));
+                            console.log('Delete response data:', data);
+
                             if (resp.ok && data.success) {
                                 allAssignments = allAssignments.filter(a => String(a.id) !== String(id));
                                 filterAssignments();
