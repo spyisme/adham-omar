@@ -692,8 +692,7 @@
                 <div>
                     <label class="form-label">Attachments</label>
                     <div id="attachments-container">
-                        <!-- Dynamic attachment fields will be added here -->
-                    </div>
+                        </div>
                     <button type="button" class="btn btn-secondary" id="add-attachment-btn" style="margin-top: 0.5rem;">
                         + Add Attachment
                     </button>
@@ -710,7 +709,6 @@
     </div>
 </div>
 
-<!-- Edit Assignment Modal -->
 <div id="editAssignmentModal" class="modal-overlay">
     <div class="modal-content">
         <form id="editAssignmentForm" method="POST" enctype="multipart/form-data">
@@ -735,7 +733,6 @@
     </div>
 </div>
 
-<!-- Settings Modal -->
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
@@ -751,6 +748,7 @@
         </div>
     </div>
 </div>
+
 <script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     // Global state
     let allAssignments = [];
@@ -1037,16 +1035,8 @@
 
     // --- GENERAL ACTION CONFIRMATION (Promise-based, no form submit) ---
     function confirmAction(event, message) {
-        // --- FIX 1 ---
-        // We no longer call event.preventDefault() here.
-        // It must be called in the *calling function* (deleteExistingAttachment)
-        // *before* the await, to prevent the async race condition.
-        //
-        // if (event && event.preventDefault) {
-        //     event.preventDefault();
-        // }
-        // --- END FIX 1 ---
-
+        // We no longer need to prevent default here.
+        // It's handled in the calling function.
         return Swal.fire({
             title: "Confirm Action",
             html: message,
@@ -1619,6 +1609,9 @@
                 url = attachment.url || '#';
             }
 
+            // =================================================================
+            // --- FIX 1: Removed inline 'onclick' and added 'data-' attributes ---
+            // =================================================================
             return `
                 <div class="existing-attachment-item" data-index="${index}">
                     <div class="existing-attachment-info">
@@ -1626,69 +1619,25 @@
                         <span class="existing-attachment-type">${type}</span>
                     </div>
                     <button type="button" 
-                            class="existing-attachment-delete" 
-                            onclick="deleteExistingAttachment(event, ${assignmentId}, ${index})">
+                            class="existing-attachment-delete"
+                            data-assignment-id="${assignmentId}"
+                            data-attachment-index="${index}">
                         Delete
                     </button>
                 </div>
             `;
+            // =================================================================
+            // --- END FIX 1 ---
+            // =================================================================
         }).join('');
     }
 
-    // Make deleteExistingAttachment globally available
-    window.deleteExistingAttachment = async function (event, assignmentId, attachmentIndex) {
-        // --- FIX 2 ---
-        // Prevent the default form submission *before* any 'await' call.
-        // This is the crucial fix that stops the <form> from submitting.
-        if (event) event.preventDefault();
-        // --- END FIX 2 ---
+    // =================================================================
+    // --- FIX 2: Removed the entire 'window.deleteExistingAttachment' function ---
+    // (The old function from line 1863 to 1923 has been deleted)
+    // --- The new logic is handled by an event listener below ---
+    // =================================================================
 
-        const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
-        if (!confirmed) return;
-
-        try {
-            // Check if we're on a group-filtered page
-            const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
-            let deleteUrl;
-
-            if (filterGroupId) {
-                deleteUrl = `/admin/group/${filterGroupId}/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
-            } else {
-                deleteUrl = `/admin/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
-            }
-
-            const resp = await fetch(deleteUrl, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            });
-
-            const data = await resp.json().catch(() => ({}));
-
-            if (resp.ok && data.success) {
-                // Remove the attachment from the DOM
-                const attachmentItem = document.querySelector(`#edit-existing-attachments .existing-attachment-item[data-index="${attachmentIndex}"]`);
-                if (attachmentItem) {
-                    attachmentItem.remove();
-                }
-
-                // Check if there are no more attachments
-                const remainingAttachments = document.querySelectorAll('#edit-existing-attachments .existing-attachment-item');
-                if (remainingAttachments.length === 0) {
-                    document.getElementById('edit-existing-attachments').innerHTML = '<p style="color: #94a3b8; font-style: italic;">No existing attachments</p>';
-                }
-
-                showToast(data.message || 'Attachment deleted successfully', 'success');
-            } else {
-                showToast((data && data.message) || 'Failed to delete attachment', 'error');
-            }
-        } catch (err) {
-            console.error('Delete attachment failed', err);
-            showToast('Failed to delete attachment', 'error');
-        }
-    };
 
     // Handle edit form submission
     document.addEventListener('DOMContentLoaded', function () {
@@ -1771,6 +1720,76 @@
                 }
             }
         });
+
+        // =================================================================
+        // --- FIX 3: Added new event listener for attachment deletion ---
+        // =================================================================
+        // Handle deleting existing attachments using event delegation
+        editForm.addEventListener('click', async function(event) {
+            // Check if the clicked element is our delete button
+            const deleteButton = event.target.closest('.existing-attachment-delete');
+
+            if (!deleteButton) {
+                return; // Click was not on a delete button
+            }
+
+            // --- THIS IS THE CRUCIAL FIX ---
+            // We are in a click event handler, so we can prevent default behavior
+            // synchronously, BEFORE any await call.
+            event.preventDefault();
+            event.stopPropagation(); // Stop the event from bubbling further
+
+            const assignmentId = deleteButton.dataset.assignmentId;
+            const attachmentIndex = deleteButton.dataset.attachmentIndex;
+
+            // Re-implement the logic from the old window.deleteExistingAttachment
+            const confirmed = await confirmAction(event, 'Are you sure you want to delete this attachment?');
+            if (!confirmed) return;
+
+            try {
+                const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
+                let deleteUrl;
+
+                if (filterGroupId) {
+                    deleteUrl = `/admin/group/${filterGroupId}/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
+                } else {
+                    deleteUrl = `/admin/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
+                }
+
+                const resp = await fetch(deleteUrl, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.success) {
+                    const attachmentItem = deleteButton.closest('.existing-attachment-item');
+                    if (attachmentItem) {
+                        attachmentItem.remove();
+                    }
+
+                    const remainingAttachments = document.querySelectorAll('#edit-existing-attachments .existing-attachment-item');
+                    if (remainingAttachments.length === 0) {
+                        document.getElementById('edit-existing-attachments').innerHTML = '<p style="color: #94a3b8; font-style: italic;">No existing attachments</p>';
+                    }
+
+                    showToast(data.message || 'Attachment deleted successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to delete attachment', 'error');
+                }
+            } catch (err) {
+                console.error('Delete attachment failed', err);
+                showToast('Failed to delete attachment', 'error');
+            }
+        });
+        // =================================================================
+        // --- END FIX 3 ---
+        // =================================================================
+
     });
 
     // --- RENDER FUNCTION ---
