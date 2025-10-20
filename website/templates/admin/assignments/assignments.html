@@ -858,14 +858,16 @@
         container.appendChild(attachmentItem);
     }
 
-    function removeAttachment(attachmentId) {
+    // Make removeAttachment globally available
+    window.removeAttachment = function (attachmentId) {
         const element = document.getElementById(attachmentId);
         if (element) {
             element.remove();
         }
-    }
+    };
 
-    function toggleAttachmentType(attachmentId, type) {
+    // Make toggleAttachmentType globally available
+    window.toggleAttachmentType = function (attachmentId, type) {
         const attachmentItem = document.getElementById(attachmentId);
         if (!attachmentItem) return;
 
@@ -890,24 +892,22 @@
         }
 
         typeInput.value = type;
-    }
+    };
 
-    // Add attachment button event listener
-    document.addEventListener('DOMContentLoaded', function () {
-        const addBtn = document.getElementById('add-attachment-btn');
-        if (addBtn) {
-            addBtn.addEventListener('click', function () {
-                const container = document.getElementById('attachments-container');
-                addAttachmentField(container);
-            });
+    // Add attachment button event listeners using event delegation
+    document.addEventListener('click', function (e) {
+        // Handle add attachment button for main modal
+        if (e.target && e.target.id === 'add-attachment-btn') {
+            e.preventDefault();
+            const container = document.getElementById('attachments-container');
+            addAttachmentField(container);
         }
 
-        const editAddBtn = document.getElementById('edit-add-attachment-btn');
-        if (editAddBtn) {
-            editAddBtn.addEventListener('click', function () {
-                const container = document.getElementById('edit-attachments-container');
-                addAttachmentField(container, 'edit-');
-            });
+        // Handle add attachment button for edit modal
+        if (e.target && e.target.id === 'edit-add-attachment-btn') {
+            e.preventDefault();
+            const container = document.getElementById('edit-attachments-container');
+            addAttachmentField(container, 'edit-');
         }
     });
 
@@ -1582,7 +1582,8 @@
         }).join('');
     }
 
-    async function deleteExistingAttachment(assignmentId, attachmentIndex) {
+    // Make deleteExistingAttachment globally available
+    window.deleteExistingAttachment = async function (assignmentId, attachmentIndex) {
         const confirmed = await confirmAction(null, 'Are you sure you want to delete this attachment?');
         if (!confirmed) return;
 
@@ -1618,7 +1619,7 @@
             console.error('Delete attachment failed', err);
             showToast('Failed to delete attachment', 'error');
         }
-    }
+    };
 
     // Handle edit form submission
     document.addEventListener('DOMContentLoaded', function () {
