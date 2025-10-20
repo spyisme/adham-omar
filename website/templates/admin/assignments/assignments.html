@@ -1265,7 +1265,23 @@
                         settingsModal.classList.remove('show');
 
                         try {
-                            const resp = await fetch(`/admin/assignments/delete/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                            // Check if we're on a group-filtered page
+                            const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
+                            let deleteUrl;
+
+                            if (filterGroupId) {
+                                deleteUrl = `/admin/group/${filterGroupId}/assignments/delete/${id}`;
+                            } else {
+                                deleteUrl = `/admin/assignments/delete/${id}`;
+                            }
+
+                            const resp = await fetch(deleteUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                }
+                            });
                             const data = await resp.json().catch(() => ({}));
                             if (resp.ok && data.success) {
                                 allAssignments = allAssignments.filter(a => String(a.id) !== String(id));
@@ -1295,7 +1311,23 @@
                         settingsModal.classList.remove('show');
 
                         try {
-                            const resp = await fetch(`/admin/assignments/visibility/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                            // Check if we're on a group-filtered page
+                            const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
+                            let visibilityUrl;
+
+                            if (filterGroupId) {
+                                visibilityUrl = `/admin/group/${filterGroupId}/assignments/visibility/${id}`;
+                            } else {
+                                visibilityUrl = `/admin/assignments/visibility/${id}`;
+                            }
+
+                            const resp = await fetch(visibilityUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
+                                }
+                            });
                             const data = await resp.json().catch(() => ({}));
                             if (resp.ok && data.success) {
                                 const idx = allAssignments.findIndex(a => String(a.id) === String(id));

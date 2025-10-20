@@ -2928,6 +2928,199 @@ def delete_group_assignment_attachment(group_id, assignment_id, attachment_index
         return jsonify({"success": False, "message": f"Error deleting attachment: {str(e)}"}), 500
 
 
+#Delete an assignment (for group-filtered pages)
+@admin.route("/group/<int:group_id>/assignments/delete/<int:assignment_id>", methods=["POST"])
+def delete_group_assignment(group_id, assignment_id):
+    if current_user.role != "super_admin":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "You are not allowed to delete assignments."}), 403
+        flash("You are not allowed to delete assignments.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment not found or you do not have permission to delete it."}), 404
+        flash("Assignment not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    if not assignment.type == "Assignment":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment is not an assignment."}), 400
+        flash("Assignment is not an assignment.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    # Delete WhatsApp notifications for this assignment
+    try:
+        Assignments_whatsapp.query.filter_by(assignment_id=assignment_id).delete()
+        db.session.commit()
+    except Exception:
+        pass
+
+    try:
+        Upload_status.query.filter_by(assignment_id=assignment_id).delete()
+        db.session.commit()
+    except Exception:
+        pass
+
+    submissions = Submissions.query.filter_by(assignment_id=assignment_id).all()
+
+    deleted_submissions = []
+    deleted_attachments = []
+
+    for submission in submissions:
+        try:
+            # Delete submission files
+            if submission.file_path:
+                local_path = os.path.join("website/submissions/uploads", submission.file_path)
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+                try:
+                    storage.delete_file(folder="submissions/uploads", file_name=submission.file_path)
+                except Exception:
+                    pass
+                deleted_submissions.append(submission.file_path)
+        except Exception:
+            pass
+
+    # Delete all submissions
+    Submissions.query.filter_by(assignment_id=assignment_id).delete()
+    db.session.commit()
+
+    if assignment.attachments:
+        try:
+            attachment_paths = json.loads(assignment.attachments)
+            for file_path in attachment_paths:
+                if isinstance(file_path, dict) and file_path.get('type') == 'file':
+                    file_name = file_path.get('name', '')
+                    if file_name:
+                        local_path = os.path.join("website/assignments/uploads", file_name)
+                        if os.path.exists(local_path):
+                            os.remove(local_path)
+                        try:
+                            storage.delete_file(folder="assignments/uploads", file_name=file_name)
+                        except Exception:
+                            pass
+                        deleted_attachments.append(file_name)
+                elif isinstance(file_path, str):
+                    local_path = os.path.join("website/assignments/uploads", file_path)
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                    try:
+                        storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                    except Exception:
+                        pass
+                    deleted_attachments.append(file_path)
+        except Exception as e:
+            wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+            if wants_json:
+                return jsonify({"success": False, "message": f"Error while deleting attachments: {str(e)}"}), 500
+
+    # Log the delete action before deleting the assignment
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Delete',
+        log={
+            "action_name": "Delete",
+            "resource_type": "assignment",
+            "action_details": {
+                "id": assignment.id,
+                "title": assignment.title,
+                "summary": f"Assignment '{assignment.title}' was deleted."
+            },
+            "data": None,
+            "before": {
+                "title": assignment.title,
+                "description": assignment.description,
+                "deadline_date": str(assignment.deadline_date) if assignment.deadline_date else None,
+                "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
+                "points": assignment.points,
+                "submissions_deleted_count": len(deleted_submissions),
+                "subjectid": getattr(assignment, "subjectid", None),
+                "subject": getattr(assignment.subject, "name", None) if hasattr(assignment, "subject") else None,
+            },
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.delete(assignment)
+    db.session.commit()
+
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+    if wants_json:
+        return jsonify({"success": True, "message": "Assignment and its attachments deleted successfully!", "deleted_assignment_id": assignment_id})
+
+    flash("Assignment and its attachments deleted successfully!", "success")
+    return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+
+#Hide , Show Assignment (AJAX-friendly) for group-filtered pages
+@admin.route("/group/<int:group_id>/assignments/visibility/<int:assignment_id>", methods=["POST"]) 
+def toggle_group_assignment_visibility(group_id, assignment_id):
+    if current_user.role != "super_admin":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "You are not allowed to toggle assignment visibility."}), 403
+        flash("You are not allowed to toggle assignment visibility.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment not found or you do not have permission to edit it."}), 404
+        flash("Assignment not found or you do not have permission to edit it.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    if not assignment.type == "Assignment":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment is not an assignment."}), 400
+        flash("Assignment is not an assignment.", "danger")
+        return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+    # Toggle visibility
+    old_status = assignment.status
+    new_status = "Hide" if assignment.status == "Show" else "Show"
+    assignment.status = new_status
+    assignment.last_edited_at = datetime.now()
+    assignment.last_edited_by = current_user.username
+
+    # Log the action
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Edit',
+        log={
+            "action_name": "Edit",
+            "resource_type": "assignment",
+            "action_details": {
+                "id": assignment.id,
+                "title": assignment.title,
+                "summary": f"Assignment '{assignment.title}' visibility changed from {old_status} to {new_status}"
+            },
+            "data": None,
+            "before": {
+                "status": old_status,
+            },
+            "after": {
+                "status": new_status,
+            }
+        }
+    )
+    db.session.add(new_log)
+    db.session.commit()
+
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+    if wants_json:
+        return jsonify({"success": True, "message": f"Assignment visibility updated to {new_status}", "status": new_status})
+
+    flash(f"Assignment visibility updated to {new_status}", "success")
+    return redirect(url_for("admin.group_assignments", group_id=group_id))
+
+
 #Edit an assignment 
 @admin.route("/assignments/edit/<int:assignment_id>", methods=["GET", "POST"])
 def edit_assignment(assignment_id):
