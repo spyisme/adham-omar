@@ -1624,7 +1624,7 @@ def get_exam_data(exam_id):
 
 @admin.route('/assignments', methods=['GET', 'POST'])
 def assignments():
-
+    
 
     if request.method == "POST":
         if current_user.role != "super_admin":
