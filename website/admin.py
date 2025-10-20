@@ -1557,6 +1557,9 @@ def exams_data():
         user = Users.query.get(e.created_by) if e.created_by else None
         last_edited_user = Users.query.get(e.last_edited_by) if e.last_edited_by else None
 
+        # Process attachments
+        attachments = json.loads(e.attachments) if e.attachments else []
+        
         exams_list.append({
             "id": e.id,
             "title": e.title,
@@ -1564,6 +1567,7 @@ def exams_data():
             "creation_date": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
             "deadline_date": e.deadline_date.strftime('%Y-%m-%d %I:%M %p') if e.deadline_date else None,
             "groups": groups_names,
+            "attachments": attachments,
             "student_whatsapp": e.student_whatsapp,
             "parent_whatsapp": e.parent_whatsapp,
             "status": e.status,
@@ -1576,8 +1580,6 @@ def exams_data():
             "created_at": e.creation_date.strftime('%Y-%m-%d %I:%M %p') if e.creation_date else None,
             "last_edited_by": last_edited_user.name if last_edited_user else None,
             "last_edited_at": e.last_edited_at.strftime('%Y-%m-%d %I:%M %p') if e.last_edited_at else None,
-            "student_whatsapp": e.student_whatsapp,
-            "parent_whatsapp": e.parent_whatsapp,
         })
 
     return jsonify(exams_list)
@@ -5297,27 +5299,52 @@ def online_exam():
         out_of_raw = request.form.get("out_of", 0)
         out_of = int(out_of_raw) if str(out_of_raw).isdigit() else 0
 
-        # attachments
+        # Process new attachment format
         upload_dir = "website/assignments/uploads/"
         attachments = []
         os.makedirs(upload_dir, exist_ok=True)
 
-        for file in request.files.getlist("files[]"):
-            if file and file.filename:
-                original_filename = secure_filename(file.filename)
-                filename = f"{uuid.uuid4().hex}_{original_filename}"
-                file.save(os.path.join(upload_dir, filename))
-                try:
-                    with open(os.path.join(upload_dir, filename), "rb") as f:
-                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
-                except Exception:
-                    flash("Error uploading file to storage", "danger")
-                    return redirect(url_for("admin.online_exam"))
-                attachments.append(filename)
-
-        link = request.form.get("link")
-        if link:
-            attachments.append(link)
+        # Get all attachment indices
+        attachment_indices = []
+        for key in request.form.keys():
+            if key.startswith('attachments[') and '][name]' in key:
+                index = key.split('[')[1].split(']')[0]
+                if index not in attachment_indices:
+                    attachment_indices.append(index)
+        
+        # Process each attachment
+        for idx in attachment_indices:
+            attachment_name = request.form.get(f'attachments[{idx}][name]')
+            attachment_type = request.form.get(f'attachments[{idx}][type]')
+            
+            if not attachment_name:
+                continue
+                
+            attachment_obj = {
+                'name': attachment_name,
+                'type': attachment_type
+            }
+            
+            if attachment_type == 'file':
+                file = request.files.get(f'attachments[{idx}][file]')
+                if file and file.filename:
+                    original_filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    try:
+                        with open(file_path, "rb") as f:
+                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                    except Exception as e:
+                        flash(f"Error uploading file to storage: {str(e)}", "danger")
+                        return redirect(url_for("admin.online_exam"))
+                    attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
+                    attachments.append(attachment_obj)
+            elif attachment_type == 'link':
+                attachment_url = request.form.get(f'attachments[{idx}][url]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    attachments.append(attachment_obj)
 
         cairo_tz = pytz.timezone('Africa/Cairo')
         aware_local_time = datetime.now(cairo_tz)
@@ -5821,21 +5848,51 @@ def edit_exam(exam_id):
         if hasattr(exam, "groups_mm"):
             exam.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
 
-        # Handle file upload
-        if "attachments" in request.files and request.files["attachments"].filename != "":
-            uploaded_file = request.files["attachments"]
-            original_filename = secure_filename(uploaded_file.filename)
-            random_uuid = uuid.uuid4().hex
-            filename = f"{random_uuid}_{original_filename}"
-            file_path = os.path.join("website/assignments/uploads", filename)
-            uploaded_file.save(file_path)
-            try:
-                with open(file_path, "rb") as f:
-                    storage.upload_file(f, folder="assignments/uploads", file_name=filename)
-            except Exception:
-                flash("Error uploading file to storage", "danger")
-                return redirect(url_for("admin.online_exam"))
-            existing_attachments.append(filename)
+        # Handle new attachments
+        upload_dir = "website/assignments/uploads/"
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Get all new attachment indices
+        new_attachment_indices = []
+        for key in request.form.keys():
+            if key.startswith('new_attachments[') and '][name]' in key:
+                index = key.split('[')[1].split(']')[0]
+                if index not in new_attachment_indices:
+                    new_attachment_indices.append(index)
+        
+        # Process each new attachment
+        for idx in new_attachment_indices:
+            attachment_name = request.form.get(f'new_attachments[{idx}][name]')
+            attachment_type = request.form.get(f'new_attachments[{idx}][type]')
+            
+            if not attachment_name:
+                continue
+                
+            attachment_obj = {
+                'name': attachment_name,
+                'type': attachment_type
+            }
+            
+            if attachment_type == 'file':
+                file = request.files.get(f'new_attachments[{idx}][file]')
+                if file and file.filename:
+                    original_filename = secure_filename(file.filename)
+                    filename = f"{uuid.uuid4().hex}_{original_filename}"
+                    file_path = os.path.join(upload_dir, filename)
+                    file.save(file_path)
+                    try:
+                        with open(file_path, "rb") as f:
+                            storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                    except Exception as e:
+                        flash(f"Error uploading file to storage: {str(e)}", "danger")
+                        return redirect(url_for("admin.online_exam"))
+                    attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
+                    existing_attachments.append(attachment_obj)
+            elif attachment_type == 'link':
+                attachment_url = request.form.get(f'new_attachments[{idx}][url]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    existing_attachments.append(attachment_obj)
 
         exam.attachments = json.dumps(existing_attachments)
         db.session.commit()
@@ -5960,6 +6017,133 @@ def edit_exam(exam_id):
         group_id=group_id,
         group=group
     )
+
+@admin.route('/online/exam/delete-attachment/<int:exam_id>/<int:attachment_index>', methods=['POST'])
+def delete_exam_attachment(exam_id, attachment_index):
+    """Delete a specific attachment from an exam"""
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Exam not found or you do not have permission to delete attachments from it."}), 404
+        flash("Exam not found or you do not have permission to delete attachments from it.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    if not exam.type == "Exam":
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Assignment is not an exam."}), 400
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    try:
+        attachments = json.loads(exam.attachments) if exam.attachments else []
+        
+        if attachment_index >= len(attachments):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Attachment index out of range."}), 400
+            flash("Attachment index out of range.", "danger")
+            return redirect(url_for("admin.online_exam"))
+
+        attachment = attachments[attachment_index]
+        
+        # If it's a file attachment, try to delete the file
+        if isinstance(attachment, dict) and attachment.get('type') == 'file':
+            filename = attachment.get('url', '').split('/')[-1]  # Extract filename from URL
+            if filename:
+                local_path = os.path.join("website/assignments/uploads", filename)
+                if os.path.exists(local_path):
+                    try:
+                        os.remove(local_path)
+                    except Exception:
+                        pass  # Continue even if file deletion fails
+        
+        # Remove the attachment from the list
+        attachments.pop(attachment_index)
+        exam.attachments = json.dumps(attachments)
+        exam.last_edited_by = current_user.id
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        exam.last_edited_at = naive_local_time
+        db.session.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Attachment deleted successfully"})
+        flash("Attachment deleted successfully", "success")
+        return redirect(url_for("admin.online_exam"))
+
+    except Exception as e:
+        db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Failed to delete attachment: {str(e)}"}), 500
+        flash(f"Failed to delete attachment: {str(e)}", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+@admin.route('/group/<int:group_id>/online/exam/delete-attachment/<int:exam_id>/<int:attachment_index>', methods=['POST'])
+def delete_group_exam_attachment(group_id, exam_id, attachment_index):
+    """Delete a specific attachment from an exam in a group context"""
+    group = Groups.query.get(group_id)
+    if not group:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Group not found."}), 404
+        flash("Group not found.", "danger")
+        return redirect(url_for("admin.online_exam"))
+
+    exam = get_item_if_admin_can_manage(Assignments, exam_id, current_user)
+    if not exam:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Exam not found or you do not have permission to delete attachments from it."}), 404
+        flash("Exam not found or you do not have permission to delete attachments from it.", "danger")
+        return redirect(url_for("admin.group_exams", group_id=group_id))
+
+    if not exam.type == "Exam":
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": "Assignment is not an exam."}), 400
+        flash("Assignment is not an exam.", "danger")
+        return redirect(url_for("admin.group_exams", group_id=group_id))
+
+    try:
+        attachments = json.loads(exam.attachments) if exam.attachments else []
+        
+        if attachment_index >= len(attachments):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({"success": False, "message": "Attachment index out of range."}), 400
+            flash("Attachment index out of range.", "danger")
+            return redirect(url_for("admin.group_exams", group_id=group_id))
+
+        attachment = attachments[attachment_index]
+        
+        # If it's a file attachment, try to delete the file
+        if isinstance(attachment, dict) and attachment.get('type') == 'file':
+            filename = attachment.get('url', '').split('/')[-1]  # Extract filename from URL
+            if filename:
+                local_path = os.path.join("website/assignments/uploads", filename)
+                if os.path.exists(local_path):
+                    try:
+                        os.remove(local_path)
+                    except Exception:
+                        pass  # Continue even if file deletion fails
+        
+        # Remove the attachment from the list
+        attachments.pop(attachment_index)
+        exam.attachments = json.dumps(attachments)
+        exam.last_edited_by = current_user.id
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        exam.last_edited_at = naive_local_time
+        db.session.commit()
+
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": True, "message": "Attachment deleted successfully"})
+        flash("Attachment deleted successfully", "success")
+        return redirect(url_for("admin.group_exams", group_id=group_id))
+
+    except Exception as e:
+        db.session.rollback()
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return jsonify({"success": False, "message": f"Failed to delete attachment: {str(e)}"}), 500
+        flash(f"Failed to delete attachment: {str(e)}", "danger")
+        return redirect(url_for("admin.group_exams", group_id=group_id))
 
 @admin.route("/online/exam/delete/<int:exam_id>", methods=["POST"])
 def delete_exam(exam_id):
