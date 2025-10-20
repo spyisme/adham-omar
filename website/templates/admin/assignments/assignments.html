@@ -907,7 +907,9 @@
         if (e.target && e.target.id === 'edit-add-attachment-btn') {
             e.preventDefault();
             const container = document.getElementById('edit-attachments-container');
-            addAttachmentField(container, 'edit-');
+            if (container) {
+                addAttachmentField(container, 'edit-');
+            }
         }
     });
 
