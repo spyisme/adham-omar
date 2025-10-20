@@ -4260,7 +4260,7 @@ def students_setup():
 
     # Fetch all groups with student counts
     groups_data = []
-    for group in Groups.query.order_by(Groups.name).all():
+    for group in Groups.query.order_by(Groups.id).all():
         users = getattr(group, 'users', None)
         if users is not None:
             try:
