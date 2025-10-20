@@ -2860,6 +2860,74 @@ def delete_assignment_attachment(assignment_id, attachment_index):
         return jsonify({"success": False, "message": f"Error deleting attachment: {str(e)}"}), 500
 
 
+#Delete attachment from assignment (for group-filtered pages)
+@admin.route('/group/<int:group_id>/assignments/delete-attachment/<int:assignment_id>/<int:attachment_index>', methods=['POST'])
+def delete_group_assignment_attachment(group_id, assignment_id, attachment_index):
+    if current_user.role != "super_admin":
+        return jsonify({"success": False, "message": "You are not allowed to delete attachments."}), 403
+    
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        return jsonify({"success": False, "message": "Assignment not found or you do not have permission to edit it."}), 404
+    
+    try:
+        existing_attachments = json.loads(assignment.attachments) if assignment.attachments else []
+        
+        if 0 <= attachment_index < len(existing_attachments):
+            # If it's a file attachment, try to delete the file
+            attachment = existing_attachments[attachment_index]
+            if isinstance(attachment, dict) and attachment.get('type') == 'file':
+                file_path = attachment.get('name', '')
+                if file_path:
+                    local_path = os.path.join("website/assignments/uploads", file_path)
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                    try:
+                        storage.delete_file(folder="assignments/uploads", file_name=file_path)
+                    except Exception:
+                        pass
+            
+            # Remove the attachment from the list
+            existing_attachments.pop(attachment_index)
+            
+            # Update the assignment
+            assignment.attachments = json.dumps(existing_attachments)
+            assignment.last_edited_at = datetime.now()
+            assignment.last_edited_by = current_user.username
+            
+            # Log the action
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Edit',
+                log={
+                    "action_name": "Edit",
+                    "resource_type": "assignment",
+                    "action_details": {
+                        "id": assignment.id,
+                        "title": assignment.title,
+                        "summary": f"Attachment deleted from assignment '{assignment.title}'"
+                    },
+                    "data": None,
+                    "before": {
+                        "attachments": json.loads(assignment.attachments) if assignment.attachments else [],
+                    },
+                    "after": {
+                        "attachments": existing_attachments,
+                    }
+                }
+            )
+            db.session.add(new_log)
+            db.session.commit()
+            
+            return jsonify({"success": True, "message": "Attachment deleted successfully"})
+        else:
+            return jsonify({"success": False, "message": "Invalid attachment index"}), 400
+            
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"Error deleting attachment: {str(e)}"}), 500
+
+
 #Edit an assignment 
 @admin.route("/assignments/edit/<int:assignment_id>", methods=["GET", "POST"])
 def edit_assignment(assignment_id):

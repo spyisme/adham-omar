@@ -1590,7 +1590,17 @@
         if (!confirmed) return;
 
         try {
-            const resp = await fetch(`/admin/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`, {
+            // Check if we're on a group-filtered page
+            const filterGroupId = document.getElementById('assignmentsScript').dataset.filterGroupId;
+            let deleteUrl;
+
+            if (filterGroupId) {
+                deleteUrl = `/admin/group/${filterGroupId}/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
+            } else {
+                deleteUrl = `/admin/assignments/delete-attachment/${assignmentId}/${attachmentIndex}`;
+            }
+
+            const resp = await fetch(deleteUrl, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
