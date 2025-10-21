@@ -1257,6 +1257,11 @@ def exams():
         exam.late_exception = exception_info["exception"]
         exam.late_exception_active = exception_info["active"]
         exam.late_exception_deadline = exception_info["aware_deadline"]
+        exam.expired_for_student = (
+            exam.past_deadline
+            and exam.close_after_deadline
+            and not exam.late_exception_active
+        )
 
         exam.effective_deadline_for_student = compute_effective_deadline(
             aware_deadline,
@@ -1276,11 +1281,6 @@ def exams():
                 submission.mark = "Being reviewed"
             elif not submission.mark:
                 submission.mark = "Not marked yet"
-        exam.expired_for_student = (
-            exam.past_deadline
-            and exam.close_after_deadline
-            and not exam.late_exception_active
-        )
 
         processed_exams.append(exam)
 
