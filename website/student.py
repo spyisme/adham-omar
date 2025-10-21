@@ -1250,6 +1250,13 @@ def exams():
                 aware_deadline = exam.deadline_date.astimezone(GMT_PLUS_2)
             exam.past_deadline = aware_deadline < current_date
 
+        exception_info = late_exception_map.get(
+            exam.id,
+            {"exception": None, "active": False, "aware_deadline": None}
+        )
+        exam.late_exception = exception_info["exception"]
+        exam.late_exception_active = exception_info["active"]
+        exam.late_exception_deadline = exception_info["aware_deadline"]
 
         exam.effective_deadline_for_student = compute_effective_deadline(
             aware_deadline,
@@ -1269,14 +1276,6 @@ def exams():
                 submission.mark = "Being reviewed"
             elif not submission.mark:
                 submission.mark = "Not marked yet"
-
-        exception_info = late_exception_map.get(
-            exam.id,
-            {"exception": None, "active": False, "aware_deadline": None}
-        )
-        exam.late_exception = exception_info["exception"]
-        exam.late_exception_active = exception_info["active"]
-        exam.late_exception_deadline = exception_info["aware_deadline"]
         exam.expired_for_student = (
             exam.past_deadline
             and exam.close_after_deadline
