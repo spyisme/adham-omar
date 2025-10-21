@@ -106,7 +106,7 @@ def create_app():
 
         if current_user.is_authenticated and current_user.role == 'student':
             full_phone_number = current_user.phone_number_country_code + current_user.phone_number
-            if request.endpoint != 'student.whatsapp' and current_user.student_whatsapp != full_phone_number and current_user.code.lower() != 'nth':
+            if request.endpoint != 'student.whatsapp' and current_user.student_whatsapp != full_phone_number :
                 return redirect(url_for('student.whatsapp'))
 
 
