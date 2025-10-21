@@ -69,90 +69,11 @@
                             <polyline points="9 18 15 12 9 6"></polyline>
                         </svg>
                     </a>
-                    {% if current_user.role == "super_admin" %}
 
-                    <a href="{{ url_for('admin.view_reviews_by_group', group_id=group.id) }}" class="action-item">
-                        <div class="action-item-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                            </svg>
-                        </div>
-                        <div class="action-item-content">
-                            <span class="action-item-title">Reviews</span>
-                            <span class="action-item-subtitle">Review pending corrections</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="action-item-arrow">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-
-                    <a href="#" class="action-item">
-                        <div class="action-item-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z">
-                                </path>
-                            </svg>
-                        </div>
-                        <div class="action-item-content">
-                            <span class="action-item-title">Materials</span>
-                            <span class="action-item-subtitle">Upload and organize materials</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="action-item-arrow">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-                    <a href="#" class="action-item">
-                        <div class="action-item-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                                <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                            </svg>
-                        </div>
-                        <div class="action-item-content">
-                            <span class="action-item-title">Sessions</span>
-                            <span class="action-item-subtitle">Add and manage video content</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="action-item-arrow">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-                    <a href="#" class="action-item">
-                        <div class="action-item-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
-                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="8.5" cy="7" r="4"></circle>
-                                <polyline points="17 11 19 13 23 9"></polyline>
-                            </svg>
-                        </div>
-                        <div class="action-item-content">
-                            <span class="action-item-title">Attendance</span>
-                            <span class="action-item-subtitle">Track and manage student attendance</span>
-                        </div>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="action-item-arrow">
-                            <polyline points="9 18 15 12 9 6"></polyline>
-                        </svg>
-                    </a>
-                    {% endif %}
                 </div>
             </div>
         </div>
+                    {% if current_user.role == "super_admin" %}
 
         <!-- People Section -->
         <div class="group-section-card">
@@ -191,7 +112,6 @@
                             <polyline points="9 18 15 12 9 6"></polyline>
                         </svg>
                     </a>
-                    {% if current_user.role == "super_admin" %}
 
                     <a href="{{ url_for('admin.group_assistants', group_id=group.id) }}" class="action-item">
                         <div class="action-item-icon">
@@ -214,10 +134,11 @@
                             <polyline points="9 18 15 12 9 6"></polyline>
                         </svg>
                     </a>
-                    {% endif %}
                 </div>
             </div>
         </div>
+                    {% endif %}
+
     </div>
 </div>
 
