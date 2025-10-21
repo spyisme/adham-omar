@@ -1798,6 +1798,14 @@ def view_assignment_submissions(assignment_id):
     group = None
     if group_id:
         group = Groups.query.get(group_id)
+    else:
+        # If assignment has exactly 1 group, use it; otherwise None
+        assignment_groups = list(getattr(assignment, 'groups_mm', []))
+        if len(assignment_groups) == 1:
+            group_id = assignment_groups[0].id
+        else:
+            group_id = None
+
 
     if not assignment:
         flash("Assignment not found or you do not have permission to view its submissions.", "danger")
@@ -5748,6 +5756,17 @@ def view_exam_submissions(exam_id):
     group = None
     if group_id:
         group = Groups.query.get(group_id)
+    else:
+        # If exam has exactly 1 group, use it; otherwise None
+        exam_groups = list(getattr(exam, 'groups_mm', []))
+        if len(exam_groups) == 1:
+            group_id = exam_groups[0].id
+        else:
+            group_id = None
+
+
+
+        
 
     if not exam:
         flash("Exam not found or you do not have permission to view its submissions.", "danger")
