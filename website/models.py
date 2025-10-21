@@ -186,6 +186,15 @@ class Users(db.Model, UserMixin):
     
     participating_zoom_meetings = association_proxy("meeting_memberships", "meeting")
 
+    # ============================================================
+    # Assignment Late Submission Exceptions
+    # ============================================================
+    late_submission_exceptions = db.relationship(
+        'AssignmentLateException',
+        back_populates='student',
+        cascade="all, delete-orphan"
+    )
+
 
 class Parent(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
@@ -269,6 +278,12 @@ class Assignments(db.Model):
 
     submissions = db.relationship('Submissions', back_populates='assignment', lazy='dynamic', cascade="all, delete-orphan")
 
+    late_exceptions = db.relationship(
+        'AssignmentLateException',
+        back_populates='assignment',
+        cascade="all, delete-orphan"
+    )
+
     # Extra Fields
     student_whatsapp = db.Column(db.Boolean, default=True)
     parent_whatsapp = db.Column(db.Boolean, default=True)
@@ -305,6 +320,26 @@ class Submissions(db.Model):
 
     # Other relationships
     assignment = db.relationship('Assignments', back_populates='submissions')
+
+
+# ============================================================
+# Assignment Late Submission Exceptions
+# ============================================================
+class AssignmentLateException(db.Model):
+    __tablename__ = 'assignment_late_exceptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    assignment_id = db.Column(db.Integer, db.ForeignKey('assignments.id', ondelete='CASCADE'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    extended_deadline = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(gmt_plus_2))
+
+    __table_args__ = (
+        db.UniqueConstraint('assignment_id', 'student_id', name='uq_assignment_late_exception'),
+    )
+
+    assignment = db.relationship('Assignments', back_populates='late_exceptions')
+    student = db.relationship('Users', back_populates='late_submission_exceptions')
 
 
 class Announcements(db.Model):

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template , request, redirect, url_for, flash, send_from_directory , abort , jsonify
 from .models import (
-    Users, Groups, Assignments, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
+    Users, Groups, Assignments, AssignmentLateException, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
     Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, Parent , AssistantLogs, Sessions , Attendance_session , Attendance_student)
 from datetime import datetime
 from . import db
@@ -812,6 +812,23 @@ def student(user_id):
     
     parent = Parent.query.filter_by(student_id=student_obj.id).first()
 
+    cairo_tz = pytz.timezone('Africa/Cairo')
+    now_cairo = datetime.now(cairo_tz)
+    late_exception_map = {}
+    for exception in AssignmentLateException.query.filter_by(student_id=student_obj.id).all():
+        aware_deadline = None
+        if exception.extended_deadline:
+            try:
+                aware_deadline = cairo_tz.localize(exception.extended_deadline)
+            except ValueError:
+                aware_deadline = exception.extended_deadline.astimezone(cairo_tz)
+        is_active = aware_deadline is None or aware_deadline >= now_cairo
+        late_exception_map[exception.assignment_id] = {
+            "exception": exception,
+            "aware_deadline": aware_deadline,
+            "is_active": is_active,
+        }
+
     return render_template(
         "admin/student_data.html",
         student=student_obj,
@@ -822,7 +839,8 @@ def student(user_id):
         videos=videos,
         watched_videos=watched_videos,
         corrector_names=corrector_names,
-        parent=parent
+        parent=parent,
+        late_exception_map=late_exception_map
     )
 
 
@@ -3413,14 +3431,155 @@ def edit_assignment(assignment_id):
             flash("Attachment not found!", "error")
         return redirect(url_for("admin.edit_assignment", assignment_id=assignment_id))
 
+    cairo_tz = pytz.timezone('Africa/Cairo')
+    now_cairo = datetime.now(cairo_tz)
+    assignment_late_exceptions = []
+    late_exception_rows = (
+        AssignmentLateException.query
+        .filter_by(assignment_id=assignment.id)
+        .join(Users, AssignmentLateException.student_id == Users.id)
+        .order_by(Users.name.asc())
+        .all()
+    )
+    for exception in late_exception_rows:
+        student = exception.student
+        aware_deadline = None
+        if exception.extended_deadline:
+            try:
+                aware_deadline = cairo_tz.localize(exception.extended_deadline)
+            except ValueError:
+                aware_deadline = exception.extended_deadline.astimezone(cairo_tz)
+        is_active = aware_deadline is None or aware_deadline >= now_cairo
+        assignment_late_exceptions.append({
+            "exception": exception,
+            "student": student,
+            "aware_deadline": aware_deadline,
+            "is_active": is_active,
+        })
+
     return render_template(
         "admin/assignments/edit_assignment.html",
         assignment=assignment,
         groups=groups,
         attachments=existing_attachments,
         group_id=group_id,
-        group=group
+        group=group,
+        late_exceptions=assignment_late_exceptions
     )
+
+
+def _resolve_late_exception_redirect(assignment):
+    source = request.form.get("source", "")
+    if source == "student_profile":
+        student_id = request.form.get("student_id") or request.form.get("student_identifier")
+        if student_id and str(student_id).isdigit():
+            return url_for("admin.student", user_id=int(student_id))
+        exception_student_id = request.form.get("exception_student_id")
+        if exception_student_id and str(exception_student_id).isdigit():
+            return url_for("admin.student", user_id=int(exception_student_id))
+        return url_for("admin.student", user_id=assignment.created_by or current_user.id)
+    elif source == "exam_edit" or assignment.type == "Exam":
+        return url_for("admin.edit_exam", exam_id=assignment.id)
+    return url_for("admin.edit_assignment", assignment_id=assignment.id)
+
+
+def _lookup_student_from_form():
+    student_id_raw = request.form.get("student_id")
+    if student_id_raw and str(student_id_raw).isdigit():
+        student = Users.query.filter_by(id=int(student_id_raw), role="student").first()
+        if student:
+            return student
+
+    identifier = request.form.get("student_identifier", "").strip()
+    if not identifier:
+        return None
+    if identifier.isdigit():
+        return Users.query.filter_by(id=int(identifier), role="student").first()
+
+    return Users.query.filter(func.lower(Users.email) == identifier.lower(), Users.role == "student").first()
+
+
+@admin.route("/assignments/<int:assignment_id>/late-exceptions", methods=["POST"])
+def add_late_exception(assignment_id):
+    if current_user.role != "super_admin":
+        flash("You are not allowed to manage late submission exceptions.", "danger")
+        return redirect(request.referrer or url_for("admin.assignments"))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        flash("Assignment not found or you do not have permission to edit it.", "danger")
+        return redirect(request.referrer or url_for("admin.assignments"))
+
+    redirect_url = _resolve_late_exception_redirect(assignment)
+
+    student = _lookup_student_from_form()
+    if not student:
+        flash("Student not found. Provide a valid student ID or email.", "danger")
+        return redirect(redirect_url)
+
+    existing_exception = AssignmentLateException.query.filter_by(
+        assignment_id=assignment.id,
+        student_id=student.id
+    ).first()
+    if existing_exception:
+        flash("A late submission exception already exists for this student.", "warning")
+        return redirect(redirect_url)
+
+    extended_deadline_str = request.form.get("extended_deadline")
+    extended_deadline = None
+    if extended_deadline_str:
+        try:
+            extended_deadline = parse_deadline(extended_deadline_str)
+        except (TypeError, ValueError):
+            flash("Invalid extended deadline. Please use the datetime picker format.", "danger")
+            return redirect(redirect_url)
+
+    exception = AssignmentLateException(
+        assignment_id=assignment.id,
+        student_id=student.id,
+        extended_deadline=extended_deadline
+    )
+    db.session.add(exception)
+    db.session.commit()
+
+    flash_message = f"Late submission exception granted to {student.name or student.email}."
+    if extended_deadline:
+        flash_message += " Extension deadline set."
+    else:
+        flash_message += " No deadline specified (manual closure required)."
+    flash(flash_message, "success")
+
+    return redirect(redirect_url)
+
+
+@admin.route("/assignments/<int:assignment_id>/late-exceptions/<int:exception_id>/delete", methods=["POST"])
+def remove_late_exception(assignment_id, exception_id):
+    if current_user.role != "super_admin":
+        flash("You are not allowed to manage late submission exceptions.", "danger")
+        return redirect(request.referrer or url_for("admin.assignments"))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+    if not assignment:
+        flash("Assignment not found or you do not have permission to edit it.", "danger")
+        return redirect(request.referrer or url_for("admin.assignments"))
+
+    redirect_url = _resolve_late_exception_redirect(assignment)
+
+    exception = AssignmentLateException.query.filter_by(
+        id=exception_id,
+        assignment_id=assignment.id
+    ).first()
+    if not exception:
+        flash("Late submission exception not found.", "warning")
+        return redirect(redirect_url)
+
+    student = exception.student
+    db.session.delete(exception)
+    db.session.commit()
+
+    flash(f"Late submission exception removed for {student.name or student.email}.", "success")
+    return redirect(redirect_url)
+
 
 #Delete an assignment 
 @admin.route("/assignments/delete/<int:assignment_id>", methods=["POST"])
@@ -6102,13 +6261,40 @@ def edit_exam(exam_id):
             flash("Attachment not found!", "error")
         return redirect(url_for("admin.edit_exam", exam_id=exam_id))
 
+    cairo_tz = pytz.timezone('Africa/Cairo')
+    now_cairo = datetime.now(cairo_tz)
+    exam_late_exceptions = []
+    late_exception_rows = (
+        AssignmentLateException.query
+        .filter_by(assignment_id=exam.id)
+        .join(Users, AssignmentLateException.student_id == Users.id)
+        .order_by(Users.name.asc())
+        .all()
+    )
+    for exception in late_exception_rows:
+        student = exception.student
+        aware_deadline = None
+        if exception.extended_deadline:
+            try:
+                aware_deadline = cairo_tz.localize(exception.extended_deadline)
+            except ValueError:
+                aware_deadline = exception.extended_deadline.astimezone(cairo_tz)
+        is_active = aware_deadline is None or aware_deadline >= now_cairo
+        exam_late_exceptions.append({
+            "exception": exception,
+            "student": student,
+            "aware_deadline": aware_deadline,
+            "is_active": is_active,
+        })
+
     return render_template(
         "admin/online_exam/edit_exam.html",
         exam=exam,
         groups=groups,
         attachments=existing_attachments,
         group_id=group_id,
-        group=group
+        group=group,
+        late_exceptions=exam_late_exceptions
     )
 
 @admin.route('/online/exam/delete-attachment/<int:exam_id>/<int:attachment_index>', methods=['POST'])

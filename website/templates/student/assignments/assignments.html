@@ -145,6 +145,7 @@
   .badge-completed { background: var(--success-weak); color: var(--success); border-color: var(--success-brd); }
   .badge-late { background: var(--warn-weak); color: var(--warn); border-color: var(--warn-brd); }
   .badge-expired { background: var(--danger-weak); color: var(--danger); border-color: var(--danger-brd); }
+  .badge-extended { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
 
   .meta-grid {
     margin-top: 1rem;
@@ -211,7 +212,8 @@
     {% for a in assignments %}
       {% set is_completed_on_time = a.done and not a.submitted_late %}
       {% set is_completed_late = a.done and a.submitted_late %}
-      {% set is_expired = not a.done and a.past_deadline %}
+      {% set has_extension = a.late_exception_active %}
+      {% set is_expired = not a.done and a.expired_for_student %}
       
       {% set status_label, status_class = 'Open', 'badge-open' %}
       {% if is_completed_on_time %}
@@ -220,6 +222,10 @@
           {% set status_label, status_class = 'Completed Late', 'badge-late' %}
       {% elif is_expired %}
           {% set status_label, status_class = 'Expired', 'badge-expired' %}
+      {% elif has_extension %}
+          {% set status_label, status_class = 'Extended', 'badge-extended' %}
+      {% elif (not a.done) and a.past_deadline %}
+          {% set status_label, status_class = 'Deadline Passed', 'badge-late' %}
       {% endif %}
 
       <a href="{{ url_for('student.view_assignment', assignment_id=a.id) }}" class="card" aria-label="View assignment: {{ a.title }}">
@@ -242,6 +248,18 @@
 
 
 
+          </div>
+          {% endif %}
+
+          {% if a.late_exception_active %}
+          <div class="meta-item">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5"/></svg>
+            <span>Extension: <b>{% if a.late_exception_deadline %}{{ a.late_exception_deadline.strftime('%b %d, %I:%M %p') }}{% else %}No deadline{% endif %}</b></span>
+          </div>
+          {% elif a.late_exception %}
+          <div class="meta-item">
+            <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12.75a7.5 7.5 0 11-7.5-7.5M12 6v6l3 3"/></svg>
+            <span>Extension expired{% if a.late_exception_deadline %} on <b>{{ a.late_exception_deadline.strftime('%b %d, %I:%M %p') }}</b>{% endif %}</span>
           </div>
           {% endif %}
 

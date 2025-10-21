@@ -78,6 +78,72 @@
     .dropdown-list div:hover {
         background: #f3f4f6;
     }
+
+    .late-exception-card {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .late-exception-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+    }
+
+    .late-exception-table th,
+    .late-exception-table td {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+    }
+
+    .late-exception-table th {
+        background: #f1f5f9;
+        font-weight: 600;
+    }
+
+    .late-exception-status-active {
+        color: #15803d;
+        font-weight: 600;
+    }
+
+    .late-exception-status-expired {
+        color: #dc2626;
+        font-weight: 600;
+    }
+
+    .late-exception-actions form {
+        display: inline-flex;
+    }
+
+    .late-exception-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 1.25rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px dashed #cbd5f5;
+    }
+
+    .late-exception-form label {
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    .late-exception-form input[type="text"],
+    .late-exception-form input[type="datetime-local"] {
+        flex: 1 1 220px;
+        min-width: 200px;
+    }
+
+    .late-exception-form button {
+        flex: 0 0 auto;
+    }
 </style>
 {% endblock %}
 
@@ -213,6 +279,73 @@
                     {% endif %}
                     <label for="attachments" class="form-label">Add New Attachments</label>
                     <input type="file" id="attachments" name="attachments" multiple class="form-input" />
+                </div>
+
+                <div class="late-exception-card">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: var(--space-2);">Late Submission Exceptions</h3>
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                        Grant individual students access to submit after the deadline. An optional extended deadline overrides the original deadline for that student.
+                    </p>
+
+                    {% if late_exceptions %}
+                    <div style="overflow-x: auto;">
+                        <table class="late-exception-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Extension Deadline</th>
+                                    <th>Status</th>
+                                    <th style="width: 140px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in late_exceptions %}
+                                <tr>
+                                    <td>
+                                        <div style="display: flex; flex-direction: column;">
+                                            <span style="font-weight: 600;">{{ item.student.name or 'Unnamed' }}</span>
+                                            <span style="font-size: 0.85rem; color: var(--color-text-secondary);">{{ item.student.email }}</span>
+                                            <span style="font-size: 0.8rem; color: var(--color-text-secondary);">ID: {{ item.student.id }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.aware_deadline %}
+                                        {{ item.aware_deadline.strftime('%B %d, %Y at %I:%M %p') }}
+                                        {% else %}
+                                        <em>No deadline</em>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if item.is_active %}
+                                        <span class="late-exception-status-active">Active</span>
+                                        {% else %}
+                                        <span class="late-exception-status-expired">Expired</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="late-exception-actions">
+                                        <form method="POST" action="{{ url_for('admin.remove_late_exception', assignment_id=assignment.id, exception_id=item.exception.id) }}" onsubmit="return confirm('Remove late submission exception for {{ item.student.name or item.student.email }}?');">
+                                            <input type="hidden" name="source" value="assignment_edit">
+                                            <input type="hidden" name="exception_student_id" value="{{ item.student.id }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p style="color: var(--color-text-secondary); font-size: 0.9rem;">No late submission exceptions have been granted yet.</p>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('admin.add_late_exception', assignment_id=assignment.id) }}" class="late-exception-form">
+                        <input type="hidden" name="source" value="assignment_edit">
+                        <label for="student-identifier">Student ID or Email</label>
+                        <input type="text" id="student-identifier" name="student_identifier" placeholder="e.g. 1024 or user@example.com" required>
+                        <label for="extended-deadline">Extended Deadline (optional)</label>
+                        <input type="datetime-local" id="extended-deadline" name="extended_deadline">
+                        <button type="submit" class="btn btn-secondary">Grant Exception</button>
+                    </form>
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; margin-top: var(--space-4);">

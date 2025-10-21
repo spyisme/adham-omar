@@ -1,7 +1,7 @@
 # Imports
 from flask import Blueprint, redirect, render_template, request, url_for, flash, send_from_directory, abort, jsonify
 from .models import (
-    Users,   Assignments, Submissions, Announcements, Videos, Sessions,
+    Users,   Assignments, AssignmentLateException, Submissions, Announcements, Videos, Sessions,
       Materials, Materials_folder,   NextQuiz, Attendance_student, Attendance_session , Upload_status , Groups, assignment_groups)
 from sqlalchemy.sql import exists
 from sqlalchemy import or_, false, exists, and_ , not_
@@ -143,6 +143,86 @@ def have_perms(model, record_id, student_id):
         return True
 
     return False
+
+
+def evaluate_late_exception_state(exception, now=None):
+    """
+    Returns a tuple (is_active, aware_deadline) for a late submission exception.
+    `aware_deadline` is timezone-aware in GMT+2 when present.
+    """
+    if not exception:
+        return False, None
+
+    now = now or datetime.now(GMT_PLUS_2)
+    aware_deadline = None
+
+    if exception.extended_deadline:
+        try:
+            aware_deadline = GMT_PLUS_2.localize(exception.extended_deadline)
+        except ValueError:
+            aware_deadline = exception.extended_deadline.astimezone(GMT_PLUS_2)
+        return aware_deadline >= now, aware_deadline
+
+    return True, None
+
+
+def load_student_late_exceptions(student_id, assignment_ids, now=None):
+    """
+    Bulk-load late submission exceptions for the given `assignment_ids`.
+    Returns a dict keyed by assignment_id with {exception, active, aware_deadline}.
+    """
+    now = now or datetime.now(GMT_PLUS_2)
+    if not assignment_ids:
+        return {}
+
+    exceptions = AssignmentLateException.query.filter(
+        AssignmentLateException.student_id == student_id,
+        AssignmentLateException.assignment_id.in_(assignment_ids)
+    ).all()
+
+    result = {}
+    for exception in exceptions:
+        is_active, aware_deadline = evaluate_late_exception_state(exception, now)
+        result[exception.assignment_id] = {
+            "exception": exception,
+            "active": is_active,
+            "aware_deadline": aware_deadline,
+        }
+    return result
+
+
+def to_cairo_aware(dt):
+    """Ensure `dt` is timezone-aware in GMT+2."""
+    if not dt:
+        return None
+    if dt.tzinfo is None:
+        return GMT_PLUS_2.localize(dt)
+    return dt.astimezone(GMT_PLUS_2)
+
+
+def compute_effective_deadline(aware_deadline, exception_info):
+    """
+    Returns the effective deadline considering a late exception.
+    If an exception is active and has an override deadline, it wins.
+    If an exception is active without deadline, returns None (no deadline).
+    """
+    if exception_info and exception_info.get("active"):
+        override_deadline = exception_info.get("aware_deadline")
+        if override_deadline:
+            return override_deadline
+        return None
+    return aware_deadline
+
+
+def is_submission_on_time(submission_time, aware_deadline, exception_info):
+    """
+    Determine if `submission_time` should be treated as on-time with any active exception.
+    """
+    submission_aware = to_cairo_aware(submission_time)
+    effective_deadline = compute_effective_deadline(aware_deadline, exception_info)
+    if effective_deadline is None or submission_aware is None:
+        return True
+    return submission_aware <= effective_deadline
 
 
 
@@ -373,6 +453,9 @@ def assignments():
     completed_count = 0
     processed_assignments = []
 
+    assignment_ids = [assignment.id for assignment, _ in all_assignments_with_submissions]
+    late_exception_map = load_student_late_exceptions(current_user.id, assignment_ids, current_date)
+
     for assignment, submission in all_assignments_with_submissions:
         assignment.submission = submission
         assignment.done = submission is not None
@@ -390,15 +473,30 @@ def assignments():
                 aware_deadline = assignment.deadline_date.astimezone(GMT_PLUS_2)
             assignment.past_deadline = aware_deadline < current_date
 
-        if assignment.done and aware_deadline:
-            aware_submission_date = None
-            try:
-                aware_submission_date = GMT_PLUS_2.localize(submission.upload_time)
-            except ValueError:
-                aware_submission_date = submission.upload_time.astimezone(GMT_PLUS_2)
-            
-            if aware_submission_date > aware_deadline:
-                assignment.submitted_late = True
+        exception_info = late_exception_map.get(
+            assignment.id,
+            {"exception": None, "active": False, "aware_deadline": None}
+        )
+        assignment.late_exception = exception_info["exception"]
+        assignment.late_exception_active = exception_info["active"]
+        assignment.late_exception_deadline = exception_info["aware_deadline"]
+        assignment.expired_for_student = (
+            assignment.past_deadline
+            and assignment.close_after_deadline
+            and not assignment.late_exception_active
+        )
+
+        assignment.effective_deadline_for_student = compute_effective_deadline(
+            aware_deadline,
+            exception_info
+        )
+
+        if assignment.done and submission:
+            assignment.submitted_late = not is_submission_on_time(
+                submission.upload_time,
+                aware_deadline,
+                exception_info
+            )
 
         if submission:
             # Only show mark if reviewed by super admin
@@ -432,6 +530,8 @@ def view_assignment(assignment_id):
         student_id=current_user.id
     ).first()
 
+    assignment.submitted_late = False
+
 
     attachments = []
     if assignment.attachments:
@@ -441,14 +541,39 @@ def view_assignment(assignment_id):
             attachments = []
 
 
+    aware_deadline = None
     try:
         if assignment.deadline_date:
-            deadline_date = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
-            assignment.past_deadline = deadline_date < current_date
+            aware_deadline = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+            assignment.past_deadline = aware_deadline < current_date
         else:
             assignment.past_deadline = False
     except Exception:
         assignment.past_deadline = False
+
+    exception_info = load_student_late_exceptions(
+        current_user.id,
+        [assignment.id],
+        current_date
+    ).get(assignment.id, {"exception": None, "active": False, "aware_deadline": None})
+    assignment.late_exception = exception_info["exception"]
+    assignment.late_exception_active = exception_info["active"]
+    assignment.late_exception_deadline = exception_info["aware_deadline"]
+    assignment.effective_deadline_for_student = compute_effective_deadline(
+        deadline_date if 'deadline_date' in locals() else None,
+        exception_info
+    )
+    assignment.expired_for_student = (
+        assignment.past_deadline
+        and assignment.close_after_deadline
+        and not assignment.late_exception_active
+    )
+    if submission:
+        assignment.submitted_late = not is_submission_on_time(
+            submission.upload_time,
+            deadline_date if 'deadline_date' in locals() else None,
+            exception_info
+        )
 
 
     if submission:
@@ -523,7 +648,15 @@ def upload_chunk(assignment_id):
     except Exception:
         assignment.past_deadline = False
 
-    if assignment.past_deadline and assignment.close_after_deadline :
+    exception_info = load_student_late_exceptions(
+        current_user.id,
+        [assignment.id],
+        current_date
+    ).get(assignment.id, {"active": False, "aware_deadline": None})
+    can_submit_past_deadline = exception_info.get("active", False)
+    extended_deadline = exception_info.get("aware_deadline")
+
+    if assignment.past_deadline and assignment.close_after_deadline and not can_submit_past_deadline:
         return jsonify({
             "status": "error",
             "error": "Assignment expired",
@@ -763,15 +896,21 @@ def upload_chunk(assignment_id):
                 "details": str(e)
             }), 500
 
-        # Award points
         current_date = datetime.now(GMT_PLUS_2)
-        deadline_date = GMT_PLUS_2.localize(assignment.deadline_date) if assignment.deadline_date else None
-        
-        if deadline_date and deadline_date > current_date:
-            if assignment.points:
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        submission_on_time = is_submission_on_time(
+            naive_local_time,
+            aware_deadline,
+            exception_info
+        )
+
+        # Award points (respecting late exceptions)
+        if assignment.points:
+            if submission_on_time:
                 current_user.points = (current_user.points or 0) + assignment.points
-        else:
-            if assignment.points:
+            else:
                 current_user.points = (current_user.points or 0) + (assignment.points / 2)
 
         # Upload success
@@ -782,10 +921,6 @@ def upload_chunk(assignment_id):
         db.session.commit()
 
         # Record submission
-        cairo_tz = pytz.timezone('Africa/Cairo')
-        aware_local_time = datetime.now(cairo_tz)
-        naive_local_time = aware_local_time.replace(tzinfo=None)
-
         new_submission = Submissions(
             assignment_id=assignment_id,
             student_id=current_user.id,
@@ -817,7 +952,7 @@ def upload_chunk(assignment_id):
 
         # Send notifications 
         try:
-            is_on_time = deadline_date and deadline_date > current_date
+            is_on_time = submission_on_time
             
             if is_on_time:
                 # On-time submission messages
@@ -949,44 +1084,44 @@ def delete_submission(assignment_id):
 
     try:
 
+        aware_deadline = None
         try:
             if assignment.deadline_date:
-                deadline_date = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
-                assignment.past_deadline = deadline_date < current_date
+                aware_deadline = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+                assignment.past_deadline = aware_deadline < current_date
             else:
                 assignment.past_deadline = False
         except Exception:
             assignment.past_deadline = False
 
-        if assignment.past_deadline and assignment.close_after_deadline :
+        exception_info = load_student_late_exceptions(
+            current_user.id,
+            [assignment.id],
+            current_date
+        ).get(assignment.id, {"active": False, "aware_deadline": None})
+        if assignment.past_deadline and assignment.close_after_deadline and not exception_info.get("active", False):
           flash("Assignment expired you can't delete your submission", "danger")
           return redirect(url_for("student.view_assignment", assignment_id=assignment_id))
 
 
 
-        deadline_date = assignment.deadline_date
-        upload_time = submission.upload_time
 
 
 
 
 
 
-        if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
+        submission_on_time = is_submission_on_time(
+            submission.upload_time,
+            aware_deadline,
+            exception_info
+        )
 
-            if upload_time.tzinfo is None:
-                upload_time = GMT_PLUS_2.localize(upload_time)
-        else:
-
-            if upload_time.tzinfo is not None:
-                upload_time = upload_time.replace(tzinfo=None)
-
-        if deadline_date > upload_time:
-            if assignment.points:
-                current_user.points = current_user.points - assignment.points
-        else:
-            if assignment.points:
-                current_user.points = current_user.points - (assignment.points / 2)
+        if assignment.points:
+            if submission_on_time:
+                current_user.points = (current_user.points or 0) - assignment.points
+            else:
+                current_user.points = (current_user.points or 0) - (assignment.points / 2)
 
         local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
         try :
@@ -1090,6 +1225,9 @@ def exams():
     completed_count = 0
     processed_exams = []
 
+    exam_ids = [exam.id for exam, _ in all_exams_with_submissions]
+    late_exception_map = load_student_late_exceptions(current_user.id, exam_ids, current_date)
+
 
     for exam, submission in all_exams_with_submissions:
         exam.submission = submission
@@ -1109,15 +1247,17 @@ def exams():
             exam.past_deadline = aware_deadline < current_date
 
 
-        if exam.done and aware_deadline:
-            aware_submission_date = None
-            try:
-                aware_submission_date = GMT_PLUS_2.localize(submission.upload_time)
-            except ValueError:
-                aware_submission_date = submission.upload_time.astimezone(GMT_PLUS_2)
-            
-            if aware_submission_date > aware_deadline:
-                exam.submitted_late = True
+        exam.effective_deadline_for_student = compute_effective_deadline(
+            aware_deadline,
+            exception_info
+        )
+
+        if exam.done and submission:
+            exam.submitted_late = not is_submission_on_time(
+                submission.upload_time,
+                aware_deadline,
+                exception_info
+            )
 
         if submission:
             # Only show mark if reviewed by super admin
@@ -1125,6 +1265,19 @@ def exams():
                 submission.mark = "Being reviewed"
             elif not submission.mark:
                 submission.mark = "Not marked yet"
+
+        exception_info = late_exception_map.get(
+            exam.id,
+            {"exception": None, "active": False, "aware_deadline": None}
+        )
+        exam.late_exception = exception_info["exception"]
+        exam.late_exception_active = exception_info["active"]
+        exam.late_exception_deadline = exception_info["aware_deadline"]
+        exam.expired_for_student = (
+            exam.past_deadline
+            and exam.close_after_deadline
+            and not exam.late_exception_active
+        )
 
         processed_exams.append(exam)
 
@@ -1151,6 +1304,7 @@ def view_exam(exam_id):
         student_id=current_user.id
     ).first()
 
+    exam.submitted_late = False
 
     attachments = []
     if exam.attachments:
@@ -1168,6 +1322,24 @@ def view_exam(exam_id):
     except Exception:
         exam.past_deadline = False
 
+    exception_info = load_student_late_exceptions(
+        current_user.id,
+        [exam.id],
+        current_date
+    ).get(exam.id, {"exception": None, "active": False, "aware_deadline": None})
+    exam.late_exception = exception_info["exception"]
+    exam.late_exception_active = exception_info["active"]
+    exam.late_exception_deadline = exception_info["aware_deadline"]
+    exam.effective_deadline_for_student = compute_effective_deadline(
+        deadline_date if 'deadline_date' in locals() else None,
+        exception_info
+    )
+    exam.expired_for_student = (
+        exam.past_deadline
+        and exam.close_after_deadline
+        and not exam.late_exception_active
+    )
+
     if submission:
         # Only show mark and corrected PDF if reviewed by super admin
         if not submission.reviewed:
@@ -1177,6 +1349,11 @@ def view_exam(exam_id):
             submission.show_corrected = submission.corrected
             if submission.mark is None or submission.mark == "":
                 submission.mark = "Not marked yet"
+        exam.submitted_late = not is_submission_on_time(
+            submission.upload_time,
+            deadline_date if 'deadline_date' in locals() else None,
+            exception_info
+        )
     
     exam.done = submission is not None
 
@@ -1219,16 +1396,25 @@ def upload_exam_chunk(exam_id):
     # Check if exam is past deadline and closed
     current_date = datetime.now(GMT_PLUS_2)
 
+    aware_deadline = None
     try:
         if exam.deadline_date:
-            deadline_date = pytz.timezone('Africa/Cairo').localize(exam.deadline_date)
-            exam.past_deadline = deadline_date < current_date
+            aware_deadline = pytz.timezone('Africa/Cairo').localize(exam.deadline_date)
+            exam.past_deadline = aware_deadline < current_date
         else:
             exam.past_deadline = False
     except Exception:
         exam.past_deadline = False
 
-    if exam.past_deadline and exam.close_after_deadline:
+    exception_info = load_student_late_exceptions(
+        current_user.id,
+        [exam.id],
+        current_date
+    ).get(exam.id, {"active": False, "aware_deadline": None})
+    can_submit_past_deadline = exception_info.get("active", False)
+    extended_deadline = exception_info.get("aware_deadline")
+
+    if exam.past_deadline and exam.close_after_deadline and not can_submit_past_deadline:
         return jsonify({
             "status": "error",
             "error": "Exam expired",
@@ -1473,15 +1659,21 @@ def upload_exam_chunk(exam_id):
                 "details": str(e)
             }), 500
 
-        # Award points
         current_date = datetime.now(GMT_PLUS_2)
-        deadline_date = GMT_PLUS_2.localize(exam.deadline_date) if exam.deadline_date else None
-        
-        if deadline_date and deadline_date > current_date:
-            if exam.points:
+        cairo_tz = pytz.timezone('Africa/Cairo')
+        aware_local_time = datetime.now(cairo_tz)
+        naive_local_time = aware_local_time.replace(tzinfo=None)
+        submission_on_time = is_submission_on_time(
+            naive_local_time,
+            aware_deadline,
+            exception_info
+        )
+
+        # Award points
+        if exam.points:
+            if submission_on_time:
                 current_user.points = (current_user.points or 0) + exam.points
-        else:
-            if exam.points:
+            else:
                 current_user.points = (current_user.points or 0) + (exam.points / 2)
 
         # Upload success
@@ -1492,10 +1684,6 @@ def upload_exam_chunk(exam_id):
         db.session.commit()
 
         # Record submission
-        cairo_tz = pytz.timezone('Africa/Cairo')
-        aware_local_time = datetime.now(cairo_tz)
-        naive_local_time = aware_local_time.replace(tzinfo=None)
-
         new_submission = Submissions(
             assignment_id=exam_id,
             student_id=current_user.id,
@@ -1527,7 +1715,7 @@ def upload_exam_chunk(exam_id):
 
         # Send notifications 
         try:
-            is_on_time = deadline_date and deadline_date > current_date
+            is_on_time = submission_on_time
             
             if is_on_time:
                 # On-time submission messages
@@ -1657,42 +1845,39 @@ def delete_submission_exam(exam_id):
     if not assignment.type == "Exam":
         return abort(404)       
 
+        aware_deadline = None
     try:
-        # Check if exam is past deadline and closed
         current_date = datetime.now(GMT_PLUS_2)
-
+        aware_deadline = None
         try:
             if assignment.deadline_date:
-                deadline_date_aware = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
-                assignment.past_deadline = deadline_date_aware < current_date
+                aware_deadline = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+                assignment.past_deadline = aware_deadline < current_date
             else:
                 assignment.past_deadline = False
         except Exception:
             assignment.past_deadline = False
 
-        if assignment.past_deadline and assignment.close_after_deadline:
+        exception_info = load_student_late_exceptions(
+            current_user.id,
+            [assignment.id],
+            current_date
+        ).get(assignment.id, {"active": False, "aware_deadline": None})
+        if assignment.past_deadline and assignment.close_after_deadline and not exception_info.get("active", False):
             flash("Exam expired you can't delete your submission", "danger")
             return redirect(url_for("student.view_exam", exam_id=exam_id))
 
-        deadline_date = assignment.deadline_date
-        upload_time = submission.upload_time
+        submission_on_time = is_submission_on_time(
+            submission.upload_time,
+            aware_deadline,
+            exception_info
+        )
 
-
-        if hasattr(deadline_date, 'tzinfo') and deadline_date.tzinfo is not None:
-
-            if upload_time.tzinfo is None:
-                upload_time = GMT_PLUS_2.localize(upload_time)
-        else:
-
-            if upload_time.tzinfo is not None:
-                upload_time = upload_time.replace(tzinfo=None)
-
-        if deadline_date > upload_time:
-            if assignment.points:
-                current_user.points = current_user.points - assignment.points
-        else:
-            if assignment.points:
-                current_user.points = current_user.points - (assignment.points / 2)
+        if assignment.points:
+            if submission_on_time:
+                current_user.points = (current_user.points or 0) - assignment.points
+            else:
+                current_user.points = (current_user.points or 0) - (assignment.points / 2)
 
         local_path = os.path.join("website", "submissions", "uploads", f"student_{submission.student_id}", submission.file_url)
         try :

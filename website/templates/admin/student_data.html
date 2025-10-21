@@ -1,4 +1,4 @@
-{% extends "admin/dashboard.html" %}
+﻿{% extends "admin/dashboard.html" %}
 {% block title %}View {{ student.name }}'s Grades{% endblock %}
 {% block content %}
 
@@ -116,6 +116,12 @@ tbody tr:hover {
 .status-submitted { color: #38a169; font-weight: 500; }
 .status-not-submitted { color: #e53e3e; font-weight: 500; }
 .status-not-marked { color: #718096; }
+.late-exception-status-active { color: #15803d; font-weight: 600; }
+.late-exception-status-expired { color: #dc2626; font-weight: 600; }
+.late-access-cell { min-width: 240px; }
+.late-access-cell form input[type="datetime-local"] { max-width: 220px; }
+.late-access-cell form button { align-self: flex-start; }
+.btn-sm { padding: 0.35rem 0.75rem; font-size: 0.8rem; }
 
 /* Image Modal Styles */
 .modal-overlay {
@@ -175,7 +181,7 @@ tbody tr:hover {
 </style>
 
 <div class="container">
-    <a href="{{ url_for('admin.students') }}" class="back-link">← Back to Students List</a>
+    <a href="{{ url_for('admin.students') }}" class="back-link">â† Back to Students List</a>
     <hr class="hr-class">
     
     <h1 class="h1-class">Student Information</h1>
@@ -303,7 +309,7 @@ tbody tr:hover {
     <div class="table-container">
         <table>
             <thead>
-                <tr><th>Assignment Title</th><th>Deadline</th><th>Status</th><th>Mark</th></tr>
+                <tr><th>Assignment Title</th><th>Deadline</th><th>Status</th><th>Mark</th><th>Late Access</th></tr>
             </thead>
             <tbody>
                 {% for assignment in assignments %}
@@ -322,6 +328,38 @@ tbody tr:hover {
                         {{ submission_marks[assignment.id] }}
                         {% else %}
                         <span class="status-not-marked">Not Marked</span>
+                        {% endif %}
+                    </td>
+                    <td class="late-access-cell" onclick="event.stopPropagation();">
+                        {% set exception = late_exception_map.get(assignment.id) %}
+                        {% if exception %}
+                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <span class="{{ 'late-exception-status-active' if exception.is_active else 'late-exception-status-expired' }}">
+                                {{ 'Active' if exception.is_active else 'Expired' }}
+                            </span>
+                            <span style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                                {% if exception.aware_deadline %}
+                                Until {{ exception.aware_deadline.strftime('%Y-%m-%d %I:%M %p') }}
+                                {% else %}
+                                No deadline
+                                {% endif %}
+                            </span>
+                            <form method="POST" action="{{ url_for('admin.remove_late_exception', assignment_id=assignment.id, exception_id=exception.exception.id) }}" onsubmit="return confirm('Remove late submission exception for {{ student.name }}?');" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="hidden" name="source" value="student_profile">
+                                <input type="hidden" name="exception_student_id" value="{{ student.id }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin.add_late_exception', assignment_id=assignment.id) }}" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                            <input type="hidden" name="source" value="student_profile">
+                            <input type="hidden" name="student_id" value="{{ student.id }}">
+                            <label style="font-size: 0.8rem; color: var(--color-text-secondary);">
+                                Extended deadline (optional)
+                            </label>
+                            <input type="datetime-local" name="extended_deadline" style="max-width: 220px;">
+                            <button type="submit" class="btn btn-secondary btn-sm">Grant</button>
+                        </form>
                         {% endif %}
                     </td>
                 </tr>
@@ -366,7 +404,7 @@ tbody tr:hover {
     <div class="table-container">
         <table>
             <thead>
-                <tr><th>Exam Name</th><th>Deadline</th><th>Status</th><th>Mark</th></tr>
+                <tr><th>Exam Name</th><th>Deadline</th><th>Status</th><th>Mark</th><th>Late Access</th></tr>
             </thead>
             <tbody>
                 {% for exam in quiz_grades %}
@@ -385,6 +423,38 @@ tbody tr:hover {
                         {{ submission_marks[exam.id] }}{% if exam.out_of %} / {{ exam.out_of }}{% endif %}
                         {% else %}
                         <span class="status-not-marked">Not Marked</span>
+                        {% endif %}
+                    </td>
+                    <td class="late-access-cell" onclick="event.stopPropagation();">
+                        {% set exception = late_exception_map.get(exam.id) %}
+                        {% if exception %}
+                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                            <span class="{{ 'late-exception-status-active' if exception.is_active else 'late-exception-status-expired' }}">
+                                {{ 'Active' if exception.is_active else 'Expired' }}
+                            </span>
+                            <span style="font-size: 0.85rem; color: var(--color-text-secondary);">
+                                {% if exception.aware_deadline %}
+                                Until {{ exception.aware_deadline.strftime('%Y-%m-%d %I:%M %p') }}
+                                {% else %}
+                                No deadline
+                                {% endif %}
+                            </span>
+                            <form method="POST" action="{{ url_for('admin.remove_late_exception', assignment_id=exam.id, exception_id=exception.exception.id) }}" onsubmit="return confirm('Remove late submission exception for {{ student.name }}?');" style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="hidden" name="source" value="student_profile">
+                                <input type="hidden" name="exception_student_id" value="{{ student.id }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>
+                        </div>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('admin.add_late_exception', assignment_id=exam.id) }}" style="display: flex; flex-direction: column; gap: 0.4rem;">
+                            <input type="hidden" name="source" value="student_profile">
+                            <input type="hidden" name="student_id" value="{{ student.id }}">
+                            <label style="font-size: 0.8rem; color: var(--color-text-secondary);">
+                                Extended deadline (optional)
+                            </label>
+                            <input type="datetime-local" name="extended_deadline" style="max-width: 220px;">
+                            <button type="submit" class="btn btn-secondary btn-sm">Grant</button>
+                        </form>
                         {% endif %}
                     </td>
                 </tr>

@@ -404,7 +404,8 @@
 
         {% set is_completed = assignment.done %}
         {% set is_completed_late = assignment.done and assignment.submitted_late %}
-        {% set is_expired = (not assignment.done) and assignment.past_deadline %}
+        {% set has_extension = assignment.late_exception_active %}
+        {% set is_expired = (not assignment.done) and assignment.expired_for_student %}
         {% set status_label = 'Open' %}
         {% set status_class = 'badge-open' %}
         {% if is_completed and not is_completed_late %}
@@ -416,6 +417,12 @@
         {% elif is_expired %}
         {% set status_label = 'Expired' %}
         {% set status_class = 'badge-expired' %}
+        {% elif has_extension %}
+        {% set status_label = 'Extended' %}
+        {% set status_class = 'badge-extended' %}
+        {% elif (not assignment.done) and assignment.past_deadline %}
+        {% set status_label = 'Deadline Passed' %}
+        {% set status_class = 'badge-late' %}
         {% endif %}
 
         <span class="badge {{ status_class }}">{{ status_label }}</span>
@@ -425,6 +432,26 @@
       <div class="card-meta">
         <span>🗓️</span>
         <span>Deadline: {{ assignment.deadline_date.strftime('%B %d, %Y at %I:%M %p') }}</span>
+      </div>
+      {% endif %}
+
+      {% if assignment.late_exception_active %}
+      <div class="extension-note">
+        You have an extension
+        {% if assignment.late_exception_deadline %}
+        until <strong>{{ assignment.late_exception_deadline.strftime('%B %d, %Y at %I:%M %p') }}</strong>.
+        {% else %}
+        with no set deadline. Please submit as soon as possible.
+        {% endif %}
+      </div>
+      {% elif assignment.late_exception %}
+      <div class="extension-note expired">
+        Your extension expired
+        {% if assignment.late_exception_deadline %}
+        on <strong>{{ assignment.late_exception_deadline.strftime('%B %d, %Y at %I:%M %p') }}</strong>.
+        {% else %}
+        recently.
+        {% endif %}
       </div>
       {% endif %}
 
@@ -513,7 +540,7 @@
         </div>
         {% endif %}
 
-        {% elif assignment.past_deadline and assignment.close_after_deadline %}
+        {% elif assignment.expired_for_student %}
         <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
           <h3 class="section-title">Exam Closed</h3>
           <p class="description-text">This exam is closed and no longer accepts submissions.</p>
@@ -521,6 +548,21 @@
 
         {% else %}
         <h3 class="section-title">Submit Your Exam</h3>
+
+        {% if assignment.late_exception_active %}
+        <div class="extension-note">
+          You can submit
+          {% if assignment.late_exception_deadline %}
+          until <strong>{{ assignment.late_exception_deadline.strftime('%B %d, %Y at %I:%M %p') }}</strong>.
+          {% else %}
+          thanks to your granted extension.
+          {% endif %}
+        </div>
+        {% elif assignment.past_deadline and not assignment.expired_for_student %}
+        <div class="extension-note">
+          The original deadline has passed, but submissions remain open for now.
+        </div>
+        {% endif %}
 
         <form id="upload-form" action="{{ url_for('student.upload_exam_chunk', exam_id=assignment.id) }}" method="POST"
           enctype="multipart/form-data" novalidate>
