@@ -5847,6 +5847,21 @@ def view_exam_submissions(exam_id):
 
     notification_status = {notif.user_id: notif.message_sent for notif in whatsapp_notifications}
 
+    # Get all assistants (for super admin assignment panel)
+    assistants = []
+    if current_user.role == "super_admin":
+        assistants = Users.query.filter(
+            (Users.role == 'admin') | (Users.role == 'super_admin'),
+            Users.id != current_user.id
+        ).order_by(Users.name).all()
+
+    # Calculate statistics for assignment panel
+    total_submissions = len(submissions)
+    unassigned_count = len([s for s in submissions if s.assigned_to_id is None])
+    approved_count = len([s for s in submissions if s.reviewed])
+    waiting_approval_count = len([s for s in submissions if s.corrected and not s.reviewed])
+    not_corrected_assigned = len([s for s in submissions if not s.corrected and s.assigned_to_id is not None])
+
     return render_template(
         "admin/online_exam/exam_submissions.html", 
         exam=exam, 
@@ -5856,6 +5871,12 @@ def view_exam_submissions(exam_id):
         group_id=group_id,
         group=group,
         submitted_student_ids = submitted_student_ids,
+        assistants=assistants,
+        total_submissions=total_submissions,
+        unassigned_count=unassigned_count,
+        approved_count=approved_count,
+        waiting_approval_count=waiting_approval_count,
+        not_corrected_assigned=not_corrected_assigned,
     )
 
 
