@@ -378,17 +378,19 @@
 
     <div class="card" style="overflow: visible;">
         <div class="card-header"
-            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; cursor: pointer;"
-            onclick="toggleSection('submissionsSection')">
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; {% if current_user.role == 'super_admin' %}cursor: pointer;{% endif %}"
+            {% if current_user.role == 'super_admin' %}onclick="toggleSection('submissionsSection')"{% endif %}>
             <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
                 <div style="flex: 1;">
                     <h3>Student Submissions</h3>
                     <p>Review and grade submitted assignments.</p>
                 </div>
+                {% if current_user.role == 'super_admin' %}
                 <span id="submissionsToggle" style="font-size: 1.5rem; transition: transform 0.3s;">▼</span>
+                {% endif %}
             </div>
         </div>
-        <div id="submissionsSection" style="display: none;">
+        <div id="submissionsSection" style="display: {% if current_user.role == 'super_admin' %}none{% else %}block{% endif %};">
         <div class="card-header"
             style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
@@ -581,7 +583,7 @@
                             <th>Status</th>
                             <th>Assigned To</th>
                             <th>Original File</th>
-                            <th>Actions</th>
+                            <th style="width: 100px;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -689,7 +691,7 @@
                                 <!-- Actions Popup Menu -->
                                 <div class="actions-dropdown">
                                     <button type="button"
-                                        class="btn btn-primary btn-open btn-small actions-menu-button">Actions
+                                        class="btn btn-primary btn-open btn-small actions-menu-button" style="white-space: nowrap; font-size: 0.8rem; padding: 0.4rem 0.6rem;">Actions
                                         &#x25BC;</button>
                                     <div class="actions-menu">
                                         {% if current_user.role == "super_admin" and submission.corrected and not
@@ -966,6 +968,17 @@
     {% endif %}
 </div>
 <script>
+    // Initialize toggle icons on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if current_user.role != 'super_admin' %}
+        // Auto-expand submissions section for non-super admins
+        const submissionsToggle = document.getElementById('submissionsToggle');
+        if (submissionsToggle) {
+            submissionsToggle.style.transform = 'rotate(180deg)';
+        }
+        {% endif %}
+    });
+
     // Toggle collapsible sections
     function toggleSection(sectionId) {
         const section = document.getElementById(sectionId);
