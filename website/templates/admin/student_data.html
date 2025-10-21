@@ -181,7 +181,7 @@ tbody tr:hover {
 </style>
 
 <div class="container">
-    <a href="{{ url_for('admin.students') }}" class="back-link">â† Back to Students List</a>
+    <a href="{{ url_for('admin.students') }}" class="back-link">← Back to Students List</a>
     <hr class="hr-class">
     
     <h1 class="h1-class">Student Information</h1>
@@ -224,7 +224,7 @@ tbody tr:hover {
                 }
             });"
         >click here</button>
-        <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.temp_activate', user_id=student.id) }}'">Temp Activate</button>
+        <!-- <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.temp_activate', user_id=student.id) }}'">Temp Activate</button> -->
     </p>
 
     
@@ -239,12 +239,13 @@ tbody tr:hover {
     <div class="table-container">
         <table>
 
-            <tr><th colspan="2" style="text-align: center;">Zoom Meetings</th></tr>
+            <!-- <tr><th colspan="2" style="text-align: center;">Zoom Meetings</th></tr>
             <tr><th>Zoom ID</th><td>{{ student.zoom_id }}</td></tr>
 
 
-            <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.zoom_user', user_id=student.id) }}'">Delete Zoom ID</button>
+            <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.zoom_user', user_id=student.id) }}'">Delete Zoom ID</button> -->
 
+            {% if current_user.role == "super_admin" %}
             <tr><th colspan="2" style="text-align: center;">Debug Information</th></tr>
             {% if student.last_used_user_agent %}
             <tr><th>User Agent</th><td>{{ student.last_used_user_agent }}</td></tr>
@@ -259,7 +260,7 @@ tbody tr:hover {
             <tr><th>Student Last Access</th><td>N/A</td></tr>
             {% endif %}
             <tr><th>Login Count</th><td>{{ student.login_count }}</td></tr>
-
+            {% endif %}
             <tr><th colspan="2" style="text-align: center;">Whatsapp Status</th></tr>
 
             <tr><th>Student WhatsApp Status</th><td>
