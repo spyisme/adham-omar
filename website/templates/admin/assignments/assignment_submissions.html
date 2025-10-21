@@ -318,8 +318,11 @@
     <!-- Assistant Assignment Panel (Super Admin Only) -->
     {% if current_user.role == "super_admin" and assistants %}
     <div class="assistant-assignment-panel">
-        <h3>📋 Assign Submissions to Assistants</h3>
-        <div class="assistants-grid">
+        <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleSection('assistantsSection')">
+            <h3>📋 Assign Submissions to Assistants</h3>
+            <span id="assistantsToggle" style="font-size: 1.5rem; transition: transform 0.3s;">▼</span>
+        </div>
+        <div id="assistantsSection" class="assistants-grid" style="display: none; margin-top: 1rem;">
             {% for assistant in assistants %}
             {% set assistant_assigned = submissions|selectattr('assigned_to_id', 'equalto', assistant.id)|list %}
             {% set assistant_assigned_count = assistant_assigned|length %}
@@ -364,11 +367,20 @@
 
     <div class="card" style="overflow: visible;">
         <div class="card-header"
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; cursor: pointer;"
+            onclick="toggleSection('submissionsSection')">
+            <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                <div style="flex: 1;">
+                    <h3>Student Submissions</h3>
+                    <p>Review and grade submitted assignments.</p>
+                </div>
+                <span id="submissionsToggle" style="font-size: 1.5rem; transition: transform 0.3s;">▼</span>
+            </div>
+        </div>
+        <div id="submissionsSection" style="display: none;">
+        <div class="card-header"
             style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <h3>Student Submissions</h3>
-                <p>Review and grade submitted assignments.</p>
-            </div>
             {% if current_user.role == "super_admin" %}
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 <button onclick="approveAllSubmissions()" class="btn btn-success" style="
@@ -712,6 +724,7 @@
                 </table>
             </div>
         </div>
+        </div>
     </div>
 
     <script>
@@ -921,9 +934,25 @@
                 </table>
             </div>
         </div>
+        </div>
     </div>
+    {% endif %}
 </div>
 <script>
+    // Toggle collapsible sections
+    function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        const toggle = document.getElementById(sectionId.replace('Section', 'Toggle'));
+        
+        if (section.style.display === 'none' || section.style.display === '') {
+            section.style.display = 'block';
+            toggle.style.transform = 'rotate(180deg)';
+        } else {
+            section.style.display = 'none';
+            toggle.style.transform = 'rotate(0deg)';
+        }
+    }
+
     // Toast function
     function showToast(message, success = true) {
         let toast = document.createElement("div");
