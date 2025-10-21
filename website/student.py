@@ -560,7 +560,7 @@ def view_assignment(assignment_id):
     assignment.late_exception_active = exception_info["active"]
     assignment.late_exception_deadline = exception_info["aware_deadline"]
     assignment.effective_deadline_for_student = compute_effective_deadline(
-        deadline_date if 'deadline_date' in locals() else None,
+        aware_deadline,
         exception_info
     )
     assignment.expired_for_student = (
@@ -571,7 +571,7 @@ def view_assignment(assignment_id):
     if submission:
         assignment.submitted_late = not is_submission_on_time(
             submission.upload_time,
-            deadline_date if 'deadline_date' in locals() else None,
+            aware_deadline,
             exception_info
         )
 
@@ -639,10 +639,11 @@ def upload_chunk(assignment_id):
     #if assignment is pastdeadline and assignment.close_after_deadline is true return expired 
     current_date = datetime.now(GMT_PLUS_2)
 
+    aware_deadline = None
     try:
         if assignment.deadline_date:
-            deadline_date = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
-            assignment.past_deadline = deadline_date < current_date
+            aware_deadline = pytz.timezone('Africa/Cairo').localize(assignment.deadline_date)
+            assignment.past_deadline = aware_deadline < current_date
         else:
             assignment.past_deadline = False
     except Exception:
@@ -896,6 +897,9 @@ def upload_chunk(assignment_id):
                 "details": str(e)
             }), 500
 
+
+
+
         current_date = datetime.now(GMT_PLUS_2)
         cairo_tz = pytz.timezone('Africa/Cairo')
         aware_local_time = datetime.now(cairo_tz)
@@ -1004,7 +1008,7 @@ def upload_chunk(assignment_id):
             "progress": 100.0,
             "submission_id": new_submission.id,
             "upload_time": naive_local_time.strftime('%Y-%m-%d %H:%M:%S'),
-            "points_awarded": assignment.points if deadline_date and deadline_date > current_date else (assignment.points / 2 if assignment.points else 0)
+            "points_awarded": assignment.points if submission_on_time else (assignment.points / 2 if assignment.points else 0)
         }), 200
 
     # Not the last chunk
@@ -1767,7 +1771,7 @@ def upload_exam_chunk(exam_id):
             "progress": 100.0,
             "submission_id": new_submission.id,
             "upload_time": naive_local_time.strftime('%Y-%m-%d %H:%M:%S'),
-            "points_awarded": exam.points if deadline_date and deadline_date > current_date else (exam.points / 2 if exam.points else 0)
+            "points_awarded": exam.points if submission_on_time else (exam.points / 2 if exam.points else 0)
         }), 200
 
     # Not the last chunk
