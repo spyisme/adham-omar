@@ -308,6 +308,13 @@ class Submissions(db.Model):
                                back_populates='reviewed_submissions', 
                                foreign_keys=[reviewed_by_id])
 
+    # --- Link 4: The Assistant assigned to correct this submission ---
+    assigned_to_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    assigned_to = db.relationship('Users', 
+                                 foreign_keys=[assigned_to_id])
+    
+    assignment_date = db.Column(db.DateTime, nullable=True)
+
     # Other relationships
     assignment = db.relationship('Assignments', back_populates='submissions')
 

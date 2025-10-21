@@ -1867,15 +1867,22 @@ def view_assignment_submissions(assignment_id):
         .subquery()
     )
 
-    # ✅ Only submissions from students the admin manages (sorted alphabetically by student name)
-    submissions = (
+    # ✅ Build submissions query
+    submissions_query = (
         Submissions.query
         .join(Users, Submissions.student_id == Users.id)
         .filter(Submissions.assignment_id == assignment_id)
         .filter(Submissions.student_id.in_(db.select(qualified_students_subq)))
-        .order_by(Users.name)
-        .all()
     )
+    
+    # ✅ For assistants (not super_admin), only show assigned submissions
+    if current_user.role != "super_admin":
+        submissions_query = submissions_query.filter(
+            Submissions.assigned_to_id == current_user.id
+        )
+    
+    # ✅ Get submissions sorted alphabetically by student name
+    submissions = submissions_query.order_by(Users.name).all()
 
     # ✅ All qualified students (for template use)
     all_qualified_students = (
@@ -1903,6 +1910,14 @@ def view_assignment_submissions(assignment_id):
     notification_status = {notif.user_id: notif.message_sent for notif in whatsapp_notifications}
     
 
+    # Get assistants managing this group (if group_id is specified)
+    assistants = []
+    if group_id:
+        assistants = Users.query.filter(
+            Users.role.in_(['admin', 'super_admin']),
+            Users.managed_groups.any(Groups.id == group_id)
+        ).order_by(Users.name).all()
+
     return render_template(
         "admin/assignments/assignment_submissions.html", 
         assignment=assignment, 
@@ -1911,8 +1926,107 @@ def view_assignment_submissions(assignment_id):
         not_submitted_students=not_submitted_students,
         notification_status=notification_status,
         group_id=group_id,
-        group=group
+        group=group,
+        assistants=assistants
     )
+
+
+#=================================================================
+# Assign Submissions to Assistants (Super Admin Only)
+#=================================================================
+@admin.route("/assignments/<int:assignment_id>/assign-submissions", methods=["POST"])
+def assign_submissions_to_assistant(assignment_id):
+    """Assign a range of submissions to a specific assistant"""
+    if current_user.role != "super_admin":
+        flash("Only super admins can assign submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+    
+    assignment = Assignments.query.get_or_404(assignment_id)
+    group_id = request.form.get('group_id', type=int)
+    assistant_id = request.form.get('assistant_id', type=int)
+    start_index = request.form.get('start_index', type=int)
+    end_index = request.form.get('end_index', type=int)
+    
+    if not assistant_id or start_index is None or end_index is None:
+        flash("Please provide all required fields.", "danger")
+        return redirect(request.referrer or url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+    
+    # Validate assistant
+    assistant = Users.query.get(assistant_id)
+    if not assistant or assistant.role not in ['admin', 'super_admin']:
+        flash("Invalid assistant selected.", "danger")
+        return redirect(request.referrer or url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+    
+    # Get all submissions for this assignment (sorted by student name to match display order)
+    qualified_students_subq = (
+        get_qualified_students_query(assignment, current_user.id)
+        .with_entities(Users.id)
+        .subquery()
+    )
+    
+    submissions = (
+        Submissions.query
+        .join(Users, Submissions.student_id == Users.id)
+        .filter(Submissions.assignment_id == assignment_id)
+        .filter(Submissions.student_id.in_(db.select(qualified_students_subq)))
+        .order_by(Users.name)
+        .all()
+    )
+    
+    # Validate indices
+    if start_index < 1 or end_index > len(submissions) or start_index > end_index:
+        flash(f"Invalid index range. Must be between 1 and {len(submissions)}.", "danger")
+        return redirect(request.referrer or url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+    
+    # Assign submissions (convert to 0-based index)
+    assigned_count = 0
+    for i in range(start_index - 1, end_index):
+        submission = submissions[i]
+        submission.assigned_to_id = assistant_id
+        submission.assignment_date = datetime.now(GMT_PLUS_2)
+        assigned_count += 1
+    
+    try:
+        db.session.commit()
+        flash(f"Successfully assigned {assigned_count} submissions to {assistant.name}!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error assigning submissions: {str(e)}", "danger")
+    
+    return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment_id, group_id=group_id))
+
+
+@admin.route("/assignments/<int:assignment_id>/unassign-submissions", methods=["POST"])
+def unassign_submissions(assignment_id):
+    """Unassign submissions from an assistant"""
+    if current_user.role != "super_admin":
+        flash("Only super admins can unassign submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+    
+    assistant_id = request.form.get('assistant_id', type=int)
+    group_id = request.form.get('group_id', type=int)
+    
+    if not assistant_id:
+        flash("Please select an assistant.", "danger")
+        return redirect(request.referrer or url_for("admin.view_assignment_submissions", assignment_id=assignment_id))
+    
+    # Unassign all submissions for this assistant in this assignment
+    updated = Submissions.query.filter_by(
+        assignment_id=assignment_id,
+        assigned_to_id=assistant_id
+    ).update({
+        'assigned_to_id': None,
+        'assignment_date': None
+    })
+    
+    try:
+        db.session.commit()
+        flash(f"Successfully unassigned {updated} submissions!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error unassigning submissions: {str(e)}", "danger")
+    
+    return redirect(url_for("admin.view_assignment_submissions", assignment_id=assignment_id, group_id=group_id))
 
 
 #Get original Pdff

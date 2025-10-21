@@ -779,18 +779,16 @@ def forget_password_otp():
 def activate_whatsapp():
     data = request.get_json()
     phone_number_raw = data.get("phone_number")
-    message_content = data.get("message", "")
+ 
 
     if not phone_number_raw:
         return jsonify({"error": "Phone number is required"}), 400
 
-    # 1. Normalize inputs
-    # This gives you the full international number, e.g., "201001234567"
-    cleaned_number = phone_number_raw.replace(" ", "").lstrip("+")
-    cleaned_message = message_content.strip()
 
-    # 2. Find the user
-    # This logic correctly finds the user based on the incoming international number
+    cleaned_number = phone_number_raw.replace(" ", "").lstrip("+")
+
+
+
     target_user = Users.query.filter(
         func.concat(Users.phone_number_country_code, Users.phone_number) == cleaned_number
     ).first()
@@ -804,51 +802,47 @@ def activate_whatsapp():
         if target_user:
             is_parent = True
 
-    # 3. Process OTP and activation logic
-    
-    # Case 1: User found, OTP is valid
-    if target_user and target_user.otp and cleaned_message == target_user.otp:
+
+    if target_user  :
         
         if is_parent:
-            # --- Activate Parent WhatsApp ---
+            
             if target_user.parent_whatsapp is None:
-                # --- FIX: Save the full international number ---
+ 
                 target_user.parent_whatsapp = cleaned_number
-                # target_user.otp = None  # Good practice: clear OTP after use
+ 
                 db.session.commit()
                 
                 flash("Parent Whatsapp activated successfully!", "success")
-                # --- FIX: Send to the full number using bypass ---
-                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
+ 
+                send_whatsapp_message(cleaned_number, 
+                                      "Thanks for verifying your phone number", bypass=True)
+                
+
+
+                
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
                 return jsonify({"message": "Parent Whatsapp already activated!"})
         
         else:
-            # --- Activate Student WhatsApp ---
+
             if target_user.student_whatsapp is None:
-                # --- FIX: Save the full international number ---
+
                 target_user.student_whatsapp = cleaned_number
-                # target_user.otp = None  # Good practice: clear OTP after use
+
                 db.session.commit()
 
                 flash("Student Whatsapp activated successfully!", "success")
-                # --- FIX: Send to the full number using bypass ---
-                send_whatsapp_message(cleaned_number, "Whatsapp activated successfully!", bypass=True)
+
+                send_whatsapp_message(cleaned_number, 
+                                      "Thanks for verifying your phone number", bypass=True)
+                
+                
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
                 return jsonify({"message": "Student Whatsapp already activated!"})
 
-    # Case 2: User found, but OTP is invalid
-    elif target_user and target_user.otp:
-        if target_user.student_whatsapp is None and target_user.parent_whatsapp is None:
-            # --- FIX: Send to the full number using bypass ---
-            send_whatsapp_message(cleaned_number, "Invalid OTP. Please try again.", bypass=True)
-            return jsonify({"message": "Invalid OTP"})
-        else:
-            return jsonify({"message": "User already activated, message ignored."})
-
-    # Case 3: User not found or no OTP was pending
     else:
         flash("User not found or no OTP pending!", "danger")
         return jsonify({"message": "User not found or no OTP pending!"})
