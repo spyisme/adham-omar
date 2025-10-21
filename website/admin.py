@@ -7875,5 +7875,180 @@ def approve_all_submissions(assignment_id):
         return jsonify({"success": False, "message": f"Error approving submissions: {str(e)}"}), 500
 
 
+# Approve bulk submissions by IDs
+@admin.route("/submissions/approve-bulk", methods=["POST"])
+def approve_bulk_submissions():
+    """Head approves multiple selected submissions at once"""
+    if current_user.role != "super_admin":
+        return jsonify({"success": False, "message": "Access denied. Only Heads can approve submissions."}), 403
+    
+    data = request.get_json()
+    submission_ids = data.get('submission_ids', [])
+    
+    if not submission_ids or not isinstance(submission_ids, list):
+        return jsonify({"success": False, "message": "No submissions selected."}), 400
+    
+    approved_count = 0
+    
+    try:
+        for submission_id in submission_ids:
+            submission = Submissions.query.get(submission_id)
+            
+            if not submission:
+                continue
+                
+            if not submission.corrected:
+                continue
+                
+            if submission.reviewed:
+                continue
+            
+            # Mark as reviewed
+            submission.reviewed = True
+            submission.reviewed_by_id = current_user.id
+            submission.review_date = datetime.now(GMT_PLUS_2)
+            
+            # Send WhatsApp notifications
+            assignment = submission.assignment
+            mark = submission.mark or "Graded"
+            
+            try:
+                if assignment.type == "Exam":
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Exam '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}"
+                    )
+                else:
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}"
+                    )
+            except Exception as e:
+                pass  # Don't fail if WhatsApp fails
+            
+            approved_count += 1
+        
+        db.session.commit()
+        return jsonify({
+            "success": True, 
+            "message": f"Approved {approved_count} submission(s)",
+            "approved_count": approved_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"Error approving submissions: {str(e)}"}), 500
+
+
+# Approve submissions by index range
+@admin.route("/submissions/approve-range", methods=["POST"])
+def approve_range_submissions():
+    """Head approves submissions by index range (from pagination page)"""
+    if current_user.role != "super_admin":
+        return jsonify({"success": False, "message": "Access denied. Only Heads can approve submissions."}), 403
+    
+    data = request.get_json()
+    from_index = data.get('from_index')
+    to_index = data.get('to_index')
+    page = data.get('page', 1)
+    
+    if not from_index or not to_index:
+        return jsonify({"success": False, "message": "Invalid range specified."}), 400
+    
+    try:
+        from_index = int(from_index)
+        to_index = int(to_index)
+        page = int(page)
+    except ValueError:
+        return jsonify({"success": False, "message": "Invalid range values."}), 400
+    
+    if from_index < 1 or to_index < 1 or from_index > to_index:
+        return jsonify({"success": False, "message": "Invalid range."}), 400
+    
+    per_page = 20
+    
+    try:
+        # Get all corrected but not reviewed submissions with same pagination as view
+        all_pending = Submissions.query.filter_by(
+            corrected=True, 
+            reviewed=False
+        ).order_by(Submissions.correction_date.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        submissions_list = all_pending.items
+        
+        # Validate range against actual page items
+        if to_index > len(submissions_list):
+            return jsonify({
+                "success": False, 
+                "message": f"Range exceeds available submissions. Max index: {len(submissions_list)}"
+            }), 400
+        
+        # Get submissions in range (convert to 0-indexed)
+        submissions_to_approve = submissions_list[from_index-1:to_index]
+        
+        approved_count = 0
+        
+        for submission in submissions_to_approve:
+            if submission.reviewed:
+                continue
+                
+            # Mark as reviewed
+            submission.reviewed = True
+            submission.reviewed_by_id = current_user.id
+            submission.review_date = datetime.now(GMT_PLUS_2)
+            
+            # Send WhatsApp notifications
+            assignment = submission.assignment
+            mark = submission.mark or "Graded"
+            
+            try:
+                if assignment.type == "Exam":
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Exam '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}"
+                    )
+                else:
+                    send_whatsapp_message(
+                        submission.student.phone_number, 
+                        f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}"
+                    )
+                    send_whatsapp_message(
+                        submission.student.parent_phone_number, 
+                        f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}"
+                    )
+            except Exception as e:
+                pass  # Don't fail if WhatsApp fails
+            
+            approved_count += 1
+        
+        db.session.commit()
+        return jsonify({
+            "success": True, 
+            "message": f"Approved {approved_count} submission(s) from #{from_index} to #{to_index}",
+            "approved_count": approved_count
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": f"Error approving submissions: {str(e)}"}), 500
+
+
+    
+
+
 
     
