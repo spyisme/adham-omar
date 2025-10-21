@@ -720,7 +720,7 @@
         </div>
         </div> <!-- Close submissionsSection -->
     </div>
-
+{% if current_user.role == "super_admin" %}
     <div class="card">
         <div class="card-header">
             <h3>Missing Submissions</h3>
@@ -774,6 +774,7 @@
             </div>
         </div>
     </div>
+    {%endif%}
 </div>
 <script>
     // Toast function
