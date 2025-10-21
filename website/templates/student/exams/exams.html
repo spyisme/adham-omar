@@ -156,6 +156,12 @@
     border-color: var(--warn-brd);
   }
 
+  .badge-extended {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0369a1;
+    border-color: rgba(14, 165, 233, 0.3);
+  }
+
   .badge-expired {
     background: var(--danger-weak);
     color: var(--danger);
@@ -241,7 +247,8 @@
     {% for a in exams %}
     {% set is_completed_on_time = a.done and not a.submitted_late %}
     {% set is_completed_late = a.done and a.submitted_late %}
-    {% set is_expired = not a.done and a.past_deadline %}
+    {% set has_extension = a.late_exception_active %}
+    {% set is_expired = not a.done and a.expired_for_student %}
 
     {% set status_label, status_class = 'Open', 'badge-open' %}
     {% if is_completed_on_time %}
@@ -250,6 +257,10 @@
     {% set status_label, status_class = 'Completed Late', 'badge-late' %}
     {% elif is_expired %}
     {% set status_label, status_class = 'Expired', 'badge-expired' %}
+    {% elif has_extension %}
+    {% set status_label, status_class = 'Extended', 'badge-extended' %}
+    {% elif (not a.done) and a.past_deadline %}
+    {% set status_label, status_class = 'Deadline Passed', 'badge-late' %}
     {% endif %}
 
     <a href="{{ url_for('student.view_exam', exam_id=a.id) }}" class="card" aria-label="View exam: {{ a.title }}">
