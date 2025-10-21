@@ -308,10 +308,12 @@
 
     <!-- New Assignment Statistics -->
     <div class="stats-grid-new">
+        {% if current_user.role == "super_admin" %}
         <div class="stat-card-new unassigned">
             <div class="stat-label-new">Unassigned Submissions</div>
             <div class="stat-value-new">{{ unassigned_count }}</div>
         </div>
+        {% endif %}
         <div class="stat-card-new approved">
             <div class="stat-label-new">Approved Submissions</div>
             <div class="stat-value-new">{{ approved_count }}</div>
