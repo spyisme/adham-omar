@@ -5,55 +5,59 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
 <style>
     .assistant-assignment-panel {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        background: var(--color-white);
+        border-radius: var(--radius-lg);
+        padding: var(--space-6);
+        margin-bottom: var(--space-6);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--color-border);
     }
 
     .assistant-assignment-panel h3 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #1a202c;
-        margin-bottom: 1rem;
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
+        margin-bottom: var(--space-4);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assistants-grid {
         display: grid;
-        gap: 1rem;
+        gap: var(--space-4);
     }
 
     .assistant-card {
-        background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
-        border-radius: 12px;
-        padding: 1.25rem;
-        border: 2px solid #e2e8f0;
-        transition: all 0.3s;
+        background: var(--color-white);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        border: 1px solid var(--color-border);
+        transition: all 0.2s;
     }
 
     .assistant-card:hover {
-        border-color: #667eea;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        border-color: var(--color-primary);
+        box-shadow: var(--shadow-md);
     }
 
     .assistant-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 1rem;
+        margin-bottom: var(--space-4);
     }
 
     .assistant-info h4 {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1a202c;
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--color-text-primary);
         margin-bottom: 0.25rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assistant-info p {
         font-size: 0.875rem;
-        color: #718096;
+        color: var(--color-text-secondary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assistant-stats {
@@ -63,10 +67,8 @@
     .assistant-stats .assigned-count {
         font-size: 1.5rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        color: var(--color-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assignment-form {
@@ -83,122 +85,131 @@
     .assignment-form label {
         display: block;
         font-size: 0.875rem;
-        font-weight: 600;
-        color: #4a5568;
+        font-weight: 500;
+        color: var(--color-text-primary);
         margin-bottom: 0.375rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assignment-form input[type="number"] {
         width: 100%;
         padding: 0.625rem;
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        font-size: 0.95rem;
-        transition: all 0.3s;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: var(--color-white);
     }
 
     .assignment-form input[type="number"]:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px hsla(217, 91%, 60%, 0.2);
     }
 
     .btn-assign {
         padding: 0.625rem 1.25rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        background: var(--color-primary);
+        color: var(--color-white);
         border: none;
-        border-radius: 8px;
-        font-weight: 600;
+        border-radius: var(--radius-md);
+        font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        transition: all 0.2s;
         font-size: 0.875rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .btn-assign:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        background: var(--color-primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
     }
 
     .btn-unassign {
         padding: 0.625rem 1.25rem;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        color: white;
+        background: var(--color-danger);
+        color: var(--color-white);
         border: none;
-        border-radius: 8px;
-        font-weight: 600;
+        border-radius: var(--radius-md);
+        font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        transition: all 0.2s;
         font-size: 0.875rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .btn-unassign:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);
+        background: hsl(0, 84%, 54%);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
     }
 
     .stats-grid-new {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-        margin-bottom: 1.5rem;
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
     }
 
     .stat-card-new {
-        background: white;
-        border-radius: 12px;
-        padding: 1.25rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border-left: 4px solid transparent;
-        transition: all 0.3s;
+        background: var(--color-white);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--color-border);
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
     }
 
     .stat-card-new:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        box-shadow: var(--shadow-md);
     }
 
     .stat-card-new.unassigned {
-        border-left-color: #cbd5e0;
+        border-left-color: var(--color-text-secondary);
     }
 
     .stat-card-new.approved {
-        border-left-color: #38ef7d;
+        border-left-color: var(--color-success);
     }
 
     .stat-card-new.waiting {
-        border-left-color: #f5576c;
+        border-left-color: var(--color-danger);
     }
 
     .stat-card-new.not-corrected {
-        border-left-color: #fbbf24;
+        border-left-color: var(--color-warning);
     }
 
     .stat-label-new {
         font-size: 0.75rem;
-        color: #718096;
+        color: var(--color-text-secondary);
         margin-bottom: 0.5rem;
-        font-weight: 600;
+        font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .stat-value-new {
         font-size: 1.75rem;
         font-weight: 700;
-        color: #1a202c;
+        color: var(--color-text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assigned-to-column {
-        color: #667eea;
-        font-weight: 600;
+        color: var(--color-primary);
+        font-weight: 500;
         font-size: 0.875rem;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     .assigned-to-column.unassigned {
-        color: #cbd5e0;
+        color: var(--color-text-secondary);
     }
 
     @media (max-width: 768px) {
@@ -384,31 +395,35 @@
             {% if current_user.role == "super_admin" %}
             <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                 <button onclick="approveAllSubmissions()" class="btn btn-success" style="
-                    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    font-weight: 600;
+                    background: var(--color-success);
+                    color: var(--color-white);
+                    padding: 0.75rem 1.5rem;
+                    border-radius: var(--radius-md);
+                    font-weight: 500;
                     border: none;
                     cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
-                    transition: all 0.3s;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
+                    box-shadow: var(--shadow-sm);
+                    transition: all 0.2s;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 0.9rem;
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-sm)';">
                     ✓ Approve All Corrected
                 </button>
                 <button onclick="openBulkApprovalPanel()" class="btn btn-primary" style="
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    font-weight: 600;
+                    background: var(--color-primary);
+                    color: var(--color-white);
+                    padding: 0.75rem 1.5rem;
+                    border-radius: var(--radius-md);
+                    font-weight: 500;
                     border: none;
                     cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-                    transition: all 0.3s;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';">
+                    box-shadow: var(--shadow-sm);
+                    transition: all 0.2s;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 0.9rem;
+                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-sm)';">
                     ☑️ Bulk Approve
                 </button>
             </div>
@@ -419,91 +434,97 @@
         {% if current_user.role == "super_admin" %}
         <div id="bulkApprovalPanel" style="
             display: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            margin: 1rem 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            background: var(--color-primary);
+            padding: var(--space-6);
+            margin: var(--space-4) var(--space-6);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
         ">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div style="color: white;">
-                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
+                <div style="color: var(--color-white); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    <div style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">
                         <span id="selectedCount">0</span> Selected
                     </div>
                     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <button type="button" onclick="selectAllSubmissions()" style="
-                            padding: 8px 16px;
-                            background: rgba(255, 255, 255, 0.2);
-                            color: white;
+                            padding: 0.5rem 1rem;
+                            background: rgba(255, 255, 255, 0.15);
+                            color: var(--color-white);
                             border: 1px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 6px;
+                            border-radius: var(--radius-md);
                             cursor: pointer;
-                            font-weight: 600;
-                            font-size: 0.9rem;
+                            font-weight: 500;
+                            font-size: 0.875rem;
                             transition: all 0.2s;
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                         ">Select All</button>
                         <button type="button" onclick="deselectAllSubmissions()" style="
-                            padding: 8px 16px;
-                            background: rgba(255, 255, 255, 0.2);
-                            color: white;
+                            padding: 0.5rem 1rem;
+                            background: rgba(255, 255, 255, 0.15);
+                            color: var(--color-white);
                             border: 1px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 6px;
+                            border-radius: var(--radius-md);
                             cursor: pointer;
-                            font-weight: 600;
-                            font-size: 0.9rem;
+                            font-weight: 500;
+                            font-size: 0.875rem;
                             transition: all 0.2s;
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                         ">Deselect All</button>
                         <button type="button" onclick="selectCorrected()" style="
-                            padding: 8px 16px;
-                            background: rgba(255, 255, 255, 0.2);
-                            color: white;
+                            padding: 0.5rem 1rem;
+                            background: rgba(255, 255, 255, 0.15);
+                            color: var(--color-white);
                             border: 1px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 6px;
+                            border-radius: var(--radius-md);
                             cursor: pointer;
-                            font-weight: 600;
-                            font-size: 0.9rem;
+                            font-weight: 500;
+                            font-size: 0.875rem;
                             transition: all 0.2s;
+                            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                         ">Select Corrected</button>
                     </div>
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
                     <button type="button" id="btnApproveSelected" onclick="approveSelected()" disabled style="
-                        padding: 12px 24px;
-                        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-                        color: white;
+                        padding: 0.75rem 1.5rem;
+                        background: var(--color-success);
+                        color: var(--color-white);
                         border: none;
-                        border-radius: 8px;
+                        border-radius: var(--radius-md);
                         cursor: pointer;
-                        font-weight: 700;
-                        font-size: 1rem;
-                        box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
-                        transition: all 0.3s;
+                        font-weight: 600;
+                        font-size: 0.9rem;
+                        box-shadow: var(--shadow-sm);
+                        transition: all 0.2s;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     ">
                         ✓ Approve Selected
                     </button>
                     <button type="button" onclick="openRangeModal()" style="
-                        padding: 12px 24px;
-                        background: rgba(255, 255, 255, 0.95);
-                        color: #667eea;
-                        border: 2px solid white;
-                        border-radius: 8px;
+                        padding: 0.75rem 1.5rem;
+                        background: var(--color-white);
+                        color: var(--color-primary);
+                        border: 2px solid var(--color-white);
+                        border-radius: var(--radius-md);
                         cursor: pointer;
-                        font-weight: 700;
-                        font-size: 1rem;
-                        transition: all 0.3s;
+                        font-weight: 600;
+                        font-size: 0.9rem;
+                        transition: all 0.2s;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     ">
                         📊 Approve by Range
                     </button>
                     <button type="button" onclick="closeBulkApprovalPanel()" style="
-                        padding: 12px 24px;
-                        background: rgba(255, 255, 255, 0.2);
-                        color: white;
+                        padding: 0.75rem 1.5rem;
+                        background: rgba(255, 255, 255, 0.15);
+                        color: var(--color-white);
                         border: 1px solid rgba(255, 255, 255, 0.5);
-                        border-radius: 8px;
+                        border-radius: var(--radius-md);
                         cursor: pointer;
-                        font-weight: 600;
-                        font-size: 1rem;
-                        transition: all 0.3s;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                        transition: all 0.2s;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                     ">
                         Close
                     </button>
@@ -513,7 +534,7 @@
                             height: 24px;
                             border: 3px solid rgba(255,255,255,0.3);
                             border-radius: 50%;
-                            border-top-color: white;
+                            border-top-color: var(--color-white);
                             animation: spin 0.8s linear infinite;
                         "></div>
                     </div>
@@ -529,8 +550,8 @@
                 cursor: not-allowed;
             }
             .submission-row.selected {
-                background: rgba(102, 126, 234, 0.1) !important;
-                border-left: 4px solid #667eea;
+                background: hsla(217, 91%, 60%, 0.1) !important;
+                border-left: 3px solid var(--color-primary);
             }
         </style>
         {% endif %}
@@ -983,30 +1004,32 @@
             visibility: hidden;
             min-width: 180px;
             margin-left: -90px;
-            background-color: #333;
-            color: #fff;
+            background-color: var(--color-text-primary);
+            color: var(--color-white);
             text-align: center;
-            border-radius: 4px;
-            padding: 12px 22px;
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1.25rem;
             position: fixed;
             z-index: 9999;
             left: 50%;
             bottom: 40px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             opacity: 0;
-            transition: opacity 0.4s, visibility 0.4s;
+            transition: opacity 0.3s, visibility 0.3s;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            box-shadow: var(--shadow-lg);
         }
         .custom-toast.show {
             visibility: visible;
             opacity: 1;
         }
         .custom-toast.toast-success {
-            background-color: #22c55e;
-            color: #fff;
+            background-color: var(--color-success);
+            color: var(--color-white);
         }
         .custom-toast.toast-fail {
-            background-color: #dc2626;
-            color: #fff;
+            background-color: var(--color-danger);
+            color: var(--color-white);
         }
         `;
         document.head.appendChild(style);
@@ -1067,12 +1090,12 @@
 <div id="uploadModal" class="modal-upload-corrected">
     <div class="modal-content-upload">
         <span class="close-upload-modal" onclick="closeUploadModal()">&times;</span>
-        <h3 style="margin-bottom: 0.5rem;">Upload Corrected PDF</h3>
-        <p id="modal-student-name" style="color: #666; font-size: 0.9rem; margin-bottom: 1rem;"></p>
+        <h3 style="margin-bottom: 0.5rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 1.125rem; font-weight: 600; color: var(--color-text-primary);">Upload Corrected PDF</h3>
+        <p id="modal-student-name" style="color: var(--color-text-secondary); font-size: 0.875rem; margin-bottom: var(--space-4); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></p>
 
         <!-- Alert for errors -->
         <div id="upload-alert"
-            style="display:none; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.97rem;">
+            style="display:none; background: hsl(0, 84%, 96%); color: hsl(0, 84%, 40%); border: 1px solid hsl(0, 84%, 90%); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: var(--space-4); font-size: 0.875rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         </div>
 
         <form id="upload-corrected-form">
@@ -1080,64 +1103,86 @@
 
 
             {% if assignment.out_of > 0 %}
-            <div style="margin-bottom: 1rem;">
+            <div style="margin-bottom: var(--space-4);">
                 <label for="modal-mark"
-                    style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Grade/Mark:</label>
+                    style="display: block; margin-bottom: 0.375rem; font-weight: 500; font-size: 0.875rem; color: var(--color-text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Grade/Mark:</label>
                 <input type="text" id="modal-mark" name="mark" placeholder="Enter grade"
-                    style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
+                    style="width: 100%; padding: 0.625rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-size: 0.9rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--color-white); transition: all 0.2s;">
             </div>
             {% endif %}
-            <div style="margin-bottom: 1rem;">
-                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Corrected PDF File:</label>
+            <div style="margin-bottom: var(--space-4);">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; color: var(--color-text-primary); font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Corrected PDF File:</label>
 
                 <div id="drop-zone" style="
-                    border: 2px dashed #ccc;
-                    border-radius: 8px;
+                    border: 2px dashed var(--color-border);
+                    border-radius: var(--radius-md);
                     padding: 2rem 1rem;
                     text-align: center;
                     cursor: pointer;
                     transition: all 0.2s;
-                    background: #fafbfc;
+                    background: var(--color-bg);
                 ">
                     <input type="file" id="modal-file" accept="application/pdf" style="display: none;">
                     <div id="drop-zone-content">
-                        <p style="margin: 0; color: #666; font-size: 0.95rem;">📁 Drag & drop PDF here</p>
-                        <p style="margin: 0.5rem 0 0 0; color: #999; font-size: 0.85rem;">or click to browse</p>
+                        <p style="margin: 0; color: var(--color-text-secondary); font-size: 0.9rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">📁 Drag & drop PDF here</p>
+                        <p style="margin: 0.5rem 0 0 0; color: var(--color-text-secondary); font-size: 0.8rem; opacity: 0.7; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">or click to browse</p>
                     </div>
                     <div id="file-selected" style="display: none;">
-                        <p style="margin: 0; color: #007bff; font-weight: 500;">✓ <span id="selected-file-name"></span>
+                        <p style="margin: 0; color: var(--color-primary); font-weight: 500; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">✓ <span id="selected-file-name"></span>
                         </p>
-                        <p style="margin: 0.25rem 0 0 0; color: #999; font-size: 0.85rem;">Click to change file</p>
+                        <p style="margin: 0.25rem 0 0 0; color: var(--color-text-secondary); font-size: 0.8rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">Click to change file</p>
                     </div>
                 </div>
             </div>
 
-            <div id="upload-progress-container" style="display: none; margin-bottom: 1rem;">
+            <div id="upload-progress-container" style="display: none; margin-bottom: var(--space-4);">
                 <div style="
                     height: 8px;
-                    background: #e5e7eb;
+                    background: var(--color-bg-secondary);
                     border-radius: 9999px;
                     overflow: hidden;
                     margin-bottom: 0.5rem;
                 ">
                     <div id="upload-progress-bar" style="
                         height: 100%;
-                        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+                        background: var(--color-primary);
                         border-radius: 9999px;
                         transition: width 0.2s linear;
                         width: 0%;
                     "></div>
                 </div>
-                <p id="upload-status-text" style="margin: 0; font-size: 0.85rem; color: #666; text-align: center;"></p>
+                <p id="upload-status-text" style="margin: 0; font-size: 0.8rem; color: var(--color-text-secondary); text-align: center; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"></p>
             </div>
 
             <div style="display: flex; gap: 0.75rem;">
-                <button type="submit" id="submit-upload-btn" class="btn btn-primary btn-small" style="flex: 1;"
-                    disabled>
+                <button type="submit" id="submit-upload-btn" class="btn btn-primary btn-small" style="
+                    flex: 1;
+                    background: var(--color-primary);
+                    color: var(--color-white);
+                    padding: 0.625rem 1rem;
+                    border-radius: var(--radius-md);
+                    font-weight: 500;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    font-size: 0.9rem;
+                " disabled>
                     Submit
                 </button>
                 <button type="button" class="btn btn-secondary btn-small" onclick="closeUploadModal()"
-                    style="background: #ccc; color: #222;">
+                    style="
+                        background: var(--color-text-secondary);
+                        color: var(--color-white);
+                        padding: 0.625rem 1rem;
+                        border-radius: var(--radius-md);
+                        font-weight: 500;
+                        border: none;
+                        cursor: pointer;
+                        transition: all 0.2s;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        font-size: 0.9rem;
+                    ">
                     Cancel
                 </button>
             </div>
@@ -1149,7 +1194,7 @@
     #submit-upload-btn:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-        background-color: red;
+        background-color: var(--color-danger);
     }
 
     #submit-upload-btn {
@@ -1169,26 +1214,27 @@
     }
 
     .modal-content-upload {
-        background-color: #fff;
+        background-color: var(--color-white);
         margin: 3% auto;
-        padding: 1.5rem;
-        border-radius: 12px;
+        padding: var(--space-6);
+        border-radius: var(--radius-lg);
         width: 90%;
         max-width: 500px;
-        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow-lg);
         position: relative;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
     @media (max-width: 640px) {
         .modal-content-upload {
             margin: 10% auto;
             width: 95%;
-            padding: 1.25rem;
+            padding: var(--space-4);
         }
     }
 
     .close-upload-modal {
-        color: #aaa;
+        color: var(--color-text-secondary);
         position: absolute;
         top: 12px;
         right: 18px;
@@ -1200,12 +1246,12 @@
     }
 
     .close-upload-modal:hover {
-        color: #333;
+        color: var(--color-text-primary);
     }
 
     #drop-zone.drag-over {
-        border-color: #007bff;
-        background: #f0f8ff;
+        border-color: var(--color-primary);
+        background: hsla(217, 91%, 60%, 0.05);
     }
 </style>
 
