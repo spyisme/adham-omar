@@ -87,27 +87,173 @@
                 <p>Review and grade submitted exams.</p>
             </div>
             {% if current_user.role == "super_admin" %}
-            <button onclick="approveAllSubmissions()" class="btn btn-success" style="
-                background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                border: none;
-                cursor: pointer;
-                box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
-                transition: all 0.3s;
-            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
-                onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
-                ✓ Approve All Corrected
-            </button>
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button onclick="approveAllSubmissions()" class="btn btn-success" style="
+                    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
+                    ✓ Approve All Corrected
+                </button>
+                <button onclick="openBulkApprovalPanel()" class="btn btn-primary" style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';">
+                    ☑️ Bulk Approve
+                </button>
+            </div>
             {% endif %}
         </div>
+
+        <!-- Bulk Approval Panel -->
+        {% if current_user.role == "super_admin" %}
+        <div id="bulkApprovalPanel" style="
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            margin: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="color: white;">
+                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                        <span id="selectedCount">0</span> Selected
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="selectAllSubmissions()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Select All</button>
+                        <button type="button" onclick="deselectAllSubmissions()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Deselect All</button>
+                        <button type="button" onclick="selectCorrected()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Select Corrected</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" id="btnApproveSelected" onclick="approveSelected()" disabled style="
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+                        transition: all 0.3s;
+                    ">
+                        ✓ Approve Selected
+                    </button>
+                    <button type="button" onclick="openRangeModal()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #667eea;
+                        border: 2px solid white;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        📊 Approve by Range
+                    </button>
+                    <button type="button" onclick="closeBulkApprovalPanel()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        Close
+                    </button>
+                    <div id="bulkLoadingSpinner" style="display: none; margin-left: 10px;">
+                        <div style="
+                            width: 24px;
+                            height: 24px;
+                            border: 3px solid rgba(255,255,255,0.3);
+                            border-radius: 50%;
+                            border-top-color: white;
+                            animation: spin 0.8s linear infinite;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            #btnApproveSelected:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .submission-row.selected {
+                background: rgba(102, 126, 234, 0.1) !important;
+                border-left: 4px solid #667eea;
+            }
+        </style>
+        {% endif %}
         <div class="card-content no-padding" style="overflow: visible;">
             <div class="table-wrapper" style="overflow: visible;">
                 <table style="position: relative;">
                     <thead>
                         <tr>
+                            {% if current_user.role == "super_admin" %}
+                            <th style="width: 50px; text-align: center;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()" style="
+                                    width: 20px;
+                                    height: 20px;
+                                    cursor: pointer;
+                                    accent-color: #667eea;
+                                ">
+                            </th>
+                            {% endif %}
                             <th>#</th>
                             <th>Student</th>
                             <th>Submission Time</th>
@@ -125,7 +271,21 @@
                         {% for submission in submissions %}
                         {% if submission.student_id in submitted_student_ids %}
 
-                        <tr>
+                        <tr class="submission-row" data-submission-id="{{ submission.id }}" data-corrected="{{ submission.corrected }}" data-reviewed="{{ submission.reviewed }}">
+                            {% if current_user.role == "super_admin" %}
+                            <td style="text-align: center;">
+                                {% if submission.corrected and not submission.reviewed %}
+                                <input type="checkbox" class="submission-checkbox" data-submission-id="{{ submission.id }}" onchange="updateSelectionCount()" style="
+                                    width: 20px;
+                                    height: 20px;
+                                    cursor: pointer;
+                                    accent-color: #667eea;
+                                ">
+                                {% else %}
+                                <span style="color: #ccc;">—</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
                             <td data-label="#" style="font-weight: 600; color: #666;">{{ loop.index }}</td>
                             <td data-label="Student" class="student-name">
                                 <a href="{{ url_for('admin.student', user_id=submission.student.id) }}">{{
@@ -1112,6 +1272,359 @@
                     });
             }
         });
+    }
+
+    // Approve all corrected submissions
+    window.approveAllSubmissions = function () {
+        const pendingReviews = document.querySelectorAll('.badge-warning');
+        const pendingCount = pendingReviews.length;
+
+        if (pendingCount === 0) {
+            Swal.fire({
+                title: 'No Pending Reviews',
+                text: 'There are no submissions awaiting review.',
+                icon: 'info',
+                confirmButtonColor: '#11998e'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Approve All Corrections?',
+            html: `
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">You are about to approve <strong>${pendingCount}</strong> correction(s).</p>
+                <p style="color: #666; font-size: 0.95rem;">This will send WhatsApp notifications to all students and parents.</p>
+                <p style="color: #d33; font-size: 0.9rem; margin-top: 1rem;"><strong>⚠️ This action cannot be undone!</strong></p>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#11998e',
+            cancelButtonColor: '#d33',
+            confirmButtonText: `✓ Yes, Approve All ${pendingCount}`,
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Approving All...',
+                    text: 'This may take a moment',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch(`/admin/assignments/{{ exam.id }}/approve-all-submissions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Success!',
+                                html: `
+                                <p style="font-size: 1.1rem;">${data.approved_count} correction(s) approved!</p>
+                                <p style="color: #666; font-size: 0.95rem; margin-top: 0.5rem;">Notifications have been sent.</p>
+                            `,
+                                icon: 'success',
+                                confirmButtonColor: '#11998e'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'Failed to approve submissions.',
+                                icon: 'error',
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'An error occurred while approving.',
+                            icon: 'error',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
+            }
+        });
+    }
+
+    // ===== BULK APPROVAL FUNCTIONS =====
+    
+    function openBulkApprovalPanel() {
+        document.getElementById('bulkApprovalPanel').style.display = 'block';
+        updateSelectionCount();
+    }
+
+    function closeBulkApprovalPanel() {
+        document.getElementById('bulkApprovalPanel').style.display = 'none';
+        deselectAllSubmissions();
+    }
+
+    function updateSelectionCount() {
+        const checkboxes = document.querySelectorAll('.submission-checkbox:checked');
+        const count = checkboxes.length;
+        document.getElementById('selectedCount').textContent = count;
+        document.getElementById('btnApproveSelected').disabled = count === 0;
+        
+        // Update row styling
+        document.querySelectorAll('.submission-row').forEach(row => {
+            const checkbox = row.querySelector('.submission-checkbox');
+            if (checkbox && checkbox.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+
+        // Update "select all" checkbox state
+        const allCheckboxes = document.querySelectorAll('.submission-checkbox');
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+        }
+    }
+
+    function toggleAllCheckboxes() {
+        const selectAll = document.getElementById('selectAllCheckbox').checked;
+        document.querySelectorAll('.submission-checkbox').forEach(cb => {
+            cb.checked = selectAll;
+        });
+        updateSelectionCount();
+    }
+
+    function selectAllSubmissions() {
+        document.querySelectorAll('.submission-checkbox').forEach(cb => {
+            cb.checked = true;
+        });
+        updateSelectionCount();
+    }
+
+    function deselectAllSubmissions() {
+        document.querySelectorAll('.submission-checkbox').forEach(cb => {
+            cb.checked = false;
+        });
+        updateSelectionCount();
+    }
+
+    function selectCorrected() {
+        document.querySelectorAll('.submission-checkbox').forEach(cb => {
+            const row = cb.closest('.submission-row');
+            const corrected = row.dataset.corrected === 'True';
+            const reviewed = row.dataset.reviewed === 'True';
+            cb.checked = corrected && !reviewed;
+        });
+        updateSelectionCount();
+    }
+
+    async function approveSelected() {
+        const checkboxes = document.querySelectorAll('.submission-checkbox:checked');
+        const submissionIds = Array.from(checkboxes).map(cb => cb.dataset.submissionId);
+        
+        if (submissionIds.length === 0) {
+            Swal.fire({
+                title: 'No Selection',
+                text: 'Please select at least one submission to approve.',
+                icon: 'warning',
+                confirmButtonColor: '#11998e'
+            });
+            return;
+        }
+
+        const result = await Swal.fire({
+            title: 'Approve Selected?',
+            html: `
+                <p style="font-size: 1.1rem; margin-bottom: 1rem;">You are about to approve <strong>${submissionIds.length}</strong> submission(s).</p>
+                <p style="color: #666; font-size: 0.95rem;">This will send WhatsApp notifications to students and parents.</p>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#11998e',
+            cancelButtonColor: '#d33',
+            confirmButtonText: `✓ Approve ${submissionIds.length}`,
+            cancelButtonText: 'Cancel'
+        });
+
+        if (!result.isConfirmed) return;
+
+        const spinner = document.getElementById('bulkLoadingSpinner');
+        spinner.style.display = 'inline-block';
+
+        try {
+            const response = await fetch('/admin/submissions/approve-bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ submission_ids: submissionIds })
+            });
+
+            const data = await response.json();
+            spinner.style.display = 'none';
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    html: `
+                        <p style="font-size: 1.1rem;">${data.approved_count} submission(s) approved!</p>
+                        <p style="color: #666; font-size: 0.95rem; margin-top: 0.5rem;">Notifications have been sent.</p>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#11998e'
+                });
+                location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to approve submissions.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            }
+        } catch (error) {
+            spinner.style.display = 'none';
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred: ' + error.message,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+        }
+    }
+
+    function openRangeModal() {
+        Swal.fire({
+            title: 'Approve by Range',
+            html: `
+                <div style="margin: 1.5rem 0;">
+                    <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; text-align: left;">From Index:</label>
+                            <input type="number" id="rangeFrom" min="1" class="swal2-input" style="width: 100%; margin: 0;" value="1">
+                        </div>
+                        <div style="margin-top: 2rem; font-size: 1.5rem; font-weight: 700; color: #667eea;">→</div>
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; text-align: left;">To Index:</label>
+                            <input type="number" id="rangeTo" min="1" class="swal2-input" style="width: 100%; margin: 0;" value="${document.querySelectorAll('.submission-row').length}">
+                        </div>
+                    </div>
+                    <div id="rangePreview" style="background: #f8f9fa; padding: 1rem; border-radius: 8px; font-size: 0.95rem; color: #666;"></div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonColor: '#11998e',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Approve Range',
+            cancelButtonText: 'Cancel',
+            didOpen: () => {
+                const updatePreview = () => {
+                    const from = parseInt(document.getElementById('rangeFrom').value) || 1;
+                    const to = parseInt(document.getElementById('rangeTo').value) || 1;
+                    const count = Math.max(0, to - from + 1);
+                    document.getElementById('rangePreview').textContent = 
+                        `Will approve submissions #${from} to #${to} (${count} total)`;
+                };
+                document.getElementById('rangeFrom').addEventListener('input', updatePreview);
+                document.getElementById('rangeTo').addEventListener('input', updatePreview);
+                updatePreview();
+            },
+            preConfirm: () => {
+                const from = parseInt(document.getElementById('rangeFrom').value);
+                const to = parseInt(document.getElementById('rangeTo').value);
+                const maxIndex = document.querySelectorAll('.submission-row').length;
+                
+                if (!from || !to || from < 1 || to < 1) {
+                    Swal.showValidationMessage('Please enter valid indices');
+                    return false;
+                }
+                if (from > to) {
+                    Swal.showValidationMessage('From index must be ≤ To index');
+                    return false;
+                }
+                if (from > maxIndex || to > maxIndex) {
+                    Swal.showValidationMessage(`Indices must be between 1 and ${maxIndex}`);
+                    return false;
+                }
+                return { from, to };
+            }
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const { from, to } = result.value;
+                await approveByRange(from, to);
+            }
+        });
+    }
+
+    async function approveByRange(fromIndex, toIndex) {
+        const spinner = document.getElementById('bulkLoadingSpinner');
+        spinner.style.display = 'inline-block';
+
+        try {
+            // Get submission IDs from the range
+            const rows = Array.from(document.querySelectorAll('.submission-row'));
+            const submissionsInRange = rows.slice(fromIndex - 1, toIndex);
+            const submissionIds = submissionsInRange
+                .map(row => {
+                    const checkbox = row.querySelector('.submission-checkbox');
+                    return checkbox ? checkbox.dataset.submissionId : null;
+                })
+                .filter(id => id !== null);
+
+            if (submissionIds.length === 0) {
+                spinner.style.display = 'none';
+                Swal.fire({
+                    title: 'No Eligible Submissions',
+                    text: 'No corrected submissions found in the specified range.',
+                    icon: 'info',
+                    confirmButtonColor: '#11998e'
+                });
+                return;
+            }
+
+            const response = await fetch('/admin/submissions/approve-bulk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ submission_ids: submissionIds })
+            });
+
+            const data = await response.json();
+            spinner.style.display = 'none';
+
+            if (data.success) {
+                await Swal.fire({
+                    title: 'Success!',
+                    html: `
+                        <p style="font-size: 1.1rem;">${data.approved_count} submission(s) approved!</p>
+                        <p style="color: #666; font-size: 0.95rem; margin-top: 0.5rem;">From #${fromIndex} to #${toIndex}</p>
+                    `,
+                    icon: 'success',
+                    confirmButtonColor: '#11998e'
+                });
+                location.reload();
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Failed to approve submissions.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            }
+        } catch (error) {
+            spinner.style.display = 'none';
+            Swal.fire({
+                title: 'Error',
+                text: 'An error occurred: ' + error.message,
+                icon: 'error',
+                confirmButtonColor: '#d33'
+            });
+        }
     }
 
     // Confirm action function for delete operations
