@@ -295,11 +295,6 @@ tbody tr:hover {
 
             <tr><th>Parent Type</th><td>{{ student.parent_type.capitalize() }}</td></tr>
             <tr><th>Parent Number</th><td> +{{ student.parent_phone_number_country_code }}{{ student.parent_phone_number }}</td></tr>
-            {% if parent.last_website_access %}
-            <tr><th>Parent Last Access</th><td>{{ parent.last_website_access.strftime('%Y-%m-%d %I:%M %p') }}</td></tr>
-            {% else %}
-            <tr><th>Parent Last Access</th><td>N/A</td></tr>
-            {% endif %}
         </table>
     </div>
 

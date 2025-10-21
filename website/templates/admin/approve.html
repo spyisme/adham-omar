@@ -1,5 +1,5 @@
 {% extends "admin/dashboard.html" %}
-{% block title %}Approve Students{% endblock %}
+{% block title %}New Students{% endblock %}
 {% block content %}
 <style>
     /* General Styles */
@@ -320,13 +320,13 @@
 </style>
 
 <div class="approve-container">
-    <h1 class="approve-title">Approve Students</h1>
+    <h1 class="approve-title">New Students</h1>
 
     <div class="filter-section">
         <input type="text" id="searchInput" class="filter-input" placeholder="Search students..."
             style="flex-grow: 1; min-width: 250px;" />
         <select id="sortClass" class="sort-select" name="sortClass">
-            <option value="">All Classes</option>
+            <option value="">All Groups</option>
             {% for group in groups|sort(attribute='name') %}
             <option value="{{ group.name|e }}">{{ group.name }}</option>
             {% endfor %}
@@ -365,12 +365,12 @@
                     <input type="text" id="code-{{ user.id }}" name="code" class="code-input"
                         value="{{ suggested_code }}" required maxlength="8" autocomplete="off">
                     <button type="submit" class="approve-btn" data-action="approve"
-                        data-username="{{ user.name|e }}">Approve</button>
+                        data-username="{{ user.name|e }}">Add Student code</button>
                 </form>
-                <form method="post" action="{{ url_for('admin.reject_student', user_id=user.id) }}">
+                <!-- <form method="post" action="{{ url_for('admin.reject_student', user_id=user.id) }}">
                     <button type="submit" class="reject-btn" data-action="reject" data-username="{{ user.name|e }}"
                         style="margin-top:29px">Reject</button>
-                </form>
+                </form> -->
             </div>
         </div>
         {% endfor %}

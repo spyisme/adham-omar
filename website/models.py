@@ -159,7 +159,7 @@ class Users(db.Model, UserMixin):
     )
     assistant_logs = db.relationship('AssistantLogs', back_populates='user')
 
-    parent = db.relationship('Parent', back_populates='student', uselist=False)
+
 
     # ============================================================
     # Assistant Management Relationships
@@ -196,16 +196,6 @@ class Users(db.Model, UserMixin):
     )
 
 
-class Parent(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    phone_number = db.Column(db.String(15), unique=True, nullable=False)
-    password = db.Column(db.String(240), nullable=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    login_count = db.Column(db.Integer, default=0)
-    last_website_access = db.Column(db.DateTime, nullable=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(gmt_plus_2))
-
-    student = db.relationship('Users', back_populates='parent', passive_deletes=True)
 
 
 # ============================================================
@@ -659,7 +649,7 @@ class ZoomMeetingMember(db.Model):
     zoom_display_name = db.Column(db.String(255), nullable=True)
     zoom_email = db.Column(db.String(255), nullable=True)
     
-    # Relationships back to the parent tables
+
     meeting = db.relationship("Zoom_meeting", back_populates="memberships")
     user = db.relationship("Users", back_populates="meeting_memberships")
 

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template , request, redirect, url_for, flash, send_from_directory , abort , jsonify
 from .models import (
     Users, Groups, Assignments, AssignmentLateException, Submissions, Announcements, Videos, WhatsappMessages, Zoom_meeting, ZoomMeetingMember,
-    Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, Parent , AssistantLogs, Sessions , Attendance_session , Attendance_student)
+    Quizzes, QuizGrades, Materials, Upload_status, Materials_folder, VideoViews, NextQuiz,Assignments_whatsapp, AssistantLogs, Sessions , Attendance_session , Attendance_student)
 from datetime import datetime
 from . import db
 import pytz
@@ -661,20 +661,6 @@ def approve_student(user_id):
 
         user.code = new_code
 
-        # Check if a Parent with this phone number already exists
-        existing_parent = Parent.query.filter_by(phone_number=user.parent_phone_number).first()
-        if existing_parent:
-            # If parent exists, just update the student_id if needed
-            if existing_parent.student_id != user.id:
-                existing_parent.student_id = user.id
-        else:
-            # If not, create a new Parent
-            new_parent = Parent(
-                phone_number=user.parent_phone_number,
-                password=generate_password_hash(user.parent_phone_number),  # password is the number
-                student_id=user.id  # Set the required student_id field
-            )
-            db.session.add(new_parent)
 
         db.session.commit()
 
@@ -717,60 +703,6 @@ def approve_student(user_id):
         return redirect(url_for('admin.approve_students'))
 
 
-@admin.route('/reject/student/<int:user_id>', methods=['POST'])
-def reject_student(user_id):
-    user = Users.query.get_or_404(user_id)
-    
-    # Check if admin has permission to reject this student (groups only)
-    if current_user.role != "super_admin":
-        group_ids = get_user_scope_ids()
-        
-        # Verify the student is within admin's scope using many-to-many groups
-        user_group_ids = [g.id for g in user.groups]
-        if not (group_ids and any(gid in group_ids for gid in user_group_ids)):
-            flash('You do not have permission to reject this student.', 'danger')
-            return redirect(url_for('admin.approve_students'))
-    
-    # Get group IDs for logging before deleting
-    user_group_ids = [g.id for g in user.groups]
-    
-    # Log the action before deleting
-    new_log = AssistantLogs(
-        assistant_id=current_user.id,
-        action='Delete',
-        log={
-            "action_name": "Delete",
-            "resource_type": "student",
-            "action_details": {
-                "id": user.id,
-                "title": user.name,
-                "summary": f"Student '{user.name}' was rejected and deleted."
-            },
-            "data": None,
-            "before": {
-                "name": user.name,
-                "email": user.email,
-                "phone_number": user.phone_number,
-                "parent_phone_number": user.parent_phone_number,
-                "email": user.email,
-                "parent_email": user.parent_email,
-                "parent_name": user.parent_name,
-                "parent_type": user.parent_type,
-                "code": user.code,
-                "group_ids": user_group_ids,
-                "role": user.role
-            },
-            "after": None
-        }
-    )
-    db.session.add(new_log)
-    db.session.delete(user)
-    db.session.commit()
-
-    flash('Student rejected successfully!', 'success')
-    return redirect(url_for('admin.approve_students'))
-
-
 
 #=================================================================
 # Student Info (Student_data.html)
@@ -810,7 +742,7 @@ def student(user_id):
         corrector = Users.query.filter_by(id=grade.corrector_id).first()
         corrector_names[grade.id] = corrector.name if corrector else "N/A"
     
-    parent = Parent.query.filter_by(student_id=student_obj.id).first()
+
 
     cairo_tz = pytz.timezone('Africa/Cairo')
     now_cairo = datetime.now(cairo_tz)
@@ -839,7 +771,6 @@ def student(user_id):
         videos=videos,
         watched_videos=watched_videos,
         corrector_names=corrector_names,
-        parent=parent,
         late_exception_map=late_exception_map
     )
 
@@ -910,10 +841,7 @@ def edit_user(user_id):
                 local_path = os.path.join("website", "static", "profile_pictures", user.profile_picture)
                 if os.path.exists(local_path):
                     os.remove(local_path)
-                try:
-                    Parent.query.filter_by(student_id=user.id).delete(synchronize_session=False)
-                except Exception:
-                    pass
+
 
                 # Generate random suffix for email and phone
                 random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))

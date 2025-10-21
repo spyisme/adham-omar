@@ -38,8 +38,7 @@ def create_app():
     from .website import website
     app.register_blueprint(website, url_prefix='/')
 
-    from .parent import parent
-    app.register_blueprint(parent, url_prefix='/parent')
+
 
 
     from .admin import admin
@@ -73,9 +72,6 @@ def create_app():
     @app.before_request
     def update_last_access():
         """Update the last access time for authenticated users."""
-        # Skip authentication check for parent routes
-        if request.endpoint and request.endpoint.startswith('parent.'):
-            return
             
         if current_user.is_authenticated:
             gmt_plus_2 = pytz.timezone('Etc/GMT-3')
@@ -101,10 +97,12 @@ def create_app():
 
         # Redirect unauthenticated users to login
         if not current_user.is_authenticated:
-            if request.endpoint not in excluded_routes and not request.path.startswith('/static/') and not request.path.startswith('/parent/'):
+            if request.endpoint not in excluded_routes and not request.path.startswith('/static/') :
                 return redirect(url_for('website.login'))
-        if current_user.is_authenticated and current_user.role == 'student' and current_user.code.lower() == 'nth' and request.endpoint != 'student.pending_account':
-            return redirect(url_for('student.pending_account'))
+            
+            
+        # if current_user.is_authenticated and current_user.role == 'student' and current_user.code.lower() == 'nth' and request.endpoint != 'student.pending_account':
+        #     return redirect(url_for('student.pending_account'))
 
         if current_user.is_authenticated and current_user.role == 'student':
             full_phone_number = current_user.phone_number_country_code + current_user.phone_number
@@ -135,13 +133,13 @@ def create_app():
 
 
 
-    from .models import Users, Parent
+    from .models import Users
 
 
     @login_manager.user_loader
     def load_user(user_id):
         """Load user from database."""
-        # Only load regular users, not parents
+
         return Users.query.get(int(user_id))
 
     return app
