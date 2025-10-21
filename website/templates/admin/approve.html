@@ -367,10 +367,7 @@
                     <button type="submit" class="approve-btn" data-action="approve"
                         data-username="{{ user.name|e }}">Add Student code</button>
                 </form>
-                <!-- <form method="post" action="{{ url_for('admin.reject_student', user_id=user.id) }}">
-                    <button type="submit" class="reject-btn" data-action="reject" data-username="{{ user.name|e }}"
-                        style="margin-top:29px">Reject</button>
-                </form> -->
+
             </div>
         </div>
         {% endfor %}

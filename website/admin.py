@@ -505,7 +505,9 @@ def students():
     search = request.args.get('search', '', type=str).strip()
     group = request.args.get('group', '', type=str).strip()
 
-    query = Users.query.filter(Users.role == 'student', Users.code != 'nth', Users.code != 'Nth')
+    # query = Users.query.filter(Users.role == 'student', Users.code != 'nth', Users.code != 'Nth')
+    query = Users.query.filter(Users.role == 'student')
+
 
     # Apply admin scope restrictions (groups only)
     if current_user.role != "super_admin":
