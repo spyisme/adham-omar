@@ -3,6 +3,210 @@
 
 {% block additional_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+<style>
+    .assistant-assignment-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .assistant-assignment-panel h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 1rem;
+    }
+
+    .assistants-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .assistant-card {
+        background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 2px solid #e2e8f0;
+        transition: all 0.3s;
+    }
+
+    .assistant-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+
+    .assistant-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .assistant-info h4 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.25rem;
+    }
+
+    .assistant-info p {
+        font-size: 0.875rem;
+        color: #718096;
+    }
+
+    .assistant-stats {
+        text-align: right;
+    }
+
+    .assistant-stats .assigned-count {
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .assignment-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr auto auto;
+        gap: 0.75rem;
+        align-items: end;
+    }
+
+    .assignment-form .form-group {
+        margin-bottom: 0;
+    }
+
+    .assignment-form label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #4a5568;
+        margin-bottom: 0.375rem;
+    }
+
+    .assignment-form input[type="number"] {
+        width: 100%;
+        padding: 0.625rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+    }
+
+    .assignment-form input[type="number"]:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn-assign {
+        padding: 0.625rem 1.25rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        font-size: 0.875rem;
+    }
+
+    .btn-assign:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-unassign {
+        padding: 0.625rem 1.25rem;
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);
+        font-size: 0.875rem;
+    }
+
+    .btn-unassign:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);
+    }
+
+    .stats-grid-new {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card-new {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid transparent;
+        transition: all 0.3s;
+    }
+
+    .stat-card-new:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card-new.unassigned {
+        border-left-color: #cbd5e0;
+    }
+
+    .stat-card-new.approved {
+        border-left-color: #38ef7d;
+    }
+
+    .stat-card-new.waiting {
+        border-left-color: #f5576c;
+    }
+
+    .stat-card-new.not-corrected {
+        border-left-color: #fbbf24;
+    }
+
+    .stat-label-new {
+        font-size: 0.75rem;
+        color: #718096;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-value-new {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1a202c;
+    }
+
+    .assigned-to-column {
+        color: #667eea;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .assigned-to-column.unassigned {
+        color: #cbd5e0;
+    }
+
+    @media (max-width: 768px) {
+        .assignment-form {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -16,6 +220,12 @@
 {% set late_count.value = late_count.value + 1 %}
 {% endif %}
 {% endfor %}
+
+{% set total_submissions = submissions|length %}
+{% set unassigned_count = submissions|selectattr('assigned_to_id', 'none')|list|length %}
+{% set approved_count = submissions|selectattr('reviewed', 'equalto', true)|list|length %}
+{% set waiting_approval_count = submissions|selectattr('corrected', 'equalto', true)|rejectattr('reviewed', 'equalto', true)|list|length %}
+{% set not_corrected_assigned = submissions|rejectattr('corrected', 'equalto', true)|rejectattr('assigned_to_id', 'none')|list|length %}
 
 
 
@@ -84,6 +294,73 @@
             </div>
         </div>
     </div>
+
+    <!-- New Assignment Statistics -->
+    <div class="stats-grid-new">
+        <div class="stat-card-new unassigned">
+            <div class="stat-label-new">Unassigned Submissions</div>
+            <div class="stat-value-new">{{ unassigned_count }}</div>
+        </div>
+        <div class="stat-card-new approved">
+            <div class="stat-label-new">Approved Submissions</div>
+            <div class="stat-value-new">{{ approved_count }}</div>
+        </div>
+        <div class="stat-card-new waiting">
+            <div class="stat-label-new">Waiting Approval</div>
+            <div class="stat-value-new">{{ waiting_approval_count }}</div>
+        </div>
+        <div class="stat-card-new not-corrected">
+            <div class="stat-label-new">Not Corrected (Assigned)</div>
+            <div class="stat-value-new">{{ not_corrected_assigned }}</div>
+        </div>
+    </div>
+
+    <!-- Assistant Assignment Panel (Super Admin Only) -->
+    {% if current_user.role == "super_admin" and assistants %}
+    <div class="assistant-assignment-panel">
+        <h3>📋 Assign Submissions to Assistants</h3>
+        <div class="assistants-grid">
+            {% for assistant in assistants %}
+            {% set assistant_assigned = submissions|selectattr('assigned_to_id', 'equalto', assistant.id)|list %}
+            {% set assistant_assigned_count = assistant_assigned|length %}
+            <div class="assistant-card">
+                <div class="assistant-header">
+                    <div class="assistant-info">
+                        <h4>{{ assistant.name }}</h4>
+                        <p>{{ assistant.email }}</p>
+                    </div>
+                    <div class="assistant-stats">
+                        <div class="assigned-count">{{ assistant_assigned_count }}</div>
+                        <small style="color: #718096;">assigned</small>
+                    </div>
+                </div>
+                <form method="POST" action="{{ url_for('admin.assign_submissions_to_assistant', assignment_id=assignment.id) }}" class="assignment-form">
+                    <input type="hidden" name="assistant_id" value="{{ assistant.id }}">
+                    {% if group_id %}
+                    <input type="hidden" name="group_id" value="{{ group_id }}">
+                    {% endif %}
+                    <div class="form-group">
+                        <label for="start_{{ assistant.id }}">Start Index</label>
+                        <input type="number" id="start_{{ assistant.id }}" name="start_index" min="1" max="{{ total_submissions }}" placeholder="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end_{{ assistant.id }}">End Index</label>
+                        <input type="number" id="end_{{ assistant.id }}" name="end_index" min="1" max="{{ total_submissions }}" placeholder="{{ total_submissions }}" required>
+                    </div>
+                    <button type="submit" class="btn-assign">
+                        ✓ Assign
+                    </button>
+                    {% if assistant_assigned_count > 0 %}
+                    <button type="submit" formaction="{{ url_for('admin.unassign_submissions', assignment_id=assignment.id) }}" class="btn-unassign" onclick="return confirm('Unassign all submissions from {{ assistant.name }}?')">
+                        ✗ Unassign
+                    </button>
+                    {% endif %}
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card" style="overflow: visible;">
         <div class="card-header"
@@ -269,6 +546,7 @@
                             <th>Corrected</th>
                             {% endif %}
                             <th>Status</th>
+                            <th>Assigned To</th>
                             <th>Original File</th>
                             <th>Actions</th>
                         </tr>
@@ -359,6 +637,14 @@
                                 <span class="badge badge-secondary"
                                     style="background: #e0e0e0; color: #666; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">—
                                     Not Corrected</span>
+                                {% endif %}
+                            </td>
+
+                            <td data-label="Assigned To">
+                                {% if submission.assigned_to %}
+                                <span class="assigned-to-column">{{ submission.assigned_to.name }}</span>
+                                {% else %}
+                                <span class="assigned-to-column unassigned">Unassigned</span>
                                 {% endif %}
                             </td>
 
