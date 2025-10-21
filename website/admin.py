@@ -5816,15 +5816,22 @@ def view_exam_submissions(exam_id):
         .subquery()
     )
 
-    # ✅ Only submissions from students the admin manages (sorted alphabetically by student name)
-    submissions = (
+    # ✅ Build submissions query
+    submissions_query = (
         Submissions.query
         .join(Users, Submissions.student_id == Users.id)
         .filter(Submissions.assignment_id == exam_id)
-        .filter(Submissions.student_id.in_(qualified_students_subq))
-        .order_by(Users.name)
-        .all()
+        .filter(Submissions.student_id.in_(db.select(qualified_students_subq)))
     )
+    
+    # ✅ For assistants (not super_admin), only show assigned submissions
+    if current_user.role != "super_admin":
+        submissions_query = submissions_query.filter(
+            Submissions.assigned_to_id == current_user.id
+        )
+    
+    # ✅ Get submissions sorted alphabetically by student name
+    submissions = submissions_query.order_by(Users.name).all()
 
     # ✅ All qualified students (for template use)
     all_qualified_students = (
