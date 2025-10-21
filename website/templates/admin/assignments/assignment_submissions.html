@@ -1,1297 +1,650 @@
-{% extends "admin/dashboard.html" %}{% extends "admin/dashboard.html" %}
+{% extends "admin/dashboard.html" %}
+{% block title %}Submissions for {{ assignment.title }}{% endblock %}
 
-{% block title %}Submissions for {{ assignment.title }}{% endblock %}{% block title %}Submissions for {{ assignment.title }}{% endblock %}
+{% block additional_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
+{% endblock %}
 
+{% block content %}
 
-
-{% block additional_css %}{% block additional_css %}
-
-<link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/admin_style.css') }}">
-
-<style>{% endblock %}
-
-    :root {
-
-        --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);{% block content %}
-
-        --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-
-        --warning-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);{% set total_students = submissions|length + not_submitted_students|length %}
-
-        --info-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);{% set submitted_count = submissions|length %}
-
-        --danger-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);{% set missing_count = not_submitted_students|length %}
-
-    }{% set late_count = namespace(value=0) %}
-
+{% set total_students = submissions|length + not_submitted_students|length %}
+{% set submitted_count = submissions|length %}
+{% set missing_count = not_submitted_students|length %}
+{% set late_count = namespace(value=0) %}
 {% for sub in submissions %}
-
-    .submissions-page {{% if sub.upload_time > sub.assignment.deadline_date %}
-
-        padding: 2rem;{% set late_count.value = late_count.value + 1 %}
-
-        max-width: 1600px;{% endif %}
-
-        margin: 0 auto;{% endfor %}
-
-        background: #f8f9fa;
-
-        min-height: 100vh;
-
-    }
+{% if sub.upload_time > sub.assignment.deadline_date %}
+{% set late_count.value = late_count.value + 1 %}
+{% endif %}
+{% endfor %}
 
 
 
-    .page-header {
 
-        margin-bottom: 2rem;
 
-    }<header class="page-header">
 
+<header class="page-header">
     <div class="page-header-content">
-
-    .page-header h1 {        {% if group_id and group %}
-
-        font-size: 2rem;        <a href="{{ url_for('admin.group_assignments', group_id=group_id) }}" class="back-button">← Back to {{
-
-        font-weight: 700;            group.name }} Assignments</a>
-
-        color: #1a202c;        {% else %}
-
-        margin-bottom: 0.5rem;        <a href="{{ url_for('admin.assignments') }}" class="back-button">← Back to Assignments</a>
-
-    }        {% endif %}
-
+        {% if group_id and group %}
+        <a href="{{ url_for('admin.group_assignments', group_id=group_id) }}" class="back-button">← Back to {{
+            group.name }} Assignments</a>
+        {% else %}
+        <a href="{{ url_for('admin.assignments') }}" class="back-button">← Back to Assignments</a>
+        {% endif %}
         <h1 class="page-title">Assignment Details</h1>
+    </div>
+</header>
 
-    .back-button {    </div>
-
-        display: inline-flex;</header>
-
-        align-items: center;
-
-        gap: 0.5rem;<div class="container">
-
-        color: #667eea;    <div class="card info-card">
-
-        text-decoration: none;        <div class="info-card-details">
-
-        font-weight: 600;            <h2>{{ assignment.title }}</h2>
-
-        margin-bottom: 1rem;            <div class="info-card-meta">
-
-        transition: all 0.3s;                <span class="meta-item"><span class="meta-dot" style="background-color: var(--color-info);"></span> Due:
-
-    }                    {{ assignment.deadline_date.strftime('%b %d, %Y at %I:%M %p') }}</span>
-
+<div class="container">
+    <div class="card info-card">
+        <div class="info-card-details">
+            <h2>{{ assignment.title }}</h2>
+            <div class="info-card-meta">
+                <span class="meta-item"><span class="meta-dot" style="background-color: var(--color-info);"></span> Due:
+                    {{ assignment.deadline_date.strftime('%b %d, %Y at %I:%M %p') }}</span>
                 <span class="meta-item"><span class="meta-dot" style="background-color: var(--color-warning);"></span>
-
-    .back-button:hover {                    {{ assignment.points }} Points</span>
-
-        color: #764ba2;            </div>
-
-        transform: translateX(-4px);        </div>
-
-    }        <div>
-
+                    {{ assignment.points }} Points</span>
+            </div>
+        </div>
+        <div>
             Completion:
-
-    .assignment-info-card {            <strong style="font-size: 1.5rem;">
-
-        background: white;                {% if total_students > 0 %}{{ "%.0f"|format((submitted_count / total_students) * 100) }}{% else %}0{%
-
-        border-radius: 16px;                endif %}%
-
-        padding: 2rem;            </strong>
-
-        margin-bottom: 2rem;        </div>
-
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);    </div>
-
-    }
-
-    <div class="stats-grid">
-
-    .assignment-info-card h2 {        <div class="card stat-card">
-
-        font-size: 1.5rem;            <div class="stat-card-icon"><img src="/static/images/admin/assignments/student.png" alt=""></div>
-
-        font-weight: 700;            <div class="stat-card-info">
-
-        color: #1a202c;                <p class="label">Total Students</p>
-
-        margin-bottom: 1rem;                <p class="value">{{ total_students }}</p>
-
-    }            </div>
-
+            <strong style="font-size: 1.5rem;">
+                {% if total_students > 0 %}{{ "%.0f"|format((submitted_count / total_students) * 100) }}{% else %}0{%
+                endif %}%
+            </strong>
         </div>
-
-    .assignment-meta {        <div class="card stat-card">
-
-        display: flex;            <div class="stat-card-icon"><img src="/static/images/admin/assignments/submit.png" alt=""></div>
-
-        gap: 2rem;            <div class="stat-card-info">
-
-        flex-wrap: wrap;                <p class="label">Submitted</p>
-
-        margin-top: 1rem;                <p class="value">{{ submitted_count }}</p>
-
-    }            </div>
-
-        </div>
-
-    .meta-item {        <div class="card stat-card">
-
-        display: flex;            <div class="stat-card-icon"><img src="/static/images/admin/assignments/incomplete.png" alt=""></div>
-
-        align-items: center;            <div class="stat-card-info">
-
-        gap: 0.5rem;                <p class="label">Missing</p>
-
-        color: #4a5568;                <p class="value">{{ missing_count }}</p>
-
-        font-weight: 500;            </div>
-
-    }        </div>
-
-        <div class="card stat-card">
-
-    .stats-grid {            <div class="stat-card-icon"><img src="/static/images/admin/assignments/overdue.png" alt=""></div>
-
-        display: grid;            <div class="stat-card-info">
-
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));                <p class="label">Late</p>
-
-        gap: 1.5rem;                <p class="value">{{ late_count.value }}</p>
-
-        margin-bottom: 2rem;            </div>
-
-    }        </div>
-
     </div>
 
-    .stat-card {
-
-        background: white;    <div class="card" style="overflow: visible;">
-
-        border-radius: 16px;        <div class="card-header"
-
-        padding: 1.5rem;            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);            <div>
-
-        transition: all 0.3s;                <h3>Student Submissions</h3>
-
-        border-left: 4px solid transparent;                <p>Review and grade submitted assignments.</p>
-
-    }            </div>
-
-            {% if current_user.role == "super_admin" %}
-
-    .stat-card:hover {            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-
-        transform: translateY(-4px);                <button onclick="approveAllSubmissions()" class="btn btn-success" style="
-
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);                    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-
-    }                    color: white;
-
-                    padding: 12px 24px;
-
-    .stat-card.unassigned {                    border-radius: 8px;
-
-        border-left-color: #cbd5e0;                    font-weight: 600;
-
-    }                    border: none;
-
-                    cursor: pointer;
-
-    .stat-card.approved {                    box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
-
-        border-left-color: #38ef7d;                    transition: all 0.3s;
-
-    }                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
-
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
-
-    .stat-card.waiting {                    ✓ Approve All Corrected
-
-        border-left-color: #f5576c;                </button>
-
-    }                <button onclick="openBulkApprovalPanel()" class="btn btn-primary" style="
-
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-    .stat-card.not-corrected {                    color: white;
-
-        border-left-color: #fbbf24;                    padding: 12px 24px;
-
-    }                    border-radius: 8px;
-
-                    font-weight: 600;
-
-    .stat-label {                    border: none;
-
-        font-size: 0.875rem;                    cursor: pointer;
-
-        color: #718096;                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-        margin-bottom: 0.5rem;                    transition: all 0.3s;
-
-        font-weight: 600;                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.4)';"
-
-        text-transform: uppercase;                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';">
-
-        letter-spacing: 0.5px;                    ☑️ Bulk Approve
-
-    }                </button>
-
+    <div class="stats-grid">
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/student.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Total Students</p>
+                <p class="value">{{ total_students }}</p>
             </div>
-
-    .stat-value {            {% endif %}
-
-        font-size: 2rem;        </div>
-
-        font-weight: 700;
-
-        color: #1a202c;        <!-- Bulk Approval Panel -->
-
-    }        {% if current_user.role == "super_admin" %}
-
-        <div id="bulkApprovalPanel" style="
-
-    .assistant-assignment-panel {            display: none;
-
-        background: white;            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-        border-radius: 16px;            padding: 20px;
-
-        padding: 2rem;            margin: 1rem 1.5rem;
-
-        margin-bottom: 2rem;            border-radius: 12px;
-
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-
-    }        ">
-
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-
-    .assistant-assignment-panel h3 {                <div style="color: white;">
-
-        font-size: 1.25rem;                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
-
-        font-weight: 700;                        <span id="selectedCount">0</span> Selected
-
-        color: #1a202c;                    </div>
-
-        margin-bottom: 1.5rem;                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-
-    }                        <button type="button" onclick="selectAllSubmissions()" style="
-
-                            padding: 8px 16px;
-
-    .assistants-grid {                            background: rgba(255, 255, 255, 0.2);
-
-        display: grid;                            color: white;
-
-        gap: 1.5rem;                            border: 1px solid rgba(255, 255, 255, 0.3);
-
-    }                            border-radius: 6px;
-
-                            cursor: pointer;
-
-    .assistant-card {                            font-weight: 600;
-
-        background: linear-gradient(135deg, #f6f8fb 0%, #ffffff 100%);                            font-size: 0.9rem;
-
-        border-radius: 12px;                            transition: all 0.2s;
-
-        padding: 1.5rem;                        ">Select All</button>
-
-        border: 2px solid #e2e8f0;                        <button type="button" onclick="deselectAllSubmissions()" style="
-
-        transition: all 0.3s;                            padding: 8px 16px;
-
-    }                            background: rgba(255, 255, 255, 0.2);
-
-                            color: white;
-
-    .assistant-card:hover {                            border: 1px solid rgba(255, 255, 255, 0.3);
-
-        border-color: #667eea;                            border-radius: 6px;
-
-        box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);                            cursor: pointer;
-
-    }                            font-weight: 600;
-
-                            font-size: 0.9rem;
-
-    .assistant-header {                            transition: all 0.2s;
-
-        display: flex;                        ">Deselect All</button>
-
-        justify-content: space-between;                        <button type="button" onclick="selectCorrected()" style="
-
-        align-items: center;                            padding: 8px 16px;
-
-        margin-bottom: 1rem;                            background: rgba(255, 255, 255, 0.2);
-
-    }                            color: white;
-
-                            border: 1px solid rgba(255, 255, 255, 0.3);
-
-    .assistant-info h4 {                            border-radius: 6px;
-
-        font-size: 1.125rem;                            cursor: pointer;
-
-        font-weight: 700;                            font-weight: 600;
-
-        color: #1a202c;                            font-size: 0.9rem;
-
-        margin-bottom: 0.25rem;                            transition: all 0.2s;
-
-    }                        ">Select Corrected</button>
-
-                    </div>
-
-    .assistant-info p {                </div>
-
-        font-size: 0.875rem;                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-
-        color: #718096;                    <button type="button" id="btnApproveSelected" onclick="approveSelected()" disabled style="
-
-    }                        padding: 12px 24px;
-
-                        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-
-    .assistant-stats {                        color: white;
-
-        text-align: right;                        border: none;
-
-    }                        border-radius: 8px;
-
-                        cursor: pointer;
-
-    .assistant-stats .assigned-count {                        font-weight: 700;
-
-        font-size: 1.5rem;                        font-size: 1rem;
-
-        font-weight: 700;                        box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
-
-        background: var(--primary-gradient);                        transition: all 0.3s;
-
-        -webkit-background-clip: text;                    ">
-
-        -webkit-text-fill-color: transparent;                        ✓ Approve Selected
-
-        background-clip: text;                    </button>
-
-    }                    <button type="button" onclick="openRangeModal()" style="
-
-                        padding: 12px 24px;
-
-    .assignment-form {                        background: rgba(255, 255, 255, 0.95);
-
-        display: grid;                        color: #667eea;
-
-        grid-template-columns: 1fr 1fr auto auto;                        border: 2px solid white;
-
-        gap: 1rem;                        border-radius: 8px;
-
-        align-items: end;                        cursor: pointer;
-
-    }                        font-weight: 700;
-
-                        font-size: 1rem;
-
-    .form-group label {                        transition: all 0.3s;
-
-        display: block;                    ">
-
-        font-size: 0.875rem;                        📊 Approve by Range
-
-        font-weight: 600;                    </button>
-
-        color: #4a5568;                    <button type="button" onclick="closeBulkApprovalPanel()" style="
-
-        margin-bottom: 0.5rem;                        padding: 12px 24px;
-
-    }                        background: rgba(255, 255, 255, 0.2);
-
-                        color: white;
-
-    .form-group input {                        border: 1px solid rgba(255, 255, 255, 0.5);
-
-        width: 100%;                        border-radius: 8px;
-
-        padding: 0.75rem;                        cursor: pointer;
-
-        border: 2px solid #e2e8f0;                        font-weight: 600;
-
-        border-radius: 8px;                        font-size: 1rem;
-
-        font-size: 1rem;                        transition: all 0.3s;
-
-        transition: all 0.3s;                    ">
-
-    }                        Close
-
-                    </button>
-
-    .form-group input:focus {                    <div id="bulkLoadingSpinner" style="display: none; margin-left: 10px;">
-
-        outline: none;                        <div style="
-
-        border-color: #667eea;                            width: 24px;
-
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);                            height: 24px;
-
-    }                            border: 3px solid rgba(255,255,255,0.3);
-
-                            border-radius: 50%;
-
-    .btn {                            border-top-color: white;
-
-        padding: 0.75rem 1.5rem;                            animation: spin 0.8s linear infinite;
-
-        border-radius: 8px;                        "></div>
-
-        font-weight: 600;                    </div>
-
-        border: none;                </div>
-
-        cursor: pointer;            </div>
-
-        transition: all 0.3s;        </div>
-
-        display: inline-flex;        <style>
-
-        align-items: center;            @keyframes spin {
-
-        gap: 0.5rem;                to { transform: rotate(360deg); }
-
-        text-decoration: none;            }
-
-        font-size: 0.875rem;            #btnApproveSelected:disabled {
-
-    }                opacity: 0.5;
-
-                cursor: not-allowed;
-
-    .btn-primary {            }
-
-        background: var(--primary-gradient);            .submission-row.selected {
-
-        color: white;                background: rgba(102, 126, 234, 0.1) !important;
-
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);                border-left: 4px solid #667eea;
-
-    }            }
-
-        </style>
-
-    .btn-primary:hover {        {% endif %}
-
-        transform: translateY(-2px);        <div class="card-content no-padding" style="overflow: visible;">
-
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);            <div class="table-wrapper" style="overflow: visible;">
-
-    }                <table style="position: relative;">
-
-                    <thead>
-
-    .btn-success {                        <tr>
-
-        background: var(--success-gradient);                            {% if current_user.role == "super_admin" %}
-
-        color: white;                            <th style="width: 50px; text-align: center;">
-
-        box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()" style="
-
-    }                                    width: 20px;
-
-                                    height: 20px;
-
-    .btn-success:hover {                                    cursor: pointer;
-
-        transform: translateY(-2px);                                    accent-color: #667eea;
-
-        box-shadow: 0 6px 16px rgba(56, 239, 125, 0.4);                                ">
-
-    }                            </th>
-
-                            {% endif %}
-
-    .btn-danger {                            <th>#</th>
-
-        background: var(--warning-gradient);                            <th>Student</th>
-
-        color: white;                            <th>Submission Time</th>
-
-        box-shadow: 0 4px 12px rgba(245, 87, 108, 0.3);                            {% if assignment.out_of > 0 %}
-
-    }                            <th>Grade</th>
-
-                            {%else%}
-
-    .btn-danger:hover {                            <th>Corrected</th>
-
-        transform: translateY(-2px);                            {% endif %}
-
-        box-shadow: 0 6px 16px rgba(245, 87, 108, 0.4);                            <th>Status</th>
-
-    }                            <th>Original File</th>
-
-                            <th>Actions</th>
-
-    .submissions-table-container {                        </tr>
-
-        background: white;                    </thead>
-
-        border-radius: 16px;                    <tbody>
-
-        padding: 2rem;                        {% for submission in submissions %}
-
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);                        {% if submission.student_id in submitted_student_ids %}
-
-    }                        <tr class="submission-row" data-submission-id="{{ submission.id }}" data-corrected="{{ submission.corrected }}" data-reviewed="{{ submission.reviewed }}">
-
-                            {% if current_user.role == "super_admin" %}
-
-    .submissions-table-container h3 {                            <td style="text-align: center;">
-
-        font-size: 1.25rem;                                {% if submission.corrected and not submission.reviewed %}
-
-        font-weight: 700;                                <input type="checkbox" class="submission-checkbox" data-submission-id="{{ submission.id }}" onchange="updateSelectionCount()" style="
-
-        color: #1a202c;                                    width: 20px;
-
-        margin-bottom: 1.5rem;                                    height: 20px;
-
-    }                                    cursor: pointer;
-
-                                    accent-color: #667eea;
-
-    .submissions-table {                                ">
-
-        width: 100%;                                {% else %}
-
-        border-collapse: separate;                                <span style="color: #ccc;">—</span>
-
-        border-spacing: 0;                                {% endif %}
-
-    }                            </td>
-
-                            {% endif %}
-
-    .submissions-table thead {                            <td data-label="#" style="font-weight: 600; color: #666;">{{ loop.index }}</td>
-
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);                            <td data-label="Student" class="student-name">
-
-    }                                <a href="{{ url_for('admin.student', user_id=submission.student.id) }}">{{
-
-                                    submission.student.name }}</a>
-
-    .submissions-table thead th {                                <div class="assignment-due">{{ submission.student.code }}</div>
-
-        padding: 1rem;                            </td>
-
-        text-align: left;                            <td data-label="Time"
-
-        color: white;                                class="submission-time {% if submission.upload_time > submission.assignment.deadline_date %}late{% endif %}">
-
-        font-weight: 600;                                {{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}
-
-        font-size: 0.875rem;                            </td>
-
-        text-transform: uppercase;                            {% if assignment.out_of > 0 %}
-
-        letter-spacing: 0.5px;                            <td data-label="Grade">
-
-    }                                <form method="POST" class="grade-form"
-
-                                    style="display: flex; align-items: center; gap: 0.5rem;">
-
-    .submissions-table thead th:first-child {                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
-
-        border-top-left-radius: 12px;                                    <input type="text" name="mark"
-
-    }                                        value="{{ submission.mark if submission.mark is not none else '' }}"
-
-                                        placeholder="Grade" style="
-
-    .submissions-table thead th:last-child {                                            width: 100px;
-
-        border-top-right-radius: 12px;                                            padding: 6px 10px;
-
-    }                                            border: 1px solid #ccc;
-
-                                            border-radius: 4px;
-
-    .submissions-table tbody tr {                                            font-size: 1rem;
-
-        border-bottom: 1px solid #e2e8f0;                                            background: #fafbfc;
-
-        transition: all 0.3s;                                            transition: border-color 0.2s;
-
-    }                                        " onfocus="this.style.borderColor='#007bff';"
-
-                                        onblur="this.style.borderColor='#ccc';">
-
-    .submissions-table tbody tr:hover {                                    <button type="submit" style="
-
-        background: #f7fafc;                                            padding: 6px 16px;
-
-    }                                            background-color: #007bff;
-
-                                            color: #fff;
-
-    .submissions-table tbody td {                                            border: none;
-
-        padding: 1rem;                                            border-radius: 4px;
-
-        color: #4a5568;                                            font-size: 1rem;
-
-    }                                            cursor: pointer;
-
-                                            transition: background 0.2s;
-
-    .student-name {                                        " onmouseover="this.style.backgroundColor='#0056b3';"
-
-        font-weight: 600;                                        onmouseout="this.style.backgroundColor='#007bff';">Save</button>
-
-        color: #1a202c;                                </form>
-
-    }                            </td>
-
-                            {%else%}
-
-    .status-badge {                            {% if submission.corrected %}
-
-        display: inline-block;                            <td>
-
-        padding: 0.375rem 0.75rem;                                <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
-
-        border-radius: 20px;                                    class="btn btn-primary btn-open btn-small">Open Corrected File</a>
-
-        font-size: 0.75rem;                            </td>
-
-        font-weight: 600;                            {% else %}
-
-        text-transform: uppercase;                            <td>
-
-        letter-spacing: 0.5px;                                Not Corrected
-
-    }                                {{submission.corrected}}
-
-                            </td>
-
-    .status-badge.submitted {                            {% endif %}
-
-        background: rgba(56, 239, 125, 0.1);
-
-        color: #11998e;                            {% endif %}
-
-    }
-
-                            <td data-label="Status">
-
-    .status-badge.late {                                {% if submission.corrected and submission.reviewed %}
-
-        background: rgba(245, 87, 108, 0.1);                                <span class="badge badge-success"
-
-        color: #f5576c;                                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">✓
-
-    }                                    Approved</span>
-
-                                {% elif submission.corrected and not submission.reviewed %}
-
-    .status-badge.corrected {                                <span class="badge badge-warning"
-
-        background: rgba(56, 239, 125, 0.1);                                    style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); color: #2d3436; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">⏳
-
-        color: #11998e;                                    Pending Review</span>
-
-    }                                {% else %}
-
-                                <span class="badge badge-secondary"
-
-    .status-badge.approved {                                    style="background: #e0e0e0; color: #666; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">—
-
-        background: rgba(102, 126, 234, 0.1);                                    Not Corrected</span>
-
-        color: #667eea;                                {% endif %}
-
-    }                            </td>
-
-
-
-    .status-badge.pending {                            <td>
-
-        background: rgba(251, 191, 36, 0.1);                                <a href="{{ url_for('admin.get_pdf', submission_id=submission.id) }}" target="_blank"
-
-        color: #f59e0b;                                    class="btn btn-primary btn-open btn-small">Open Original File</a>
-
-    }                            </td>
-
-                            <td data-label="Actions">
-
-    .grade-input {                                <!-- Actions Popup Menu -->
-
-        width: 80px;                                <div class="actions-dropdown">
-
-        padding: 0.5rem;                                    <button type="button"
-
-        border: 2px solid #e2e8f0;                                        class="btn btn-primary btn-open btn-small actions-menu-button">Actions
-
-        border-radius: 6px;                                        &#x25BC;</button>
-
-        text-align: center;                                    <div class="actions-menu">
-
-        font-weight: 600;                                        {% if current_user.role == "super_admin" and submission.corrected and not
-
-    }                                        submission.reviewed %}
-
-                                        <button type="button" class="actions-menu-item"
-
-    .action-buttons {                                            style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; font-weight: 600;"
-
-        display: flex;                                            onclick="closeAllMenus(); approveSubmission({{ submission.id }}, '{{ submission.student.name }}');">
-
-        gap: 0.5rem;                                            ✓ Approve Correction
-
-    }                                        </button>
-
-                                        {% endif %}
-
-    .icon-btn {                                        <button type="button" class="actions-menu-item"
-
-        width: 36px;                                            data-submission-id="{{ submission.id }}"
-
-        height: 36px;                                            data-student-name="{{ submission.student.name }}"
-
-        border-radius: 8px;                                            data-current-mark="{{ submission.mark if submission.mark is not none else '' }}"
-
-        display: inline-flex;                                            onclick="closeAllMenus(); openUploadModal(this.getAttribute('data-submission-id'), this.getAttribute('data-student-name'), this.getAttribute('data-current-mark'));">
-
-        align-items: center;                                            📤 Upload Corrected PDF
-
-        justify-content: center;                                        </button>
-
-        border: none;                                        <a href="{{ url_for('admin.edit_pdf', submission_id=submission.id) }}"
-
-        cursor: pointer;                                            class="actions-menu-item">
-
-        transition: all 0.3s;                                            ✏️ Correct Student PDF
-
-        text-decoration: none;                                        </a>
-
-    }                                        {% if submission.mark or submission.corrected %}
-
-                                        <a href="{{ url_for('admin.edit_pdf2', submission_id=submission.id) }}"
-
-    .icon-btn.view {                                         class="actions-menu-item">
-
-        background: rgba(102, 126, 234, 0.1);                                            🖊️ Edit on Corrected PDF
-
-        color: #667eea;                                        </a>
-
-    }                                        <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
-
-                                         class="actions-menu-item">
-
-    .icon-btn.view:hover {                                            👁️ Open Corrected PDF
-
-        background: rgba(102, 126, 234, 0.2);                                        </a>
-
-    }
-
-                                        <form method="POST"
-
-    .icon-btn.approve {                                            action="{{ url_for('admin.delete_submission', submission_id=submission.id) }}"
-
-        background: rgba(56, 239, 125, 0.1);                                            style="display:inline; margin: 0;"
-
-        color: #11998e;                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission? <br> <p style=&quot;color: red;&quot;>This can\'t be undone</p>');">
-
-    }                                            <button type="submit" class="actions-menu-item actions-menu-item-danger">
-
-                                                🗑️ Delete Student Submission
-
-    .icon-btn.approve:hover {                                            </button>
-
-        background: rgba(56, 239, 125, 0.2);                                        </form>
-
-    }                                        {% endif %}
-
-                                    </div>
-
-    .icon-btn.reject {                                </div>
-
-        background: rgba(245, 87, 108, 0.1);                                <!-- /Actions Popup Menu -->
-
-        color: #f5576c;                            </td>
-
-    }                        </tr>
-
-                        {% endif %}
-
-    .icon-btn.reject:hover {                        {% else %}
-
-        background: rgba(245, 87, 108, 0.2);                        <tr>
-
-    }                            <td colspan="4" style="text-align: center; padding: 2rem;">No submissions yet.</td>
-
-                        </tr>
-
-    @media (max-width: 768px) {                        {% endfor %}
-
-        .assignment-form {                    </tbody>
-
-            grid-template-columns: 1fr;                </table>
-
-        }            </div>
-
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/submit.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Submitted</p>
+                <p class="value">{{ submitted_count }}</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/incomplete.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Missing</p>
+                <p class="value">{{ missing_count }}</p>
+            </div>
+        </div>
+        <div class="card stat-card">
+            <div class="stat-card-icon"><img src="/static/images/admin/assignments/overdue.png" alt=""></div>
+            <div class="stat-card-info">
+                <p class="label">Late</p>
+                <p class="value">{{ late_count.value }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="overflow: visible;">
+        <div class="card-header"
+            style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h3>Student Submissions</h3>
+                <p>Review and grade submitted assignments.</p>
+            </div>
+            {% if current_user.role == "super_admin" %}
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button onclick="approveAllSubmissions()" class="btn btn-success" style="
+                    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(56, 239, 125, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(56, 239, 125, 0.3)';">
+                    ✓ Approve All Corrected
+                </button>
+                <button onclick="openBulkApprovalPanel()" class="btn btn-primary" style="
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    border: none;
+                    cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+                    transition: all 0.3s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(102, 126, 234, 0.4)';"
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';">
+                    ☑️ Bulk Approve
+                </button>
+            </div>
+            {% endif %}
         </div>
 
-        .stats-grid {    </div>
+        <!-- Bulk Approval Panel -->
+        {% if current_user.role == "super_admin" %}
+        <div id="bulkApprovalPanel" style="
+            display: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            margin: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="color: white;">
+                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                        <span id="selectedCount">0</span> Selected
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="selectAllSubmissions()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Select All</button>
+                        <button type="button" onclick="deselectAllSubmissions()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Deselect All</button>
+                        <button type="button" onclick="selectCorrected()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Select Corrected</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" id="btnApproveSelected" onclick="approveSelected()" disabled style="
+                        padding: 12px 24px;
+                        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        box-shadow: 0 4px 12px rgba(56, 239, 125, 0.3);
+                        transition: all 0.3s;
+                    ">
+                        ✓ Approve Selected
+                    </button>
+                    <button type="button" onclick="openRangeModal()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #667eea;
+                        border: 2px solid white;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        📊 Approve by Range
+                    </button>
+                    <button type="button" onclick="closeBulkApprovalPanel()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        Close
+                    </button>
+                    <div id="bulkLoadingSpinner" style="display: none; margin-left: 10px;">
+                        <div style="
+                            width: 24px;
+                            height: 24px;
+                            border: 3px solid rgba(255,255,255,0.3);
+                            border-radius: 50%;
+                            border-top-color: white;
+                            animation: spin 0.8s linear infinite;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            #btnApproveSelected:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+            .submission-row.selected {
+                background: rgba(102, 126, 234, 0.1) !important;
+                border-left: 4px solid #667eea;
+            }
+        </style>
+        {% endif %}
+        <div class="card-content no-padding" style="overflow: visible;">
+            <div class="table-wrapper" style="overflow: visible;">
+                <table style="position: relative;">
+                    <thead>
+                        <tr>
+                            {% if current_user.role == "super_admin" %}
+                            <th style="width: 50px; text-align: center;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllCheckboxes()" style="
+                                    width: 20px;
+                                    height: 20px;
+                                    cursor: pointer;
+                                    accent-color: #667eea;
+                                ">
+                            </th>
+                            {% endif %}
+                            <th>#</th>
+                            <th>Student</th>
+                            <th>Submission Time</th>
+                            {% if assignment.out_of > 0 %}
+                            <th>Grade</th>
+                            {%else%}
+                            <th>Corrected</th>
+                            {% endif %}
+                            <th>Status</th>
+                            <th>Original File</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        {% if submission.student_id in submitted_student_ids %}
+                        <tr class="submission-row" data-submission-id="{{ submission.id }}" data-corrected="{{ submission.corrected }}" data-reviewed="{{ submission.reviewed }}">
+                            {% if current_user.role == "super_admin" %}
+                            <td style="text-align: center;">
+                                {% if submission.corrected and not submission.reviewed %}
+                                <input type="checkbox" class="submission-checkbox" data-submission-id="{{ submission.id }}" onchange="updateSelectionCount()" style="
+                                    width: 20px;
+                                    height: 20px;
+                                    cursor: pointer;
+                                    accent-color: #667eea;
+                                ">
+                                {% else %}
+                                <span style="color: #ccc;">—</span>
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            <td data-label="#" style="font-weight: 600; color: #666;">{{ loop.index }}</td>
+                            <td data-label="Student" class="student-name">
+                                <a href="{{ url_for('admin.student', user_id=submission.student.id) }}">{{
+                                    submission.student.name }}</a>
+                                <div class="assignment-due">{{ submission.student.code }}</div>
+                            </td>
+                            <td data-label="Time"
+                                class="submission-time {% if submission.upload_time > submission.assignment.deadline_date %}late{% endif %}">
+                                {{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}
+                            </td>
+                            {% if assignment.out_of > 0 %}
+                            <td data-label="Grade">
+                                <form method="POST" class="grade-form"
+                                    style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                    <input type="text" name="mark"
+                                        value="{{ submission.mark if submission.mark is not none else '' }}"
+                                        placeholder="Grade" style="
+                                            width: 100px;
+                                            padding: 6px 10px;
+                                            border: 1px solid #ccc;
+                                            border-radius: 4px;
+                                            font-size: 1rem;
+                                            background: #fafbfc;
+                                            transition: border-color 0.2s;
+                                        " onfocus="this.style.borderColor='#007bff';"
+                                        onblur="this.style.borderColor='#ccc';">
+                                    <button type="submit" style="
+                                            padding: 6px 16px;
+                                            background-color: #007bff;
+                                            color: #fff;
+                                            border: none;
+                                            border-radius: 4px;
+                                            font-size: 1rem;
+                                            cursor: pointer;
+                                            transition: background 0.2s;
+                                        " onmouseover="this.style.backgroundColor='#0056b3';"
+                                        onmouseout="this.style.backgroundColor='#007bff';">Save</button>
+                                </form>
+                            </td>
+                            {%else%}
+                            {% if submission.corrected %}
+                            <td>
+                                <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
+                                    class="btn btn-primary btn-open btn-small">Open Corrected File</a>
+                            </td>
+                            {% else %}
+                            <td>
+                                Not Corrected
+                                {{submission.corrected}}
+                            </td>
+                            {% endif %}
 
-            grid-template-columns: 1fr;
+                            {% endif %}
 
-        }    <script>
+                            <td data-label="Status">
+                                {% if submission.corrected and submission.reviewed %}
+                                <span class="badge badge-success"
+                                    style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">✓
+                                    Approved</span>
+                                {% elif submission.corrected and not submission.reviewed %}
+                                <span class="badge badge-warning"
+                                    style="background: linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%); color: #2d3436; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">⏳
+                                    Pending Review</span>
+                                {% else %}
+                                <span class="badge badge-secondary"
+                                    style="background: #e0e0e0; color: #666; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">—
+                                    Not Corrected</span>
+                                {% endif %}
+                            </td>
 
-    }        // Helpers for dropdown menu
+                            <td>
+                                <a href="{{ url_for('admin.get_pdf', submission_id=submission.id) }}" target="_blank"
+                                    class="btn btn-primary btn-open btn-small">Open Original File</a>
+                            </td>
+                            <td data-label="Actions">
+                                <!-- Actions Popup Menu -->
+                                <div class="actions-dropdown">
+                                    <button type="button"
+                                        class="btn btn-primary btn-open btn-small actions-menu-button">Actions
+                                        &#x25BC;</button>
+                                    <div class="actions-menu">
+                                        {% if current_user.role == "super_admin" and submission.corrected and not
+                                        submission.reviewed %}
+                                        <button type="button" class="actions-menu-item"
+                                            style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; font-weight: 600;"
+                                            onclick="closeAllMenus(); approveSubmission({{ submission.id }}, '{{ submission.student.name }}');">
+                                            ✓ Approve Correction
+                                        </button>
+                                        {% endif %}
+                                        <button type="button" class="actions-menu-item"
+                                            data-submission-id="{{ submission.id }}"
+                                            data-student-name="{{ submission.student.name }}"
+                                            data-current-mark="{{ submission.mark if submission.mark is not none else '' }}"
+                                            onclick="closeAllMenus(); openUploadModal(this.getAttribute('data-submission-id'), this.getAttribute('data-student-name'), this.getAttribute('data-current-mark'));">
+                                            📤 Upload Corrected PDF
+                                        </button>
+                                        <a href="{{ url_for('admin.edit_pdf', submission_id=submission.id) }}"
+                                            class="actions-menu-item">
+                                            ✏️ Correct Student PDF
+                                        </a>
+                                        {% if submission.mark or submission.corrected %}
+                                        <a href="{{ url_for('admin.edit_pdf2', submission_id=submission.id) }}"
+                                         class="actions-menu-item">
+                                            🖊️ Edit on Corrected PDF
+                                        </a>
+                                        <a href="{{ url_for('admin.get_pdf2', submission_id=submission.id) }}" target="_blank"
+                                         class="actions-menu-item">
+                                            👁️ Open Corrected PDF
+                                        </a>
 
-</style>        function closeAllMenus() {
+                                        <form method="POST"
+                                            action="{{ url_for('admin.delete_submission', submission_id=submission.id) }}"
+                                            style="display:inline; margin: 0;"
+                                            onsubmit="return confirmAction(event,'Are you sure you want to delete this submission? <br> <p style=&quot;color: red;&quot;>This can\'t be undone</p>');">
+                                            <button type="submit" class="actions-menu-item actions-menu-item-danger">
+                                                🗑️ Delete Student Submission
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <!-- /Actions Popup Menu -->
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem;">No submissions yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-{% endblock %}            document.querySelectorAll('.actions-menu').forEach(menu => {
-
+    <script>
+        // Helpers for dropdown menu
+        function closeAllMenus() {
+            document.querySelectorAll('.actions-menu').forEach(menu => {
                 menu.style.display = 'none';
-
-{% block content %}                // Reset positioning
-
+                // Reset positioning
                 menu.style.right = '0';
-
-{% set total_submissions = submissions|length %}                menu.style.left = 'auto';
-
-{% set unassigned_count = submissions|selectattr('assigned_to_id', 'none')|list|length %}            });
-
-{% set approved_count = submissions|selectattr('reviewed', 'equalto', true)|list|length %}            document.querySelectorAll('.actions-menu-button').forEach(btn => btn.classList.remove('open'));
-
-{% set waiting_approval_count = submissions|selectattr('corrected', 'equalto', true)|rejectattr('reviewed', 'equalto', true)|list|length %}        }
-
-{% set not_corrected_count = submissions|rejectattr('corrected', 'equalto', true)|list|length %}
+                menu.style.left = 'auto';
+            });
+            document.querySelectorAll('.actions-menu-button').forEach(btn => btn.classList.remove('open'));
+        }
 
         // Toggle menu on Actions button click, close others
-
-<div class="submissions-page">        document.addEventListener('DOMContentLoaded', function () {
-
-    <div class="page-header">            document.querySelectorAll('.actions-dropdown').forEach(function (dropdown) {
-
-        {% if group_id and group %}                var btn = dropdown.querySelector('.actions-menu-button');
-
-        <a href="{{ url_for('admin.group_assignments', group_id=group_id) }}" class="back-button">                var menu = dropdown.querySelector('.actions-menu');
-
-            ← Back to {{ group.name }} Assignments                btn.addEventListener('click', function (e) {
-
-        </a>                    e.stopPropagation();
-
-        {% else %}                    // Close all others first
-
-        <a href="{{ url_for('admin.assignments') }}" class="back-button">                    closeAllMenus();
-
-            ← Back to Assignments                    // Toggle this one
-
-        </a>                    if (menu.style.display === 'block') {
-
-        {% endif %}                        menu.style.display = 'none';
-
-        <h1>Assignment Submissions</h1>                        btn.classList.remove('open');
-
-    </div>                    } else {
-
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.actions-dropdown').forEach(function (dropdown) {
+                var btn = dropdown.querySelector('.actions-menu-button');
+                var menu = dropdown.querySelector('.actions-menu');
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    // Close all others first
+                    closeAllMenus();
+                    // Toggle this one
+                    if (menu.style.display === 'block') {
+                        menu.style.display = 'none';
+                        btn.classList.remove('open');
+                    } else {
                         menu.style.display = 'block';
+                        btn.classList.add('open');
 
-    <!-- Assignment Info -->                        btn.classList.add('open');
+                        // Smart positioning: Check if menu goes off-screen
+                        setTimeout(function () {
+                            var rect = menu.getBoundingClientRect();
+                            var viewportWidth = window.innerWidth;
 
-    <div class="assignment-info-card">
+                            // If menu goes off right edge, position it on the left side
+                            if (rect.right > viewportWidth - 10) {
+                                menu.style.right = 'auto';
+                                menu.style.left = '0';
+                            }
 
-        <h2>{{ assignment.title }}</h2>                        // Smart positioning: Check if menu goes off-screen
-
-        <div class="assignment-meta">                        setTimeout(function () {
-
-            <span class="meta-item">                            var rect = menu.getBoundingClientRect();
-
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">                            var viewportWidth = window.innerWidth;
-
-                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-
-                </svg>                            // If menu goes off right edge, position it on the left side
-
-                Due: {{ assignment.deadline_date.strftime('%b %d, %Y at %I:%M %p') }}                            if (rect.right > viewportWidth - 10) {
-
-            </span>                                menu.style.right = 'auto';
-
-            <span class="meta-item">                                menu.style.left = '0';
-
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">                            }
-
-                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
-
-                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>                            // If menu goes off left edge, position it on the right side
-
-                </svg>                            if (rect.left < 10) {
-
-                Points: {{ assignment.points }}                                menu.style.left = 'auto';
-
-            </span>                                menu.style.right = '0';
-
-            <span class="meta-item">                            }
-
-                <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20">                        }, 0);
-
-                    <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/>                    }
-
-                </svg>                });
-
-                Total Submissions: {{ total_submissions }}            });
-
-            </span>            // Click outside closes all
-
-        </div>            document.body.addEventListener('click', function () {
-
-    </div>                closeAllMenus();
-
+                            // If menu goes off left edge, position it on the right side
+                            if (rect.left < 10) {
+                                menu.style.left = 'auto';
+                                menu.style.right = '0';
+                            }
+                        }, 0);
+                    }
+                });
             });
+            // Click outside closes all
+            document.body.addEventListener('click', function () {
+                closeAllMenus();
+            });
+            // Stop clicking the menu from bubbling up (don't close when clicking inside)
+            document.querySelectorAll('.actions-menu').forEach(function (menu) {
+                menu.addEventListener('click', function (e) { e.stopPropagation(); });
+            });
+        });
+    </script>
+    <style>
+        /* Actions Dropdown Styles */
+        .actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
 
-    <!-- Statistics -->            // Stop clicking the menu from bubbling up (don't close when clicking inside)
-
-    <div class="stats-grid">            document.querySelectorAll('.actions-menu').forEach(function (menu) {
-
-        <div class="stat-card unassigned">                menu.addEventListener('click', function (e) { e.stopPropagation(); });
-
-            <div class="stat-label">Unassigned Submissions</div>            });
-
-            <div class="stat-value">{{ unassigned_count }}</div>        });
-
-        </div>    </script>
-
-        <div class="stat-card approved">    <style>
-
-            <div class="stat-label">Approved Submissions</div>        /* Actions Dropdown Styles */
-
-            <div class="stat-value">{{ approved_count }}</div>        .actions-dropdown {
-
-        </div>            position: relative;
-
-        <div class="stat-card waiting">            display: inline-block;
-
-            <div class="stat-label">Waiting Approval</div>        }
-
-            <div class="stat-value">{{ waiting_approval_count }}</div>
-
-        </div>        .actions-menu {
-
-        <div class="stat-card not-corrected">            display: none;
-
-            <div class="stat-label">Not Corrected (Assigned)</div>            position: absolute;
-
-            <div class="stat-value">{{ not_corrected_count }}</div>            z-index: 9999;
-
-        </div>            right: 0;
-
-    </div>            top: 100%;
-
+        .actions-menu {
+            display: none;
+            position: absolute;
+            z-index: 9999;
+            right: 0;
+            top: 100%;
             margin-top: 4px;
+            min-width: 220px;
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
 
-    <!-- Assistant Assignment Panel (Super Admin Only) -->            min-width: 220px;
+        .actions-menu-item {
+            display: block;
+            width: 100%;
+            border: none;
+            background: none;
+            text-align: left;
+            padding: 12px 16px;
+            cursor: pointer;
+            color: #374151;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: background-color 0.15s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
 
-    {% if current_user.role == "super_admin" and assistants %}            background: #fff;
+        .actions-menu-item:last-child,
+        .actions-menu form:last-child .actions-menu-item {
+            border-bottom: none;
+        }
 
-    <div class="assistant-assignment-panel">            border: 1px solid #e3e3e3;
+        .actions-menu-item:hover,
+        .actions-menu-item:focus {
+            background-color: #f3f4f6;
+            outline: none;
+        }
 
-        <h3>📋 Assign Submissions to Assistants</h3>            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        .actions-menu-item-danger {
+            color: #dc2626;
+        }
 
-        <div class="assistants-grid">            border-radius: 8px;
+        .actions-menu-item-danger:hover {
+            background-color: #fee2e2;
+        }
 
-            {% for assistant in assistants %}            overflow: hidden;
+        .actions-menu-button.open {
+            background: #5050ee;
+            color: #fff;
+        }
 
-            {% set assistant_assigned = submissions|selectattr('assigned_to_id', 'equalto', assistant.id)|list %}        }
-
-            {% set assistant_assigned_count = assistant_assigned|length %}
-
-            <div class="assistant-card">        .actions-menu-item {
-
-                <div class="assistant-header">            display: block;
-
-                    <div class="assistant-info">            width: 100%;
-
-                        <h4>{{ assistant.name }}</h4>            border: none;
-
-                        <p>{{ assistant.email }}</p>            background: none;
-
-                    </div>            text-align: left;
-
-                    <div class="assistant-stats">            padding: 12px 16px;
-
-                        <div class="assigned-count">{{ assistant_assigned_count }}</div>            cursor: pointer;
-
-                        <small style="color: #718096;">assigned</small>            color: #374151;
-
-                    </div>            text-decoration: none;
-
-                </div>            font-size: 0.95rem;
-
-                <form method="POST" action="{{ url_for('admin.assign_submissions_to_assistant', assignment_id=assignment.id) }}" class="assignment-form">            transition: background-color 0.15s ease;
-
-                    <input type="hidden" name="assistant_id" value="{{ assistant.id }}">            border-bottom: 1px solid #f3f4f6;
-
-                    {% if group_id %}        }
-
-                    <input type="hidden" name="group_id" value="{{ group_id }}">
-
-                    {% endif %}        .actions-menu-item:last-child,
-
-                    <div class="form-group">        .actions-menu form:last-child .actions-menu-item {
-
-                        <label for="start_{{ assistant.id }}">Start Index</label>            border-bottom: none;
-
-                        <input type="number" id="start_{{ assistant.id }}" name="start_index" min="1" max="{{ total_submissions }}" placeholder="1" required>        }
-
-                    </div>
-
-                    <div class="form-group">        .actions-menu-item:hover,
-
-                        <label for="end_{{ assistant.id }}">End Index</label>        .actions-menu-item:focus {
-
-                        <input type="number" id="end_{{ assistant.id }}" name="end_index" min="1" max="{{ total_submissions }}" placeholder="{{ total_submissions }}" required>            background-color: #f3f4f6;
-
-                    </div>            outline: none;
-
-                    <button type="submit" class="btn btn-primary">        }
-
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
-
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>        .actions-menu-item-danger {
-
-                        </svg>            color: #dc2626;
-
-                        Assign        }
-
-                    </button>
-
-                    {% if assistant_assigned_count > 0 %}        .actions-menu-item-danger:hover {
-
-                    <button type="submit" formaction="{{ url_for('admin.unassign_submissions', assignment_id=assignment.id) }}" class="btn btn-danger" onclick="return confirm('Unassign all submissions from {{ assistant.name }}?')">            background-color: #fee2e2;
-
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">        }
-
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-
-                        </svg>        .actions-menu-button.open {
-
-                        Unassign            background: #5050ee;
-
-                    </button>            color: #fff;
-
-                    {% endif %}        }
-
-                </form>
-
-            </div>        /* Mobile responsive positioning */
-
-            {% endfor %}        @media (max-width: 768px) {
-
-        </div>            .actions-menu {
-
-    </div>                right: auto;
-
-    {% endif %}                left: 50%;
-
+        /* Mobile responsive positioning */
+        @media (max-width: 768px) {
+            .actions-menu {
+                right: auto;
+                left: 50%;
                 transform: translateX(-50%);
+                min-width: 200px;
+            }
 
-    <!-- Submissions Table -->                min-width: 200px;
+            /* Adjust if menu is at the edge */
+            .actions-dropdown:last-child .actions-menu {
+                right: 0;
+                left: auto;
+                transform: none;
+            }
+        }
 
-    <div class="submissions-table-container">            }
+        /* Ensure table cells don't clip the dropdown */
+        tbody tr {
+            position: relative;
+        }
 
-        <h3>📝 All Submissions</h3>
+        tbody td {
+            overflow: visible;
+        }
+    </style>
 
-        {% if submissions %}            /* Adjust if menu is at the edge */
 
-        <table class="submissions-table">            .actions-dropdown:last-child .actions-menu {
+    <div class="card">
+        <div class="card-header">
+            <h3>Missing Submissions</h3>
+            <p>Students who did not submit this assignment.</p>
+        </div>
+        <div class="card-content no-padding">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Class/Group</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in not_submitted_students %}
+                        <tr>
+                            <td data-label="Student" class="student-name">
+                                <a href="{{ url_for('admin.student', user_id=student.id) }}">{{ student.name }}</a>
+                                <div class="assignment-due">{{ student.code }}</div>
+                            </td>
+                            <td data-label="Class">{{ student.group.name if student.group else 'N/A' }}</td>
+                            <td data-label="Status">
 
-            <thead>                right: 0;
+                                <div>
+                                    <span class="badge badge-red">Missing</span>
+                                </div>
 
-                <tr>                left: auto;
 
-                    <th>#</th>                transform: none;
+                            </td>
+                            <td data-label="Action">
+                                <div>
 
-                    <th>Student Name</th>            }
-
-                    <th>Code</th>        }
-
-                    <th>Submitted At</th>
-
-                    <th>Status</th>        /* Ensure table cells don't clip the dropdown */
-
-                    <th>Assigned To</th>        tbody tr {
-
-                    <th>Grade</th>            position: relative;
-
-                    <th>Corrected By</th>        }
-
-                    <th>Actions</th>
-
-                </tr>        tbody td {
-
-            </thead>            overflow: visible;
-
-            <tbody>        }
-
-                {% for submission in submissions %}    </style>
-
-                <tr>
-
-                    <td><strong>{{ loop.index }}</strong></td>
-
-                    <td class="student-name">{{ submission.student.name }}</td>    <div class="card">
-
-                    <td>{{ submission.student.code }}</td>        <div class="card-header">
-
-                    <td>{{ submission.upload_time.strftime('%b %d, %Y %I:%M %p') }}</td>            <h3>Missing Submissions</h3>
-
-                    <td>            <p>Students who did not submit this assignment.</p>
-
-                        {% if submission.reviewed %}        </div>
-
-                        <span class="status-badge approved">✓ Approved</span>        <div class="card-content no-padding">
-
-                        {% elif submission.corrected %}            <div class="table-wrapper">
-
-                        <span class="status-badge corrected">Corrected</span>                <table>
-
-                        {% elif submission.upload_time > assignment.deadline_date %}                    <thead>
-
-                        <span class="status-badge late">Late</span>                        <tr>
-
-                        {% else %}                            <th>Student</th>
-
-                        <span class="status-badge submitted">Submitted</span>                            <th>Class/Group</th>
-
-                        {% endif %}                            <th>Status</th>
-
-                    </td>                            <th>Action</th>
-
-                    <td>                        </tr>
-
-                        {% if submission.assigned_to %}                    </thead>
-
-                        <span style="color: #667eea; font-weight: 600;">{{ submission.assigned_to.name }}</span>                    <tbody>
-
-                        {% else %}                        {% for student in not_submitted_students %}
-
-                        <span style="color: #cbd5e0;">Unassigned</span>                        <tr>
-
-                        {% endif %}                            <td data-label="Student" class="student-name">
-
-                    </td>                                <a href="{{ url_for('admin.student', user_id=student.id) }}">{{ student.name }}</a>
-
-                    <td>                                <div class="assignment-due">{{ student.code }}</div>
-
-                        <form method="POST" style="display: inline;">                            </td>
-
-                            <input type="hidden" name="submission_id" value="{{ submission.id }}">                            <td data-label="Class">{{ student.group.name if student.group else 'N/A' }}</td>
-
-                            <input type="text" name="mark" value="{{ submission.mark or '' }}" class="grade-input" placeholder="—">                            <td data-label="Status">
-
-                        </form>
-
-                    </td>                                <div>
-
-                    <td>                                    <span class="badge badge-red">Missing</span>
-
-                        {% if submission.corrector %}                                </div>
-
-                        <span style="font-size: 0.875rem; color: #718096;">{{ submission.corrector.name }}</span>
-
+                                    <form method="POST"
+                                        action="{{ url_for('admin.send_late_message_for_submission', assignment_id=assignment.id, student_id=student.id) }}"
+                                        class="send-reminder-form" data-student-name="{{ student.name }}"
+                                        data-parent-phone="{{ student.parent_phone_number }}">
+                                        <input type="hidden" name="student_id" value="{{ student.id }}">
+                                        {% set sent = notification_status.get(student.id) %}
+                                        <button type="submit" class="btn btn-reminder btn-small" {% if sent %}disabled
+                                            style="background-color: #ccc; color: #888; cursor: not-allowed;" {% endif
+                                            %}>
+                                            {% if sent %}Sent{% else %}Send Reminder{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
                         {% else %}
-
-                        <span style="color: #cbd5e0;">—</span>                            </td>
-
-                        {% endif %}                            <td data-label="Action">
-
-                    </td>                                <div>
-
-                    <td>
-
-                        <div class="action-buttons">                                    <form method="POST"
-
-                            <a href="{{ url_for('admin.edit_pdf', submission_id=submission.id) }}" class="icon-btn view" title="View Submission">                                        action="{{ url_for('admin.send_late_message_for_submission', assignment_id=assignment.id, student_id=student.id) }}"
-
-                                <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">                                        class="send-reminder-form" data-student-name="{{ student.name }}"
-
-                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>                                        data-parent-phone="{{ student.parent_phone_number }}">
-
-                                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>                                        <input type="hidden" name="student_id" value="{{ student.id }}">
-
-                                </svg>                                        {% set sent = notification_status.get(student.id) %}
-
-                            </a>                                        <button type="submit" class="btn btn-reminder btn-small" {% if sent %}disabled
-
-                            {% if current_user.role == "super_admin" and submission.corrected and not submission.reviewed %}                                            style="background-color: #ccc; color: #888; cursor: not-allowed;" {% endif
-
-                            <form method="POST" action="{{ url_for('admin.approve_submission', submission_id=submission.id) }}" style="display: inline;">                                            %}>
-
-                                <button type="submit" class="icon-btn approve" title="Approve">                                            {% if sent %}Sent{% else %}Send Reminder{% endif %}
-
-                                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">                                        </button>
-
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>                                    </form>
-
-                                    </svg>                                </div>
-
-                                </button>                            </td>
-
-                            </form>                        </tr>
-
-                            {% endif %}                        {% else %}
-
-                        </div>                        <tr>
-
-                    </td>                            <td colspan="3" style="text-align: center; padding: 2rem;">All students have submitted.</td>
-
-                </tr>                        </tr>
-
-                {% endfor %}                        {% endfor %}
-
-            </tbody>                    </tbody>
-
-        </table>                </table>
-
-        {% else %}            </div>
-
-        <div style="text-align: center; padding: 3rem; color: #718096;">        </div>
-
-            <svg width="64" height="64" fill="currentColor" viewBox="0 0 20 20" style="margin-bottom: 1rem; opacity: 0.3;">    </div>
-
-                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/></div>
-
-            </svg><script>
-
-            <p style="font-size: 1.125rem; font-weight: 600;">No submissions yet</p>    // Toast function
-
-        </div>    function showToast(message, success = true) {
-
-        {% endif %}        let toast = document.createElement("div");
-
-    </div>        toast.className = "custom-toast" + (success ? " toast-success" : " toast-fail");
-
-</div>        toast.innerText = message;
-
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 2rem;">All students have submitted.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Toast function
+    function showToast(message, success = true) {
+        let toast = document.createElement("div");
+        toast.className = "custom-toast" + (success ? " toast-success" : " toast-fail");
+        toast.innerText = message;
         document.body.appendChild(toast);
-
-{% endblock %}        setTimeout(() => {
-
+        setTimeout(() => {
             toast.classList.add("show");
         }, 50);
         setTimeout(() => {
