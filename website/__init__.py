@@ -66,7 +66,8 @@ def create_app():
         'website.frontend_whatsapp',
         'website.favicon',
         'website.add_zoom_participant',
-        'website.spy'
+        'website.spy',
+        'website.backend_register',
     ]
 
     @app.before_request
