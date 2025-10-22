@@ -363,6 +363,9 @@
     <div class="controls-bar">
         <span class="user-count">{{ pagination.total }} user{{ 's' if pagination.total != 1 else '' }} found</span>
         <div class="sort-controls">
+            <a href="{{ url_for('admin.track_assistants', group_id=group.id) }}" class="btn btn-primary me-2">
+                <i class="fas fa-chart-bar me-1"></i> Track Assignment Progress
+            </a>
             <button id="sortNameBtn" class="sort-btn active" type="button" data-sort="name">
                 Sort Name <span class="sort-indicator">↑</span>
             </button>

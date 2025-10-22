@@ -1237,7 +1237,7 @@ def add_assistant():
 
             flash('Assistant added successfully!', 'success')
             try:
-                send_whatsapp_message(new_admin.phone_number, f"Your assistant account has been created. \nYour email is {new_admin.email}. \nYour password is {password}. \nPlease login to your account and change your password.")
+                send_whatsapp_message(f"2{new_admin.phone_number}", f"Your assistant account has been created. \nYour Phone number is {new_admin.phone_number}. \nYour password is {password}. \nPlease login to your account and change your password." , bypass= True)
             except:
                 pass
             return redirect(url_for('admin.assistants'))
@@ -8178,7 +8178,89 @@ def approve_range_submissions():
 
 
     
-#Track assistnants (3mtn w per assignment in one page)
+#=================================================================
+#=================================================================
+# ASSISTANT TRACKING SYSTEM
+#=================================================================
+#=================================================================
 
+@admin.route('/track/assistants/<int:group_id>', methods=['GET'])
+def track_assistants(group_id):
+    group = Groups.query.get_or_404(group_id)
+    
+    # Check if user has access to this group
+    if current_user.role != "super_admin":
+        group_ids = get_user_scope_ids()
+        if group_id not in group_ids:
+            flash("You don't have access to this group.", "danger")
+            return redirect(url_for("admin.index"))
+    
+    # Get all assistants who manage this group
+    assistants = Users.query.filter(
+        Users.role.in_(['admin', 'super_admin']),
+        Users.managed_groups.any(Groups.id == group_id)
+    ).all()
+    
+    # Get all assignments for this group (both legacy and MM)
+    assignments = Assignments.query.filter(
+        or_(
+            Assignments.groupid == group_id,
+            Assignments.groups_mm.any(Groups.id == group_id)
+        )
+    ).order_by(Assignments.deadline_date.desc()).all()
+    
+    # Build tracking data for each assistant
+    tracking_data = {}
+    for assistant in assistants:
+        assistant_data = {
+            'id': assistant.id,
+            'name': assistant.name,
+            'email': assistant.email,
+            'assignment_stats': {}
+        }
+        
+        # Calculate stats for each assignment
+        for assignment in assignments:
+            # Count submissions assigned to this assistant
+            assigned_count = Submissions.query.filter(
+                Submissions.assignment_id == assignment.id,
+                Submissions.assigned_to_id == assistant.id
+            ).count()
+            
+            # Count submissions corrected by this assistant
+            corrected_count = Submissions.query.filter(
+                Submissions.assignment_id == assignment.id,
+                Submissions.corrected_by_id == assistant.id,
+                Submissions.corrected == True
+            ).count()
+            
+            # Count submissions corrected but pending review
+            pending_review_count = Submissions.query.filter(
+                Submissions.assignment_id == assignment.id,
+                Submissions.corrected_by_id == assistant.id,
+                Submissions.corrected == True,
+                Submissions.reviewed == False
+            ).count()
+            
+            # Only add assignments with activity for this assistant
+            if assigned_count > 0 or corrected_count > 0:
+                assistant_data['assignment_stats'][assignment.id] = {
+                    'assignment': assignment,
+                    'assigned_count': assigned_count,
+                    'corrected_count': corrected_count,
+                    'pending_review_count': pending_review_count
+                }
+        
+        # Add assistant data if they have any assignment activity
+        if assistant_data['assignment_stats']:
+            tracking_data[assistant.id] = assistant_data
+    
+    return render_template(
+        'admin/assistant/track_assistants.html',
+        group=group,
+        assistants=assistants,
+        assignments=assignments,
+        tracking_data=tracking_data
+    )
 
     

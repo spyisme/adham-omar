@@ -1,0 +1,271 @@
+{% extends "admin/dashboard.html" %}
+{% block title %}Track Assistants - {{ group.name }}{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --primary-color: #1a237e;
+        --primary-hover-color: #141a64;
+        --head-color: #7c3aed;
+        --assistant-color: #2563eb;
+        --surface-bg: #ffffff;
+        --container-bg: #f8f9fa;
+        --text-color: #222222;
+        --subtle-text-color: #6c757d;
+        --border-color: #dee2e6;
+        --border-radius: 6px;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --card-gap: 1rem;
+        
+        /* Status colors */
+        --pending-color: #f59e0b;
+        --completed-color: #10b981;
+        --review-color: #6366f1;
+    }
+
+    .tracking-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .page-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-color);
+        margin: 0;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        background-color: var(--surface-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-color);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .back-button:hover {
+        background-color: var(--container-bg);
+        text-decoration: none;
+    }
+
+    .assistant-card {
+        background-color: var(--surface-bg);
+        border-radius: var(--border-radius);
+        border: 1px solid var(--border-color);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .assistant-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .assistant-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .assistant-email {
+        font-size: 0.9rem;
+        color: var(--subtle-text-color);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+        margin-top: 1rem;
+    }
+
+    .tracking-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .tracking-table th,
+    .tracking-table td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .tracking-table th {
+        background-color: var(--container-bg);
+        font-weight: 600;
+    }
+
+    .tracking-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .progress-container {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .progress-bar {
+        flex-grow: 1;
+        height: 10px;
+        background-color: #e9ecef;
+        border-radius: 5px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background-color: var(--completed-color);
+        border-radius: 5px;
+    }
+
+    .progress-text {
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+    }
+
+    .pending-badge {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: var(--pending-color);
+    }
+
+    .completed-badge {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--completed-color);
+    }
+
+    .review-badge {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--review-color);
+    }
+
+    .no-data-message {
+        text-align: center;
+        padding: 2rem;
+        color: var(--subtle-text-color);
+        background-color: var(--container-bg);
+        border-radius: var(--border-radius);
+        border: 1px dashed var(--border-color);
+        font-size: 1.1rem;
+    }
+
+    /* Mobile optimizations */
+    @media (max-width: 768px) {
+        .tracking-table {
+            font-size: 14px;
+        }
+        
+        .tracking-table th,
+        .tracking-table td {
+            padding: 8px 12px;
+        }
+        
+        .assistant-name {
+            font-size: 1.2rem;
+        }
+    }
+</style>
+
+<div class="tracking-container">
+    <div class="page-header">
+        <h1>Assistant Tracking - {{ group.name }}</h1>
+        <a href="{{ url_for('admin.group_assistants', group_id=group.id) }}" class="back-button">
+            <i class="fas fa-arrow-left"></i> Back to Assistants
+        </a>
+    </div>
+
+    {% if not tracking_data %}
+    <div class="no-data-message">
+        <i class="fas fa-info-circle fa-lg mb-3"></i>
+        <p>No assignment activity found for assistants in this group.</p>
+    </div>
+    {% endif %}
+
+    {% for assistant_id, data in tracking_data.items() %}
+    <div class="assistant-card">
+        <div class="assistant-header">
+            <div>
+                <h2 class="assistant-name">{{ data.name }}</h2>
+                <span class="assistant-email">{{ data.email }}</span>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="tracking-table">
+                <thead>
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Due Date</th>
+                        <th>Progress</th>
+                        <th>Pending Review</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment_id, stats in data.assignment_stats.items() %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('admin.assignments_submissions', assignment_id=stats.assignment.id) }}">
+                                {{ stats.assignment.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ stats.assignment.deadline_date.strftime('%Y-%m-%d') }}
+                        </td>
+                        <td>
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    {% set progress_percent = (stats.corrected_count / stats.assigned_count * 100) if stats.assigned_count > 0 else 0 %}
+                                    <div class="progress-fill" style="width: {{ progress_percent }}%;"></div>
+                                </div>
+                                <span class="progress-text">
+                                    {{ stats.corrected_count }}/{{ stats.assigned_count }}
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if stats.pending_review_count > 0 %}
+                                <span class="status-badge review-badge">{{ stats.pending_review_count }} pending review</span>
+                            {% else %}
+                                <span class="status-badge completed-badge">All reviewed</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
