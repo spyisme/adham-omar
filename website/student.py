@@ -956,46 +956,29 @@ def upload_chunk(assignment_id):
 
         # Send notifications 
         try:
-            is_on_time = submission_on_time
+            # is_on_time = submission_on_time
             
-            if is_on_time:
-                # On-time submission messages
-                if assignment.student_whatsapp and current_user.phone_number:
-                    send_whatsapp_message(
-                        current_user.phone_number,
-                        f"Hi {current_user.name} 👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        "We have received your homework submission ✅\n\n"
-                        "Thank you for your dedication! ☺"
-                    )
-                
-                if assignment.parent_whatsapp and current_user.parent_phone_number:
-                    send_whatsapp_message(
-                        current_user.parent_phone_number,
-                        f"Dear Parent,\n\n"
-                        f"We wanted to inform you that we have received your child's homework submission for *{assignment.title}* ✅\n\n"
-                        "Thank you for your continuous support and encouragement 🙏☺"
-                    )
-            else:
-                # Late submission messages
-                submission_time = current_date.strftime('%d/%m/%Y at %H:%M')
-                
-                if assignment.student_whatsapp and current_user.phone_number:
-                    send_whatsapp_message(
-                        current_user.phone_number,
-                        f"Hi {current_user.name} 👋,\n\n"
-                        f"Your assignment *{assignment.title}* has been submitted successfully ✅\n\n"
-                        f"⚠️ Note: This is a late submission (submitted on {submission_time})\n"
-                        "Points awarded will be reduced accordingly."
-                    )
-                
-                if assignment.parent_whatsapp and current_user.parent_phone_number:
-                    send_whatsapp_message(
-                        current_user.parent_phone_number,
-                        f"Dear Parent,\n\n"
-                        f"Your child {current_user.name} has submitted their assignment *{assignment.title}* ✅\n\n"
-                        f"⚠️ Note: This is a late submission (submitted on {submission_time})"
-                    )
+            # if is_on_time:
+            # On-time submission messages
+            if assignment.student_whatsapp and current_user.phone_number:
+                send_whatsapp_message(
+                    current_user.phone_number,
+                    f"Hi {current_user.name}👋,\n\n"
+                    f"*{assignment.title}*\n"
+                    f"We have received your homework submission ✅\n\n"
+                    f"Thank you for your dedication! ☺"
+                )
+            
+            if assignment.parent_whatsapp and current_user.parent_phone_number:
+                deadline_str = assignment.deadline_date.strftime('%d/%m/%Y at %H:%M') if assignment.deadline_date else "N/A"
+                send_whatsapp_message(
+                    current_user.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{current_user.name}*\n\n"
+                    f"Homework *{assignment.title}* due on {deadline_str}:  submitted on time ✅\n\n"
+                    f"_for further inquiries send to Dr. Adham_"
+                )
+
 
         except Exception as e:
             # Don't fail the submission if notifications fail
@@ -1718,46 +1701,29 @@ def upload_exam_chunk(exam_id):
 
         # Send notifications 
         try:
-            is_on_time = submission_on_time
+            # is_on_time = submission_on_time
             
-            if is_on_time:
-                # On-time submission messages
-                if exam.student_whatsapp and current_user.phone_number:
-                    send_whatsapp_message(
-                        current_user.phone_number,
-                        f"Hi {current_user.name} 👋,\n\n"
-                        f"*{exam.title}*\n"
-                        "We have received your exam submission ✅\n\n"
-                        "Thank you for your dedication! ☺"
-                    )
-                
-                if exam.parent_whatsapp and current_user.parent_phone_number:
-                    send_whatsapp_message(
-                        current_user.parent_phone_number,
-                        f"Dear Parent,\n\n"
-                        f"We wanted to inform you that we have received your child's exam submission for *{exam.title}* ✅\n\n"
-                        "Thank you for your continuous support and encouragement 🙏☺"
-                    )
-            else:
-                # Late submission messages
-                submission_time = current_date.strftime('%d/%m/%Y at %H:%M')
-                
-                if exam.student_whatsapp and current_user.phone_number:
-                    send_whatsapp_message(
-                        current_user.phone_number,
-                        f"Hi {current_user.name} 👋,\n\n"
-                        f"Your exam *{exam.title}* has been submitted successfully ✅\n\n"
-                        f"⚠️ Note: This is a late submission (submitted on {submission_time})\n"
-                        "Points awarded will be reduced accordingly."
-                    )
-                
-                if exam.parent_whatsapp and current_user.parent_phone_number:
-                    send_whatsapp_message(
-                        current_user.parent_phone_number,
-                        f"Dear Parent,\n\n"
-                        f"Your child {current_user.name} has submitted their exam *{exam.title}* ✅\n\n"
-                        f"⚠️ Note: This is a late submission (submitted on {submission_time})"
-                    )
+            # if is_on_time:
+            # On-time submission messages
+            if exam.student_whatsapp and current_user.phone_number:
+                send_whatsapp_message(
+                    current_user.phone_number,
+                    f"Hi {current_user.name}👋,\n\n"
+                    f"*{exam.title}*\n"
+                    f"We have received your quiz submission ✅\n\n"
+                    f"Thank you for your dedication! ☺"
+                )
+            
+            if exam.parent_whatsapp and current_user.parent_phone_number:
+                due_date = exam.deadline.strftime('%d/%m/%Y at %H:%M')
+                send_whatsapp_message(
+                    current_user.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{current_user.name}*\n\n"
+                    f"Quiz *{exam.title}* due on {due_date}:  submitted on time ✅\n\n"
+                    f"_for further inquiries send to Dr. Adham_"
+                )
+
 
         except Exception as e:
             # Don't fail the submission if notifications fail
