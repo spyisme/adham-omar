@@ -2958,19 +2958,23 @@ def send_reminders_by_range_assignments(assignment_id):
     # Get all students who didn't submit
     submitted_student_ids = [sub.student_id for sub in assignment.submissions]
     
-    if assignment.group_id:
-        not_submitted_students = Users.query.filter(
-            Users.group_id == assignment.group_id,
-            ~Users.id.in_(submitted_student_ids),
-            Users.role == "student",
-            Users.activated == True
-        ).order_by(Users.id).all()
-    else:
-        not_submitted_students = Users.query.filter(
-            ~Users.id.in_(submitted_student_ids),
-            Users.role == "student",
-            Users.activated == True
-        ).order_by(Users.id).all()
+    # Build query for students who qualify for this assignment but haven't submitted
+    mm_group_ids = [g.id for g in getattr(assignment, "groups_mm", [])]
+    
+    base_filters = [
+        ~Users.id.in_(submitted_student_ids),
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+    
+    # Apply group filter
+    if mm_group_ids:
+        base_filters.append(Users.groups.any(Groups.id.in_(mm_group_ids)))
+    elif assignment.groupid:
+        base_filters.append(Users.groupid == assignment.groupid)
+    
+    not_submitted_students = Users.query.filter(and_(*base_filters)).order_by(Users.id).all()
     
     # Convert to 0-indexed
     from_idx = from_index - 1
@@ -6314,19 +6318,23 @@ def send_reminders_by_range_exams(exam_id):
     # Get all students who didn't submit
     submitted_student_ids = [sub.student_id for sub in exam.submissions]
     
-    if exam.group_id:
-        not_submitted_students = Users.query.filter(
-            Users.group_id == exam.group_id,
-            ~Users.id.in_(submitted_student_ids),
-            Users.role == "student",
-            Users.activated == True
-        ).order_by(Users.id).all()
-    else:
-        not_submitted_students = Users.query.filter(
-            ~Users.id.in_(submitted_student_ids),
-            Users.role == "student",
-            Users.activated == True
-        ).order_by(Users.id).all()
+    # Build query for students who qualify for this exam but haven't submitted
+    mm_group_ids = [g.id for g in getattr(exam, "groups_mm", [])]
+    
+    base_filters = [
+        ~Users.id.in_(submitted_student_ids),
+        Users.role == "student",
+        Users.code != 'nth',
+        Users.code != 'Nth',
+    ]
+    
+    # Apply group filter
+    if mm_group_ids:
+        base_filters.append(Users.groups.any(Groups.id.in_(mm_group_ids)))
+    elif exam.groupid:
+        base_filters.append(Users.groupid == exam.groupid)
+    
+    not_submitted_students = Users.query.filter(and_(*base_filters)).order_by(Users.id).all()
     
     # Convert to 0-indexed
     from_idx = from_index - 1
