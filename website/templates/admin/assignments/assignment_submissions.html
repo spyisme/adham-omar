@@ -430,22 +430,6 @@
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-sm)';">
                     ☑️ Bulk Approve
                 </button>
-                <button onclick="openBulkSendPanel()" class="btn btn-primary" style="
-                    background: #25D366;
-                    color: var(--color-white);
-                    padding: 0.75rem 1.5rem;
-                    border-radius: var(--radius-md);
-                    font-weight: 500;
-                    border: none;
-                    cursor: pointer;
-                    box-shadow: var(--shadow-sm);
-                    transition: all 0.2s;
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    font-size: 0.9rem;
-                " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-sm)';">
-                    📱 Bulk Send Reminders
-                </button>
             </div>
             {% endif %}
         </div>
@@ -1037,6 +1021,28 @@
             </div>
         </div>
         <div id="missingSection" style="display: none;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button onclick="openBulkSendPanel()" class="btn btn-primary" style="
+                        background: #25D366;
+                        color: var(--color-white);
+                        padding: 0.75rem 1.5rem;
+                        border-radius: var(--radius-md);
+                        font-weight: 500;
+                        border: none;
+                        cursor: pointer;
+                        box-shadow: var(--shadow-sm);
+                        transition: all 0.2s;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                        font-size: 0.9rem;
+                    " onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='var(--shadow-md)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-sm)';">
+                        📱 Send Late Message
+                    </button>
+                </div>
+            </div>
+        </div>
         <div class="card-content no-padding">
             <div class="table-wrapper">
                 <table>

@@ -414,20 +414,6 @@
                     onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(102, 126, 234, 0.3)';">
                     ☑️ Bulk Approve
                 </button>
-                <button onclick="openBulkSendPanel()" class="btn btn-primary" style="
-                    background: #25D366;
-                    color: white;
-                    padding: 12px 24px;
-                    border-radius: 8px;
-                    font-weight: 600;
-                    border: none;
-                    cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-                    transition: all 0.3s;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(37, 211, 102, 0.4)';"
-                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 211, 102, 0.3)';">
-                    📱 Bulk Send Reminders
-                </button>
             </div>
             {% endif %}
         </div>
@@ -842,8 +828,28 @@
 {% if current_user.role == "super_admin" %}
     <div class="card">
         <div class="card-header">
-            <h3>Missing Submissions</h3>
-            <p>Students who did not submit this exam.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3>Missing Submissions</h3>
+                    <p>Students who did not submit this exam.</p>
+                </div>
+                <div>
+                    <button onclick="openBulkSendPanel()" class="btn btn-primary" style="
+                        background: #25D366;
+                        color: white;
+                        padding: 12px 24px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        border: none;
+                        cursor: pointer;
+                        box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+                        transition: all 0.3s;
+                    " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(37, 211, 102, 0.4)';"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(37, 211, 102, 0.3)';">
+                        📱 Send Late Message
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="card-content no-padding">
             <div class="table-wrapper">
