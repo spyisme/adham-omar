@@ -28,6 +28,70 @@
         justify-content: center;
     }
 
+    .bulk-actions {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .bulk-btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: none;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .bulk-btn-all {
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .bulk-btn-all:hover {
+        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.3);
+    }
+
+    .bulk-btn-selected {
+        background: #10b981;
+        color: #fff;
+    }
+
+    .bulk-btn-selected:hover {
+        background: #059669;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+    }
+
+    .bulk-btn-selected:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .select-all-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
+        color: #2d3748;
+    }
+
+    .select-all-container input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
     .filter-input,
     .sort-select {
         padding: 10px 14px;
@@ -66,6 +130,25 @@
         width: 100%;
         cursor: pointer;
         transition: box-shadow 0.2s, transform 0.2s;
+        position: relative;
+    }
+
+    .student-card.selected {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+    }
+
+    .student-checkbox-wrapper {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .student-checkbox {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #4a90e2;
     }
 
     .student-card:hover {
@@ -333,6 +416,19 @@
         </select>
     </div>
 
+    <div class="bulk-actions">
+        <div class="select-all-container">
+            <input type="checkbox" id="selectAllCheckbox">
+            <label for="selectAllCheckbox">Select All</label>
+        </div>
+        <button class="bulk-btn bulk-btn-all" id="addAllBtn">
+            <span>➕</span> Add All Students
+        </button>
+        <button class="bulk-btn bulk-btn-selected" id="addSelectedBtn" disabled>
+            <span>✓</span> Add Selected (<span id="selectedCount">0</span>)
+        </button>
+    </div>
+
     <div class="student-cards-list" id="studentCardsList">
         {% for user in users %}
         {% set group_key = user.group.id %}
@@ -341,7 +437,10 @@
         {% set next_index = "%03d"|format(last_index + 1) %}
         {% set suggested_code = group_code ~ '-' ~ next_index %}
         <div class="student-card" data-name="{{ user.name|lower }}" data-phone="{{ user.phone_number|lower }}"
-            data-class="{{ user.group.name|lower }}">
+            data-class="{{ user.group.name|lower }}" data-user-id="{{ user.id }}" data-suggested-code="{{ suggested_code }}">
+            <div class="student-checkbox-wrapper">
+                <input type="checkbox" class="student-checkbox" data-user-id="{{ user.id }}" data-code="{{ suggested_code }}">
+            </div>
             <div class="student-pfp">
                 {% if user.profile_picture %}
                 <img src="{{ url_for('website.profile_picture', user_id=user.id) }}" alt="Profile" loading="lazy"
@@ -431,6 +530,141 @@
 
         searchInput.addEventListener("input", filterAndSortCards);
         sortClass.addEventListener("change", filterAndSortCards);
+
+        // --- BULK SELECTION LOGIC ---
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const addAllBtn = document.getElementById('addAllBtn');
+        const addSelectedBtn = document.getElementById('addSelectedBtn');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+
+        function updateSelectedCount() {
+            const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+            const count = checkedBoxes.length;
+            selectedCountSpan.textContent = count;
+            addSelectedBtn.disabled = count === 0;
+
+            // Update card styling
+            document.querySelectorAll('.student-card').forEach(card => {
+                const checkbox = card.querySelector('.student-checkbox');
+                if (checkbox && checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function getVisibleCheckboxes() {
+            return Array.from(studentCheckboxes).filter(cb => {
+                const card = cb.closest('.student-card');
+                return card && card.style.display !== 'none';
+            });
+        }
+
+        selectAllCheckbox.addEventListener('change', function() {
+            const visibleCheckboxes = getVisibleCheckboxes();
+            visibleCheckboxes.forEach(cb => {
+                cb.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+
+        studentCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function(e) {
+                e.stopPropagation(); // Prevent card click event
+                updateSelectedCount();
+                
+                // Update "Select All" checkbox state
+                const visibleCheckboxes = getVisibleCheckboxes();
+                const allChecked = visibleCheckboxes.length > 0 && 
+                                   visibleCheckboxes.every(checkbox => checkbox.checked);
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+
+        // Prevent checkbox click from triggering card modal
+        document.querySelectorAll('.student-checkbox-wrapper').forEach(wrapper => {
+            wrapper.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+
+        addAllBtn.addEventListener('click', function() {
+            const visibleCards = Array.from(document.querySelectorAll('.student-card'))
+                .filter(card => card.style.display !== 'none');
+            
+            if (visibleCards.length === 0) {
+                alert('No students to add!');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to add all ${visibleCards.length} visible students?`)) {
+                return;
+            }
+
+            const students = visibleCards.map(card => ({
+                id: card.dataset.userId,
+                code: card.dataset.suggestedCode
+            }));
+
+            bulkApproveStudents(students);
+        });
+
+        addSelectedBtn.addEventListener('click', function() {
+            const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+            
+            if (checkedBoxes.length === 0) {
+                alert('Please select at least one student!');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to add ${checkedBoxes.length} selected student(s)?`)) {
+                return;
+            }
+
+            const students = Array.from(checkedBoxes).map(cb => ({
+                id: cb.dataset.userId,
+                code: cb.dataset.code
+            }));
+
+            bulkApproveStudents(students);
+        });
+
+        function bulkApproveStudents(students) {
+            // Disable buttons during processing
+            addAllBtn.disabled = true;
+            addSelectedBtn.disabled = true;
+            addAllBtn.innerHTML = '<span>⏳</span> Processing...';
+
+            fetch('{{ url_for("admin.bulk_approve_students") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ students: students })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully added ${data.approved_count} student(s)!`);
+                    location.reload();
+                } else {
+                    alert('Error: ' + (data.message || 'Unknown error occurred'));
+                    addAllBtn.disabled = false;
+                    addSelectedBtn.disabled = false;
+                    addAllBtn.innerHTML = '<span>➕</span> Add All Students';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while processing the request.');
+                addAllBtn.disabled = false;
+                addSelectedBtn.disabled = false;
+                addAllBtn.innerHTML = '<span>➕</span> Add All Students';
+            });
+        }
+
         // Confirmation logic for approve/reject
         var approveBtns = document.querySelectorAll('.approve-btn');
         var rejectBtns = document.querySelectorAll('.reject-btn');

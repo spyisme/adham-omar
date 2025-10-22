@@ -705,6 +705,109 @@ def approve_student(user_id):
         return redirect(url_for('admin.approve_students'))
 
 
+@admin.route('/approve/students/bulk', methods=['POST'])
+def bulk_approve_students():
+    try:
+        data = request.get_json()
+        students = data.get('students', [])
+
+        if not students:
+            return jsonify({'success': False, 'message': 'No students provided'}), 400
+
+        # Check permissions
+        if current_user.role != "super_admin":
+            group_ids = get_user_scope_ids()
+        else:
+            group_ids = None
+
+        approved_count = 0
+        errors = []
+
+        for student_data in students:
+            user_id = student_data.get('id')
+            new_code = student_data.get('code', '').strip()
+
+            if not user_id or not new_code:
+                errors.append(f"Invalid data for student ID {user_id}")
+                continue
+
+            user = Users.query.get(user_id)
+            if not user:
+                errors.append(f"Student with ID {user_id} not found")
+                continue
+
+            # Check if admin has permission (groups only)
+            if group_ids is not None:
+                user_group_ids = [g.id for g in user.groups]
+                if not any(gid in group_ids for gid in user_group_ids):
+                    errors.append(f"No permission to approve {user.name}")
+                    continue
+
+            # Check if code already exists
+            code_exists = Users.query.filter(
+                Users.code == new_code,
+                Users.id != user.id
+            ).first()
+
+            if code_exists:
+                errors.append(f"Code {new_code} already exists")
+                continue
+
+            # Approve the student
+            user.code = new_code
+            db.session.commit()
+
+            # Log the action
+            user_group_ids = [g.id for g in user.groups]
+            new_log = AssistantLogs(
+                assistant_id=current_user.id,
+                action='Create',
+                log={
+                    "action_name": "Create",
+                    "resource_type": "student",
+                    "action_details": {
+                        "id": user.id,
+                        "title": user.name,
+                        "summary": f"Student '{user.name}' was approved and assigned code {new_code} (bulk action)."
+                    },
+                    "data": {
+                        "name": user.name,
+                        "email": user.email,
+                        "phone_number": user.phone_number,
+                        "code": user.code,
+                        "group_ids": user_group_ids,
+                        "role": user.role,
+                        "student_whatsapp": user.student_whatsapp,
+                        "parent_whatsapp": user.parent_whatsapp,
+                    },
+                    "before": None,
+                    "after": None
+                }
+            )
+            db.session.add(new_log)
+            approved_count += 1
+
+        db.session.commit()
+
+        if errors:
+            return jsonify({
+                'success': True,
+                'approved_count': approved_count,
+                'errors': errors,
+                'message': f'Approved {approved_count} students with {len(errors)} errors'
+            })
+
+        return jsonify({
+            'success': True,
+            'approved_count': approved_count,
+            'message': f'Successfully approved {approved_count} students'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 
 #=================================================================
 # Student Info (Student_data.html)
