@@ -722,12 +722,51 @@ def bulk_approve_students():
 
         approved_count = 0
         errors = []
+        
+        # Track codes being assigned in this batch to avoid duplicates
+        codes_in_batch = set()
+        
+        # Helper function to find next available code
+        def find_next_available_code(base_code):
+            """
+            Given a code like 'GPA-001', find the next available code.
+            Returns the next available code (e.g., 'GPA-002', 'GPA-003', etc.)
+            """
+            parts = base_code.split('-')
+            if len(parts) < 2:
+                return base_code
+            
+            prefix = parts[0]
+            try:
+                current_num = int(parts[1])
+            except ValueError:
+                return base_code
+            
+            # Start checking from current number
+            attempt_num = current_num
+            max_attempts = 1000  # Safety limit
+            
+            for _ in range(max_attempts):
+                candidate_code = f"{prefix}-{attempt_num:03d}"
+                
+                # Check if code exists in database OR in current batch
+                code_exists = Users.query.filter(
+                    Users.code == candidate_code
+                ).first()
+                
+                if not code_exists and candidate_code not in codes_in_batch:
+                    return candidate_code
+                
+                attempt_num += 1
+            
+            # Fallback if we somehow exhaust attempts
+            return f"{prefix}-{attempt_num:03d}"
 
         for student_data in students:
             user_id = student_data.get('id')
-            new_code = student_data.get('code', '').strip()
+            suggested_code = student_data.get('code', '').strip()
 
-            if not user_id or not new_code:
+            if not user_id or not suggested_code:
                 errors.append(f"Invalid data for student ID {user_id}")
                 continue
 
@@ -743,19 +782,15 @@ def bulk_approve_students():
                     errors.append(f"No permission to approve {user.name}")
                     continue
 
-            # Check if code already exists
-            code_exists = Users.query.filter(
-                Users.code == new_code,
-                Users.id != user.id
-            ).first()
-
-            if code_exists:
-                errors.append(f"Code {new_code} already exists")
-                continue
+            # Find next available code (handling conflicts)
+            new_code = find_next_available_code(suggested_code)
+            
+            # Add to batch tracker
+            codes_in_batch.add(new_code)
 
             # Approve the student
             user.code = new_code
-            db.session.commit()
+            db.session.flush()  # Flush to make code available for conflict checking
 
             # Log the action
             user_group_ids = [g.id for g in user.groups]
@@ -789,18 +824,19 @@ def bulk_approve_students():
 
         db.session.commit()
 
-        if errors:
+        if errors and approved_count == 0:
             return jsonify({
-                'success': True,
-                'approved_count': approved_count,
+                'success': False,
+                'approved_count': 0,
                 'errors': errors,
-                'message': f'Approved {approved_count} students with {len(errors)} errors'
-            })
+                'message': f'Failed to approve students: {"; ".join(errors)}'
+            }), 400
 
         return jsonify({
             'success': True,
             'approved_count': approved_count,
-            'message': f'Successfully approved {approved_count} students'
+            'errors': errors if errors else None,
+            'message': f'Successfully approved {approved_count} student(s)' + (f' with {len(errors)} error(s)' if errors else '')
         })
 
     except Exception as e:

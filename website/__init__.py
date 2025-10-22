@@ -67,7 +67,6 @@ def create_app():
         'website.favicon',
         'website.add_zoom_participant',
         'website.spy',
-        'website.backend_register',
     ]
 
     @app.before_request
