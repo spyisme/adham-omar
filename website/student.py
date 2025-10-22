@@ -976,7 +976,7 @@ def upload_chunk(assignment_id):
                     f"Dear Parent,\n"
                     f"*{current_user.name}*\n\n"
                     f"Homework *{assignment.title}* due on {deadline_str}:  submitted on time ✅\n\n"
-                    f"_for further inquiries send to Dr. Adham_"
+                    f"_For further inquiries send to Dr. Adham_"
                 )
 
 
@@ -1721,7 +1721,7 @@ def upload_exam_chunk(exam_id):
                     f"Dear Parent,\n"
                     f"*{current_user.name}*\n\n"
                     f"Quiz *{exam.title}* due on {due_date}:  submitted on time ✅\n\n"
-                    f"_for further inquiries send to Dr. Adham_"
+                    f"_For further inquiries send to Dr. Adham_"
                 )
 
 

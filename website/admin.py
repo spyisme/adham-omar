@@ -1843,16 +1843,17 @@ def view_assignment_submissions(assignment_id):
                         f"Hi {submission.student.name}👋,\n\n"
                         f"*{assignment.title}*\n"
                         f"You're correction is returned please check your account\n\n" 
-                        f"You scored : {submission.mark if submission.mark else 'N/A'}/{assignment.out_of}\n\n"
-                        f"_for further inquiries send to Dr. Adham_"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
+                        f"_For further inquiries send to Dr. Adham_"
                     )
                     
                     send_whatsapp_message(
                         submission.student.parent_phone_number, 
                         f"Dear Parent,\n"
                         f"*{submission.student.name}*\n\n"
-                        f"Homework *{assignment.title}* due on {assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}: is returned on the student's account on website\n\n"
-                        f"_for further inquiries send to Dr. Adham_"
+                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}* is returned on the student's account on website\n\n"
+                        f"Score : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
+                        f"_For further inquiries send to Dr. Adham_"
                     )
                 
                 
@@ -2225,19 +2226,20 @@ def save_pdf():
         if current_user.role == "super_admin":
             try:
                 send_whatsapp_message(submission.student.phone_number, 
-                    f"Hi {submission.student.name}👋,\n\n"
+                    f"Hi *{submission.student.name}*👋,\n\n"
                     f"*{assignment.title}*\n"
                     f"You're correction is returned please check your account\n\n" 
-                    f"You scored : {submission.mark if submission.mark else 'N/A'}/{assignment.out_of}\n\n"
-                    f"_for further inquiries send to Dr. Adham_"
+                    f"You scored : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
                 )
                     
                 send_whatsapp_message(
                     submission.student.parent_phone_number, 
                     f"Dear Parent,\n"
                     f"*{submission.student.name}*\n\n"
-                    f"Homework *{assignment.title}* due on {assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}: is returned on the student's account on website\n\n"
-                    f"_for further inquiries send to Dr. Adham_"
+                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}* is returned on the student's account on website\n\n"
+                    f"Score : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
                 )
             
             
@@ -2744,8 +2746,8 @@ def upload_corrected_exam_pdf_chunk(submission_id):
                 send_whatsapp_message(submission.student.phone_number, 
                     f"Hi {submission.student.name}👋,\n\n"
                     f"*{exam.title}*\n"
-                    f"You're correction is returned please check your account\n\n" 
-                    f"You scored : {submission.mark if submission.mark else 'N/A'}/{exam.out_of}\n\n"
+                    f"You're correction is returned please check your account\n\n"
+                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
                     f"_for further inquiries send to Dr. Adham_"
                 )
                 
@@ -2754,8 +2756,8 @@ def upload_corrected_exam_pdf_chunk(submission_id):
                     f"Dear Parent,\n"
                     f"*{submission.student.name}*\n\n"
                     f"Quiz *{exam.title}* on {exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'} correction is returned on the student's account on website\n\n"
-                    f": Scored *{submission.mark if submission.mark else 'N/A'}* / *{exam.out_of if hasattr(exam, 'out_of') else 'N/A'}*\n\n"
-                    f"_Dr. Adham will send the gradings on the group\nfor further inquiries send to Dr. Adham_"
+                    f"Scored *{submission.mark if submission.mark else 'N/A'}* / {exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
+                    f"Dr. Adham will send the gradings on the group\n_For further inquiries send to Dr. Adham_"
                 )
             
             
@@ -2809,24 +2811,25 @@ def send_late_message_for_submission(assignment_id, student_id):
 
 
     try:
-        if student.student_whatsapp:
-            send_whatsapp_message(student.student_whatsapp, 
-                f"HI *{student.name}*\n\n"
-                f"*{assignment.title}*\n"
-                f"Submission is missing\n"
-                f"Didn't submit\n\n"
-                f"Please take care to submit your future assignments"
-            )
-            student_late_message_sent = True
-        if student.parent_whatsapp:
-            send_whatsapp_message(
-                student.parent_whatsapp, 
-                f"Dear Parent,\n"
-                f"*{student.name}*\n\n"
-                f"Homework *{assignment.title}* due on {assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}: Did not submit\n\n"
-                f"_for further inquiries send to Dr. Adham_"
-            )
-            parent_late_message_sent = True
+
+        send_whatsapp_message(student.phone_number, 
+            f"HI *{student.name}*\n\n"
+            f"*{assignment.title}*\n"
+            f"Submission is missing\n"
+            f"Didn't submit\n\n"
+            f"Please take care to submit your future assignments"
+        )
+        student_late_message_sent = True
+
+        send_whatsapp_message(
+            student.parent_phone_number,
+            f"Dear Parent,\n"
+            f"*{student.name}*\n\n"
+            f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
+            f"Please take care starting next submission\n\n"
+            f"_For further inquiries send to Dr. Adham_"
+        )
+        parent_late_message_sent = True
         
         # Record the sent message
         if student_late_message_sent or parent_late_message_sent:
@@ -5542,48 +5545,6 @@ def attendance_session_detail(session_id):
                          students_with_records=students_with_records,
                          attendance_map=attendance_records)
 
-@admin.route("/attendance/<int:session_id>/update", methods=["POST"])
-def update_student_attendance(session_id):
-    return "Paused for now"
-
-    if not request.is_json:
-        return jsonify({"success": False, "error": "Invalid request format"}), 400
-    
-    data = request.get_json()
-    student_id = data.get("student_id")
-    status = data.get("status")
-    
-    if not student_id or status not in ["present", "absent"]:
-        return jsonify({"success": False, "error": "Invalid data"}), 400
-    
-    session = Attendance_session.query.get_or_404(session_id)
-    
-    # Check if student is qualified for this session
-    students = get_qualified_students_for_attendance_session(session)
-    if not any(s.id == student_id for s in students):
-        return jsonify({"success": False, "error": "Student not qualified for this session"}), 403
-    student = Users.query.get_or_404(student_id)
-    try:
-        record = Attendance_student.query.filter_by(attendance_session_id=session.id, student_id=student_id).first()
-        if not record:
-            record = Attendance_student(attendance_session_id=session.id, student_id=student_id)
-            db.session.add(record)
-            
-        if status == 'present' :
-            student.points += session.points
-
-        record.attendance_status = status
-        db.session.commit()
-        try :
-            send_whatsapp_message(student.phone_number, f"Your attendance for {session.title} has been updated to {status}.")
-            send_whatsapp_message(student.parent_phone_number, f"Student {student.name} has been {status} for {session.title} on {session.session_date.strftime('%d %B %Y at %I:%M %p')}.")
-        except Exception as e:
-            pass
-        
-        return jsonify({"success": True, "status": status})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "error": str(e)}), 500
 
 #=================================================================
 #Online Exam
@@ -5858,15 +5819,28 @@ def view_exam_submissions(exam_id):
                 # Send WhatsApp notifications immediately
                 try:
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Exam '{exam.title}' has been corrected!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.phone_number,
+                        (
+                            f"Hi *{submission.student.name}*👋,\n\n"
+                            f"*{exam.title}*\n"
+                            "We have received your quiz submission ✅\n\n"
+                            "Thank you for your dedication! ☺"
+                        )
                     )
-                    
+
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n{submission.student.name}\n\nQuiz {exam.title} on {exam.due_date.strftime('%Y-%m-%d') if exam.due_date else 'N/A'} correction is returned on the student's account on website\n\n: Scored {submission.mark if submission.mark else 'N/A'} / {exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n_Dr. Adham will send the gradings on the group\nfor further inquiries send to Dr. Adham_"
+                        submission.student.parent_phone_number,
+                        (
+                            f"Dear Parent,\n"
+                            f"*{submission.student.name}*\n\n"
+                            f"Quiz *{exam.title}* on "
+                            f"{exam.deadline_date.strftime('%d/%m/%Y') if exam.deadline_date else 'N/A'} correction is returned on the student's account on website\n\n"
+                            f"Scored *{submission.mark if submission.mark else 'N/A'}* / "
+                            f"{exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
+                            f"Dr. Adham will send the gradings on the group\n"
+                            f"_For further inquiries send to Dr. Adham_"
+                        )
                     )
-                
                 
                 except:
                     pass
@@ -5998,24 +5972,24 @@ def send_late_message_for_submission_exam(assignment_id, student_id):
         return jsonify({'status': 'info', 'message': 'Student has no WhatsApp number or parent WhatsApp number.'})
 
     try:
-        if student.student_whatsapp:
-            send_whatsapp_message(student.student_whatsapp, 
-                f"HI *{student.name}*\n\n"
-                f"*{assignment.title}*\n"
-                f"Submission is missing\n"
-                f"Didn't submit\n\n"
-                f"Please take care to submit your future assignments"
-            )
-            student_late_message_sent = True
-        if student.parent_whatsapp:
-            send_whatsapp_message(
-                student.parent_whatsapp,
-                f"Dear Parent,\n"
-                f"*{student.name}*\n\n"
-                f"Quiz *{assignment.title}* due on {assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}: Did not submit\n\n"
-                f"_for further inquiries send to Dr. Adham_"
-            )
-            parent_late_message_sent = True
+
+        send_whatsapp_message(student.phone_number, 
+            f"HI *{student.name}*\n\n"
+            f"*{assignment.title}*\n"
+            f"Submission is missing\n"
+            f"Didn't submit\n\n"
+            f"Please take care to submit your future assignments"
+        )
+        student_late_message_sent = True
+
+        send_whatsapp_message(
+            student.parent_phone_number,
+            f"Dear Parent,\n"
+            f"*{student.name}*\n\n"
+            f"Quiz *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
+            f"_For further inquiries send to Dr. Adham_"
+        )
+        parent_late_message_sent = True
         # Record the sent message
         if student_late_message_sent or parent_late_message_sent:
             if existing_notification:
@@ -7852,24 +7826,41 @@ def approve_submission(submission_id):
             if assignment.type == "Exam":
                 # Student notification (unchanged, or optional: You may skip or keep)
                 send_whatsapp_message(
-                    submission.student.phone_number, 
-                    f"Your Exam '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                    submission.student.phone_number,
+                    f"Hi *{submission.student.name}*👋,\n\n"
+                    f"*{assignment.title}*\n"
+                    f"You're correction is returned please check your account\n\n"
+                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                    "_For further inquiries send to Dr. Adham_"
                 )
                 # Parent notification (formatted as requested)
                 send_whatsapp_message(
-                    submission.student.parent_phone_number, 
-                    f"Dear Parent,\n{submission.student.name}\n\nQuiz {assignment.title} on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'} correction is returned on the student's account on website\n\n: Scored {submission.mark if submission.mark else 'N/A'} / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\nDr. Adham will send the gradings on the group\n_For further inquiries send to Dr. Adham_"
+                    submission.student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{submission.student.name}*\n\n"
+                    f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
+                    f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                    f"Dr. Adham will send the gradings on the group\n"
+                    "_For further inquiries send to Dr. Adham_"
                 )
             else:
                 # Student notification (unchanged, or optional: You may skip or keep)
                 send_whatsapp_message(
-                    submission.student.phone_number, 
-                    f"Your Assignment '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                    submission.student.phone_number,
+                    f"Hi *{submission.student.name}*👋,\n\n"
+                    f"*{assignment.title}*\n"
+                    f"You're correction is returned please check your account\n\n"
+                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                    "_For further inquiries send to Dr. Adham_"
                 )
                 # Parent notification for homework, as requested
                 send_whatsapp_message(
-                    submission.student.parent_phone_number, 
-                    f"Dear Parent,\n{submission.student.name}\n\nHomework {assignment.title} due on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'}: is returned on the student's account on website \n\n_For further inquiries send to Dr. Adham_"
+                    submission.student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{submission.student.name}*\n\n"
+                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
+                    f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                    "_For further inquiries send to Dr. Adham_"
                 )
         except Exception as e:
             pass  # Don't fail if WhatsApp fails
@@ -8054,24 +8045,41 @@ def approve_all_submissions(assignment_id):
                 if assignment.type == "Exam":
                     # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Exam '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                     # Parent notification (formatted as requested)
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n{submission.student.name}\n\nQuiz {assignment.title} on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'} correction is returned on the student's account on website\n\n: Scored {submission.mark if submission.mark else 'N/A'} / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\nDr. Adham will send the gradings on the group\n_For further inquiries send to Dr. Adham_"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
+                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        f"Dr. Adham will send the gradings on the group\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                 else:
                     # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Assignment '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                     # Parent notification for homework, as requested
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n{submission.student.name}\n\nHomework {assignment.title} due on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'}: is returned on the student's account on website \n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
+                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
@@ -8130,24 +8138,41 @@ def approve_bulk_submissions():
                 if assignment.type == "Exam":
                     # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Exam '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                     # Parent notification (formatted as requested)
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n{submission.student.name}\n\nQuiz {assignment.title} on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'} correction is returned on the student's account on website\n\n: Scored {submission.mark if submission.mark else 'N/A'} / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\nDr. Adham will send the gradings on the group\n_For further inquiries send to Dr. Adham_"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
+                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        f"Dr. Adham will send the gradings on the group\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                 else:
                     # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Assignment '{assignment.title}' has been graded!\nYou can now view it on the website.\n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                     # Parent notification for homework, as requested
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n{submission.student.name}\n\nHomework {assignment.title} due on {assignment.due_date.strftime('%Y-%m-%d') if assignment.due_date else 'N/A'}: is returned on the student's account on website \n\n_For further inquiries send to Dr. Adham_"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
+                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
@@ -8231,22 +8256,43 @@ def approve_range_submissions():
             
             try:
                 if assignment.type == "Exam":
+                    # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Exam '{assignment.title}' has been graded! Mark: {mark}"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
+                    # Parent notification (formatted as requested)
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Student {submission.student.name} has been graded for Exam '{assignment.title}'! Grade: {mark}"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
+                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        f"Dr. Adham will send the gradings on the group\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
                 else:
+                    # Student notification (unchanged, or optional: You may skip or keep)
                     send_whatsapp_message(
-                        submission.student.phone_number, 
-                        f"Your Assignment '{assignment.title}' has been graded! Mark: {mark}"
+                        submission.student.phone_number,
+                        f"Hi *{submission.student.name}*👋,\n\n"
+                        f"*{assignment.title}*\n"
+                        f"You're correction is returned please check your account\n\n"
+                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
+                    # Parent notification for homework, as requested
                     send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Student {submission.student.name} has been graded for Assignment '{assignment.title}'! Grade: {mark}"
+                        submission.student.parent_phone_number,
+                        f"Dear Parent,\n"
+                        f"*{submission.student.name}*\n\n"
+                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
+                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
                     )
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
