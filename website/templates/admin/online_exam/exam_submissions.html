@@ -733,12 +733,18 @@
     </div>
 {% if current_user.role == "super_admin" %}
     <div class="card">
-        <div class="card-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h3>Missing Submissions</h3>
-                    <p>Students who did not submit this exam.</p>
-                </div>
+        <div class="card-header"
+            style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;"
+            onclick="toggleSection('missingSubmissionsSection')">
+            <div>
+                <h3>Missing Submissions</h3>
+                <p>Students who did not submit this exam.</p>
+            </div>
+            <span id="missingSubmissionsToggle" style="font-size: 1.5rem; transition: transform 0.3s;">▼</span>
+        </div>
+        <div id="missingSubmissionsSection" style="display: none;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
                 <div>
                     <button onclick="openBulkSendPanel()" class="btn btn-primary" style="
                         background: #25D366;
@@ -904,6 +910,7 @@
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
     {%endif%}

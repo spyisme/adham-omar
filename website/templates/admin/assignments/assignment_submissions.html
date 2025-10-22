@@ -763,153 +763,6 @@
         </div>
     </div>
 
-    <script>
-        // Helpers for dropdown menu
-        function closeAllMenus() {
-            document.querySelectorAll('.actions-menu').forEach(menu => {
-                menu.style.display = 'none';
-                // Reset positioning
-                menu.style.right = '0';
-                menu.style.left = 'auto';
-            });
-            document.querySelectorAll('.actions-menu-button').forEach(btn => btn.classList.remove('open'));
-        }
-
-        // Toggle menu on Actions button click, close others
-        document.addEventListener('DOMContentLoaded', function () {
-            document.querySelectorAll('.actions-dropdown').forEach(function (dropdown) {
-                var btn = dropdown.querySelector('.actions-menu-button');
-                var menu = dropdown.querySelector('.actions-menu');
-                btn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    // Close all others first
-                    closeAllMenus();
-                    // Toggle this one
-                    if (menu.style.display === 'block') {
-                        menu.style.display = 'none';
-                        btn.classList.remove('open');
-                    } else {
-                        menu.style.display = 'block';
-                        btn.classList.add('open');
-
-                        // Smart positioning: Check if menu goes off-screen
-                        setTimeout(function () {
-                            var rect = menu.getBoundingClientRect();
-                            var viewportWidth = window.innerWidth;
-
-                            // If menu goes off right edge, position it on the left side
-                            if (rect.right > viewportWidth - 10) {
-                                menu.style.right = 'auto';
-                                menu.style.left = '0';
-                            }
-
-                            // If menu goes off left edge, position it on the right side
-                            if (rect.left < 10) {
-                                menu.style.left = 'auto';
-                                menu.style.right = '0';
-                            }
-                        }, 0);
-                    }
-                });
-            });
-            // Click outside closes all
-            document.body.addEventListener('click', function () {
-                closeAllMenus();
-            });
-            // Stop clicking the menu from bubbling up (don't close when clicking inside)
-            document.querySelectorAll('.actions-menu').forEach(function (menu) {
-                menu.addEventListener('click', function (e) { e.stopPropagation(); });
-            });
-        });
-    </script>
-    <style>
-        /* Actions Dropdown Styles */
-        .actions-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .actions-menu {
-            display: none;
-            position: absolute;
-            z-index: 9999;
-            right: 0;
-            top: 100%;
-            margin-top: 4px;
-            min-width: 220px;
-            background: #fff;
-            border: 1px solid #e3e3e3;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .actions-menu-item {
-            display: block;
-            width: 100%;
-            border: none;
-            background: none;
-            text-align: left;
-            padding: 12px 16px;
-            cursor: pointer;
-            color: #374151;
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: background-color 0.15s ease;
-            border-bottom: 1px solid #f3f4f6;
-        }
-
-        .actions-menu-item:last-child,
-        .actions-menu form:last-child .actions-menu-item {
-            border-bottom: none;
-        }
-
-        .actions-menu-item:hover,
-        .actions-menu-item:focus {
-            background-color: #f3f4f6;
-            outline: none;
-        }
-
-        .actions-menu-item-danger {
-            color: #dc2626;
-        }
-
-        .actions-menu-item-danger:hover {
-            background-color: #fee2e2;
-        }
-
-        .actions-menu-button.open {
-            background: #5050ee;
-            color: #fff;
-        }
-
-        /* Mobile responsive positioning */
-        @media (max-width: 768px) {
-            .actions-menu {
-                right: auto;
-                left: 50%;
-                transform: translateX(-50%);
-                min-width: 200px;
-            }
-
-            /* Adjust if menu is at the edge */
-            .actions-dropdown:last-child .actions-menu {
-                right: 0;
-                left: auto;
-                transform: none;
-            }
-        }
-
-        /* Ensure table cells don't clip the dropdown */
-        tbody tr {
-            position: relative;
-        }
-
-        tbody td {
-            overflow: visible;
-        }
-    </style>
-
     {% if current_user.role == "super_admin" %}
     <div class="card">
         <div class="card-header"
@@ -1107,6 +960,153 @@
         </div>
     </div>
     {% endif %}
+
+    <script>
+        // Helpers for dropdown menu
+        function closeAllMenus() {
+            document.querySelectorAll('.actions-menu').forEach(menu => {
+                menu.style.display = 'none';
+                // Reset positioning
+                menu.style.right = '0';
+                menu.style.left = 'auto';
+            });
+            document.querySelectorAll('.actions-menu-button').forEach(btn => btn.classList.remove('open'));
+        }
+
+        // Toggle menu on Actions button click, close others
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.actions-dropdown').forEach(function (dropdown) {
+                var btn = dropdown.querySelector('.actions-menu-button');
+                var menu = dropdown.querySelector('.actions-menu');
+                btn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    // Close all others first
+                    closeAllMenus();
+                    // Toggle this one
+                    if (menu.style.display === 'block') {
+                        menu.style.display = 'none';
+                        btn.classList.remove('open');
+                    } else {
+                        menu.style.display = 'block';
+                        btn.classList.add('open');
+
+                        // Smart positioning: Check if menu goes off-screen
+                        setTimeout(function () {
+                            var rect = menu.getBoundingClientRect();
+                            var viewportWidth = window.innerWidth;
+
+                            // If menu goes off right edge, position it on the left side
+                            if (rect.right > viewportWidth - 10) {
+                                menu.style.right = 'auto';
+                                menu.style.left = '0';
+                            }
+
+                            // If menu goes off left edge, position it on the right side
+                            if (rect.left < 10) {
+                                menu.style.left = 'auto';
+                                menu.style.right = '0';
+                            }
+                        }, 0);
+                    }
+                });
+            });
+            // Click outside closes all
+            document.body.addEventListener('click', function () {
+                closeAllMenus();
+            });
+            // Stop clicking the menu from bubbling up (don't close when clicking inside)
+            document.querySelectorAll('.actions-menu').forEach(function (menu) {
+                menu.addEventListener('click', function (e) { e.stopPropagation(); });
+            });
+        });
+    </script>
+    <style>
+        /* Actions Dropdown Styles */
+        .actions-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .actions-menu {
+            display: none;
+            position: absolute;
+            z-index: 9999;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            min-width: 220px;
+            background: #fff;
+            border: 1px solid #e3e3e3;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .actions-menu-item {
+            display: block;
+            width: 100%;
+            border: none;
+            background: none;
+            text-align: left;
+            padding: 12px 16px;
+            cursor: pointer;
+            color: #374151;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: background-color 0.15s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .actions-menu-item:last-child,
+        .actions-menu form:last-child .actions-menu-item {
+            border-bottom: none;
+        }
+
+        .actions-menu-item:hover,
+        .actions-menu-item:focus {
+            background-color: #f3f4f6;
+            outline: none;
+        }
+
+        .actions-menu-item-danger {
+            color: #dc2626;
+        }
+
+        .actions-menu-item-danger:hover {
+            background-color: #fee2e2;
+        }
+
+        .actions-menu-button.open {
+            background: #5050ee;
+            color: #fff;
+        }
+
+        /* Mobile responsive positioning */
+        @media (max-width: 768px) {
+            .actions-menu {
+                right: auto;
+                left: 50%;
+                transform: translateX(-50%);
+                min-width: 200px;
+            }
+
+            /* Adjust if menu is at the edge */
+            .actions-dropdown:last-child .actions-menu {
+                right: 0;
+                left: auto;
+                transform: none;
+            }
+        }
+
+        /* Ensure table cells don't clip the dropdown */
+        tbody tr {
+            position: relative;
+        }
+
+        tbody td {
+            overflow: visible;
+        }
+    </style>
 </div>
 <script>
     // Initialize toggle icons on page load
