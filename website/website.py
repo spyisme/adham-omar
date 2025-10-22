@@ -815,23 +815,6 @@ def activate_whatsapp():
                 
                 flash("Parent Whatsapp activated successfully!", "success")
  
-                send_whatsapp_message(cleaned_number, 
-                                      "Your account and Whatsapp are activated successfully!\n\n"
-                                      "Press here to view your account (https://adhamomaresl.com)", bypass=True)
-
-                return jsonify({"message": "Whatsapp activated successfully!"})
-            else:
-                return jsonify({"message": "Parent Whatsapp already activated!"})
-        
-        else:
-
-            if target_user.student_whatsapp is None:
-
-                target_user.student_whatsapp = cleaned_number
-
-                db.session.commit()
-
-                flash("Student Whatsapp activated successfully!", "success")
                 try :
                     send_whatsapp_message(
                         cleaned_number,
@@ -849,6 +832,25 @@ def activate_whatsapp():
                         "You will be receiving follow up on this number",
                             bypass=True
                         )
+
+                return jsonify({"message": "Whatsapp activated successfully!"})
+            else:
+                return jsonify({"message": "Parent Whatsapp already activated!"})
+        
+        else:
+
+            if target_user.student_whatsapp is None:
+
+                target_user.student_whatsapp = cleaned_number
+
+                db.session.commit()
+
+                flash("Student Whatsapp activated successfully!", "success")
+                send_whatsapp_message(cleaned_number, 
+                                      "Your account and Whatsapp are activated successfully!\n\n"
+                                      "Press here to view your account (https://adhamomaresl.com)", bypass=True)
+
+
                 
                 
                 return jsonify({"message": "Whatsapp activated successfully!"})
