@@ -136,67 +136,151 @@
         font-size: 0.8em;
     }
 
-    .cards-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: var(--card-gap);
+    .students-list {
+        width: 100%;
         margin-top: 1rem;
+        border-collapse: collapse;
     }
-
-    .student-card {
-        background-color: var(--surface-bg);
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-sm);
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid var(--border-color);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    
+    .student-row {
+        border-bottom: 1px solid var(--border-color);
         cursor: pointer;
-        text-decoration: none;
-        color: inherit;
+        transition: background-color 0.2s ease;
     }
-
-    .student-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        text-decoration: none;
-        color: inherit;
+    
+    .student-row:hover {
+        background-color: #f1f3f5;
     }
-
-    .card-header {
-        background-color: #f8f9fa;
-        margin: -1rem;
-        padding: 1rem;
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
+    
+    .student-row td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+    }
+    
+    .student-row .student-code {
         font-weight: 600;
         color: var(--primary-color);
+        width: 15%;
+    }
+    
+    .student-row .student-name {
+        font-weight: 500;
+        width: 85%;
+    }
+    
+    /* Modal styles */
+    .student-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal-content {
+        position: relative;
+        background-color: var(--surface-bg);
+        margin: 10% auto;
+        padding: 0;
+        border-radius: var(--border-radius);
+        max-width: 500px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        animation: modalFadeIn 0.3s;
+    }
+    
+    @keyframes modalFadeIn {
+        from {opacity: 0; transform: translateY(-20px);}
+        to {opacity: 1; transform: translateY(0);}
+    }
+    
+    .modal-header {
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
         border-bottom: 1px solid var(--border-color);
     }
-
-    .card-item {
+    
+    .modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .close-modal {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.25rem;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #adb5bd;
+        background: none;
+        border: none;
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+    
+    .close-modal:hover {
+        color: var(--text-color);
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-item {
         display: flex;
         justify-content: space-between;
-        padding: 0.5rem 0;
+        padding: 0.75rem 0;
         border-bottom: 1px solid #f1f3f5;
-        font-size: 0.95rem;
+        font-size: 1rem;
     }
-
-    .card-item:last-child {
+    
+    .modal-item:last-child {
         border-bottom: none;
     }
-
-    .card-item .label {
+    
+    .modal-item .label {
         color: var(--subtle-text-color);
         font-weight: 500;
     }
-
-    .card-item .value {
+    
+    .modal-item .value {
         color: var(--text-color);
         text-align: right;
+        font-weight: 500;
+    }
+    
+    .modal-footer {
+        padding: 1rem 1.5rem;
+        background-color: #f8f9fa;
+        border-top: 1px solid var(--border-color);
+        border-bottom-left-radius: var(--border-radius);
+        border-bottom-right-radius: var(--border-radius);
+        text-align: right;
+    }
+    
+    .view-profile-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: var(--border-radius);
+        border: none;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        text-decoration: none;
+    }
+    
+    .view-profile-btn:hover {
+        background-color: var(--primary-hover-color);
+        text-decoration: none;
+        color: white;
     }
 
     .btn-primary {
@@ -281,10 +365,20 @@
         .sort-controls {
             width: 100%;
             justify-content: center;
+            flex-wrap: wrap;
         }
-
-        .cards-container {
-            grid-template-columns: 1fr;
+        
+        .students-list {
+            font-size: 0.9rem;
+        }
+        
+        .student-row td {
+            padding: 0.6rem 0.5rem;
+        }
+        
+        .modal-content {
+            width: 90%;
+            margin: 20% auto;
         }
     }
 </style>
@@ -320,43 +414,53 @@
         </div>
     </div>
 
-    <div class="cards-container" id="userCardsContainer">
-        {% for user in users %}
-        <a href="{{ url_for('admin.student', user_id=user.id) }}" class="student-card" data-name="{{ user.name }}"
-            data-code="{{ user.code }}">
-
-            <div class="card-header">
-                <span>{{ user.code }} |</span> {{ user.name }}
+    <table class="students-list" id="userListContainer">
+        <tbody>
+            {% for user in users %}
+            <tr class="student-row" data-name="{{ user.name }}" data-code="{{ user.code }}" data-id="{{ user.id }}" 
+                data-phone="{{ user.phone_number }}" data-parent-phone="{{ user.parent_phone_number }}"
+                data-group="{{ user.group.name }}"
+                data-whatsapp="{% if user.student_whatsapp and user.parent_whatsapp %}Active (Both){% elif user.student_whatsapp %}Active (Student){% elif user.parent_whatsapp %}Active (Parent){% else %}Inactive (None){% endif %}">
+                <td class="student-code">{{ user.code }}</td>
+                <td class="student-name">{{ user.name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Student Modal -->
+    <div id="studentModal" class="student-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalStudentName" class="modal-title"></h2>
+                <button class="close-modal">&times;</button>
             </div>
-
-            <div class="card-item">
-                <span class="label">Phone</span>
-                <span class="value">{{ user.phone_number }}</span>
+            <div class="modal-body">
+                <div class="modal-item">
+                    <span class="label">Code</span>
+                    <span id="modalStudentCode" class="value"></span>
+                </div>
+                <div class="modal-item">
+                    <span class="label">Phone</span>
+                    <span id="modalStudentPhone" class="value"></span>
+                </div>
+                <div class="modal-item">
+                    <span class="label">Parent Phone</span>
+                    <span id="modalStudentParentPhone" class="value"></span>
+                </div>
+                <div class="modal-item">
+                    <span class="label">WhatsApp</span>
+                    <span id="modalStudentWhatsapp" class="value"></span>
+                </div>
+                <div class="modal-item">
+                    <span class="label">Group</span>
+                    <span id="modalStudentGroup" class="value"></span>
+                </div>
             </div>
-            <div class="card-item">
-                <span class="label">Parent Phone</span>
-                <span class="value">{{ user.parent_phone_number }}</span>
+            <div class="modal-footer">
+                <a id="viewProfileLink" href="#" class="view-profile-btn">View Full Profile</a>
             </div>
-            <div class="card-item">
-                <span class="label">WhatsApp</span>
-                <span class="value">
-                    {% if user.student_whatsapp and user.parent_whatsapp %}
-                    Active (Both)
-                    {% elif user.student_whatsapp %}
-                    Active (Student)
-                    {% elif user.parent_whatsapp %}
-                    Active (Parent)
-                    {% else %}
-                    Inactive (None)
-                    {% endif %}
-                </span>
-            </div>
-            <div class="card-item">
-                <span class="label">Group</span>
-                <span class="value">{{ user.group.name }}</span>
-            </div>
-        </a>
-        {% endfor %}
+        </div>
     </div>
 
     <!-- Pagination -->
@@ -405,10 +509,14 @@
         code: null
     };
 
-    const container = document.getElementById('userCardsContainer');
-    const cards = Array.from(container.querySelectorAll('.student-card'));
-
-    function sortCards(by) {
+    const container = document.getElementById('userListContainer');
+    const rows = Array.from(container.querySelectorAll('.student-row'));
+    
+    // Modal elements
+    const modal = document.getElementById('studentModal');
+    const modalClose = modal.querySelector('.close-modal');
+    
+    function sortRows(by) {
         const currentState = sortState[by];
         const newState = currentState === 'asc' ? 'desc' : 'asc';
 
@@ -428,8 +536,8 @@
         activeBtn.classList.add('active');
         activeBtn.querySelector('.sort-indicator').textContent = newState === 'asc' ? '↑' : '↓';
 
-        // Sort cards
-        cards.sort((a, b) => {
+        // Sort rows
+        rows.sort((a, b) => {
             let aVal = a.dataset[by].toLowerCase();
             let bVal = b.dataset[by].toLowerCase();
 
@@ -441,11 +549,68 @@
         });
 
         // Reorder DOM
-        cards.forEach(card => container.appendChild(card));
+        rows.forEach(row => container.querySelector('tbody').appendChild(row));
     }
+    
+    // Modal functionality
+    function openModal(studentData) {
+        // Populate modal with student data
+        document.getElementById('modalStudentName').textContent = studentData.name;
+        document.getElementById('modalStudentCode').textContent = studentData.code;
+        document.getElementById('modalStudentPhone').textContent = studentData.phone;
+        document.getElementById('modalStudentParentPhone').textContent = studentData.parentPhone;
+        document.getElementById('modalStudentWhatsapp').textContent = studentData.whatsapp;
+        document.getElementById('modalStudentGroup').textContent = studentData.group;
+        
+        // Set the profile link
+        document.getElementById('viewProfileLink').href = `/admin/student/${studentData.id}`;
+        
+        // Show modal
+        modal.style.display = 'block';
+        
+        // Prevent page scrolling when modal is open
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    
+    // Click event for rows
+    rows.forEach(row => {
+        row.addEventListener('click', () => {
+            const studentData = {
+                id: row.dataset.id,
+                name: row.dataset.name,
+                code: row.dataset.code,
+                phone: row.dataset.phone,
+                parentPhone: row.dataset.parentPhone,
+                whatsapp: row.dataset.whatsapp,
+                group: row.dataset.group
+            };
+            openModal(studentData);
+        });
+    });
+    
+    // Close modal events
+    modalClose.addEventListener('click', closeModal);
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // Keyboard accessibility
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
 
-    document.getElementById('sortNameBtn').addEventListener('click', () => sortCards('name'));
-    document.getElementById('sortCodeBtn').addEventListener('click', () => sortCards('code'));
+    // Sorting
+    document.getElementById('sortNameBtn').addEventListener('click', () => sortRows('name'));
+    document.getElementById('sortCodeBtn').addEventListener('click', () => sortRows('code'));
 </script>
 
 {% endblock %}
