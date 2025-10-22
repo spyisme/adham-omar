@@ -816,11 +816,9 @@ def activate_whatsapp():
                 flash("Parent Whatsapp activated successfully!", "success")
  
                 send_whatsapp_message(cleaned_number, 
-                                      "Thanks for verifying your phone number", bypass=True)
-                
+                                      "Your account and Whatsapp are activated successfully!\n\n"
+                                      "Press here to view your account (https://adhamomaresl.com)", bypass=True)
 
-
-                
                 return jsonify({"message": "Whatsapp activated successfully!"})
             else:
                 return jsonify({"message": "Parent Whatsapp already activated!"})
