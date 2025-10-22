@@ -524,100 +524,6 @@
             </div>
         </div>
 
-        <!-- Bulk Send Panel -->
-        <div id="bulkSendPanel" style="
-            display: none;
-            background: #25D366;
-            padding: 20px;
-            margin: 1rem 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div style="color: white;">
-                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
-                        <span id="selectedSendCount">0</span> Selected for Reminders
-                    </div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button type="button" onclick="selectAllForSend()" style="
-                            padding: 8px 16px;
-                            background: rgba(255, 255, 255, 0.2);
-                            color: white;
-                            border: 1px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-weight: 600;
-                            font-size: 0.9rem;
-                            transition: all 0.2s;
-                        ">Select All Missing</button>
-                        <button type="button" onclick="deselectAllForSend()" style="
-                            padding: 8px 16px;
-                            background: rgba(255, 255, 255, 0.2);
-                            color: white;
-                            border: 1px solid rgba(255, 255, 255, 0.3);
-                            border-radius: 6px;
-                            cursor: pointer;
-                            font-weight: 600;
-                            font-size: 0.9rem;
-                            transition: all 0.2s;
-                        ">Deselect All</button>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button type="button" id="btnSendSelected" onclick="sendRemindersSelected()" disabled style="
-                        padding: 12px 24px;
-                        background: rgba(255, 255, 255, 0.95);
-                        color: #25D366;
-                        border: none;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: 700;
-                        font-size: 1rem;
-                        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
-                        transition: all 0.3s;
-                    ">
-                        📱 Send Selected
-                    </button>
-                    <button type="button" onclick="openSendRangeModal()" style="
-                        padding: 12px 24px;
-                        background: rgba(255, 255, 255, 0.95);
-                        color: #25D366;
-                        border: 2px solid white;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: 700;
-                        font-size: 1rem;
-                        transition: all 0.3s;
-                    ">
-                        📊 Send by Range
-                    </button>
-                    <button type="button" onclick="closeBulkSendPanel()" style="
-                        padding: 12px 24px;
-                        background: rgba(255, 255, 255, 0.2);
-                        color: white;
-                        border: 1px solid rgba(255, 255, 255, 0.5);
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: 600;
-                        font-size: 1rem;
-                        transition: all 0.3s;
-                    ">
-                        Close
-                    </button>
-                    <div id="bulkSendLoadingSpinner" style="display: none; margin-left: 10px;">
-                        <div style="
-                            width: 24px;
-                            height: 24px;
-                            border: 3px solid rgba(255,255,255,0.3);
-                            border-radius: 50%;
-                            border-top-color: white;
-                            animation: spin 0.8s linear infinite;
-                        "></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <style>
             @keyframes spin {
                 to { transform: rotate(360deg); }
@@ -851,6 +757,101 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bulk Send Panel -->
+        <div id="bulkSendPanel" style="
+            display: none;
+            background: #25D366;
+            padding: 20px;
+            margin: 1rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="color: white;">
+                    <div style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem;">
+                        <span id="selectedSendCount">0</span> Selected for Reminders
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button type="button" onclick="selectAllForSend()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Select All Missing</button>
+                        <button type="button" onclick="deselectAllForSend()" style="
+                            padding: 8px 16px;
+                            background: rgba(255, 255, 255, 0.2);
+                            color: white;
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            border-radius: 6px;
+                            cursor: pointer;
+                            font-weight: 600;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        ">Deselect All</button>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button type="button" id="btnSendSelected" onclick="sendRemindersSelected()" disabled style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #25D366;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+                        transition: all 0.3s;
+                    ">
+                        📱 Send Selected
+                    </button>
+                    <button type="button" onclick="openSendRangeModal()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #25D366;
+                        border: 2px solid white;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 700;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        📊 Send by Range
+                    </button>
+                    <button type="button" onclick="closeBulkSendPanel()" style="
+                        padding: 12px 24px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: 1px solid rgba(255, 255, 255, 0.5);
+                        border-radius: 8px;
+                        cursor: pointer;
+                        font-weight: 600;
+                        font-size: 1rem;
+                        transition: all 0.3s;
+                    ">
+                        Close
+                    </button>
+                    <div id="bulkSendLoadingSpinner" style="display: none; margin-left: 10px;">
+                        <div style="
+                            width: 24px;
+                            height: 24px;
+                            border: 3px solid rgba(255,255,255,0.3);
+                            border-radius: 50%;
+                            border-top-color: white;
+                            animation: spin 0.8s linear infinite;
+                        "></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card-content no-padding">
             <div class="table-wrapper">
                 <table>
