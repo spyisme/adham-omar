@@ -488,17 +488,7 @@
         }, 5000);
       });
 
-      const fileInput = document.getElementById('profile_picture');
-      const fileNameSpan = document.querySelector('.file-input-name');
-      if (fileInput && fileNameSpan) {
-        fileInput.addEventListener('change', function () {
-          if (this.files && this.files.length > 0) {
-            fileNameSpan.textContent = this.files[0].name;
-          } else {
-            fileNameSpan.textContent = 'No file chosen...';
-          }
-        });
-      }
+
       
       // --- UPDATED JAVASCRIPT LOGIC ---
       
@@ -603,18 +593,7 @@
             addError(`Please select a value for ${friendlyName}.`);
           }
         });
-        const file = fileInput.files[0];
-        if (!file) {
-          addError("Please upload a profile picture.");
-        } else {
-          const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-          if (!allowedTypes.includes(file.type)) {
-            addError("Profile picture must be a JPG or PNG file.");
-          }
-          if (file.size > maxFileSize) {
-            addError("Profile picture size cannot exceed 5MB.");
-          }
-        }
+
 
         if (messages.length > 0) {
           e.preventDefault();
