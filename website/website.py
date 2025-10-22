@@ -832,9 +832,23 @@ def activate_whatsapp():
                 db.session.commit()
 
                 flash("Student Whatsapp activated successfully!", "success")
-
-                send_whatsapp_message(cleaned_number, 
-                                      "Thanks for verifying your phone number", bypass=True)
+                try :
+                    send_whatsapp_message(
+                        cleaned_number,
+                        "شكراً\nتم تفعيل الرقم\nهيوصل لحضرتك المتابعة علي الرقم ده\n\n"
+                        "Dear parent\n\n"
+                        "Your Whatsapp are activated successfully!\n\n"
+                            "You will be receiving follow up on this number",
+                            bypass=True
+                        )
+                except :
+                    send_whatsapp_message(
+                        cleaned_number,
+                        "Dear parent\n\n"
+                        "Your Whatsapp are activated successfully!\n\n"
+                        "You will be receiving follow up on this number",
+                            bypass=True
+                        )
                 
                 
                 return jsonify({"message": "Whatsapp activated successfully!"})
