@@ -3367,7 +3367,7 @@ def delete_group_assignment_attachment(group_id, assignment_id, attachment_index
             # Update the assignment
             assignment.attachments = json.dumps(existing_attachments)
             assignment.last_edited_at = datetime.now()
-            assignment.last_edited_by = current_user.username
+            assignment.last_edited_by = current_user.name
             
             # Log the action
             new_log = AssistantLogs(
@@ -3591,7 +3591,7 @@ def toggle_group_assignment_visibility(group_id, assignment_id):
     new_status = "Hide" if assignment.status == "Show" else "Show"
     assignment.status = new_status
     assignment.last_edited_at = datetime.now()
-    assignment.last_edited_by = current_user.username
+    assignment.last_edited_by = current_user.name
 
     # Log the action
     new_log = AssistantLogs(
