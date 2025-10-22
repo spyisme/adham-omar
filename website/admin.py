@@ -1922,7 +1922,7 @@ def view_assignment_submissions(assignment_id):
     assistants = []
     if group_id:
         assistants = Users.query.filter(
-            Users.role.in_(['admin', 'super_admin']),
+            Users.role.in_(['admin']),
             Users.managed_groups.any(Groups.id == group_id)
         ).order_by(Users.name).all()
 
@@ -7908,37 +7908,6 @@ def view_reviews_by_assignment(assignment_id):
     )
 
 
-# View reviews by specific group
-@admin.route("/submissions/reviews/group/<int:group_id>")
-def view_reviews_by_group(group_id):
-    """View submissions awaiting review for a specific group"""
-    if current_user.role != "super_admin":
-        flash("Access denied. Only Heads can view reviews.", "danger")
-        return redirect(url_for("admin.home"))
-    
-    group = Groups.query.get_or_404(group_id)
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    
-    # Get student IDs in this group
-    student_ids = [student.id for student in group.members.filter(Users.role == 'student').all()]
-    
-    # Get all corrected but not reviewed submissions for students in this group
-    pending_reviews = Submissions.query.filter(
-        Submissions.student_id.in_(student_ids),
-        Submissions.corrected == True,
-        Submissions.reviewed == False
-    ).order_by(Submissions.correction_date.desc()).paginate(
-        page=page, per_page=per_page, error_out=False
-    )
-    
-    return render_template(
-        "admin/submissions/reviews_by_group.html",
-        submissions=pending_reviews.items,
-        pagination=pending_reviews,
-        group=group,
-        title=f"Reviews for {group.name}"
-    )
 
 
 # View reviews by specific assistant (who corrected them)
@@ -8209,7 +8178,7 @@ def approve_range_submissions():
 
 
     
-
+#Track assistnants (3mtn w per assignment in one page)
 
 
     
