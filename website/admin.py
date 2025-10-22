@@ -2852,6 +2852,204 @@ def send_late_message_for_submission(assignment_id, student_id):
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'message': 'Reminder sent successfully!', 'student_late_message_sent': student_late_message_sent, 'parent_late_message_sent': parent_late_message_sent})
 
+# Bulk send reminders for assignments (Admin route)
+@admin.route("/assignments/<int:assignment_id>/bulk_send_reminders", methods=["POST"])
+def bulk_send_reminders_assignments(assignment_id):
+    if current_user.role != "super_admin":
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    assignment = Assignments.query.get_or_404(assignment_id)
+    data = request.get_json()
+    student_ids = data.get('student_ids', [])
+    
+    if not student_ids:
+        return jsonify({'status': 'error', 'message': 'No students selected'}), 400
+    
+    sent_count = 0
+    skipped_count = 0
+    
+    for student_id in student_ids:
+        student = Users.query.get(student_id)
+        if not student:
+            skipped_count += 1
+            continue
+        
+        # Check if already sent
+        existing_notification = Assignments_whatsapp.query.filter_by(
+            assignment_id=assignment_id,
+            user_id=student_id
+        ).first()
+        
+        if existing_notification and existing_notification.message_sent:
+            skipped_count += 1
+            continue
+        
+        # Check if student has WhatsApp numbers
+        if not student.student_whatsapp and not student.parent_whatsapp:
+            skipped_count += 1
+            continue
+        
+        try:
+            # Send to student
+            if student.student_whatsapp:
+                send_whatsapp_message(student.phone_number, 
+                    f"HI *{student.name}*\n\n"
+                    f"*{assignment.title}*\n"
+                    f"Submission is missing\n"
+                    f"Didn't submit\n\n"
+                    f"Please take care to submit your future assignments"
+                )
+            
+            # Send to parent
+            if student.parent_whatsapp:
+                send_whatsapp_message(
+                    student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{student.name}*\n\n"
+                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
+                    f"Please take care starting next submission\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
+                )
+            
+            # Record the sent message
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=assignment_id,
+                    user_id=student_id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            
+            sent_count += 1
+            
+        except Exception as e:
+            print(f"Error sending to student {student_id}: {str(e)}")
+            skipped_count += 1
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+    
+    return jsonify({
+        'status': 'success',
+        'sent_count': sent_count,
+        'skipped_count': skipped_count
+    })
+
+# Send reminders by range for assignments (Admin route)
+@admin.route("/assignments/<int:assignment_id>/send_reminders_by_range", methods=["POST"])
+def send_reminders_by_range_assignments(assignment_id):
+    if current_user.role != "super_admin":
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    assignment = Assignments.query.get_or_404(assignment_id)
+    data = request.get_json()
+    from_index = data.get('from_index')
+    to_index = data.get('to_index')
+    
+    if from_index is None or to_index is None:
+        return jsonify({'status': 'error', 'message': 'Invalid range'}), 400
+    
+    # Get all students who didn't submit
+    submitted_student_ids = [sub.student_id for sub in assignment.submissions]
+    
+    if assignment.group_id:
+        not_submitted_students = Users.query.filter(
+            Users.group_id == assignment.group_id,
+            ~Users.id.in_(submitted_student_ids),
+            Users.role == "student",
+            Users.activated == True
+        ).order_by(Users.id).all()
+    else:
+        not_submitted_students = Users.query.filter(
+            ~Users.id.in_(submitted_student_ids),
+            Users.role == "student",
+            Users.activated == True
+        ).order_by(Users.id).all()
+    
+    # Convert to 0-indexed
+    from_idx = from_index - 1
+    to_idx = to_index
+    
+    # Get the students in the range
+    students_in_range = not_submitted_students[from_idx:to_idx]
+    
+    sent_count = 0
+    skipped_count = 0
+    
+    for student in students_in_range:
+        # Check if already sent
+        existing_notification = Assignments_whatsapp.query.filter_by(
+            assignment_id=assignment_id,
+            user_id=student.id
+        ).first()
+        
+        if existing_notification and existing_notification.message_sent:
+            skipped_count += 1
+            continue
+        
+        # Check if student has WhatsApp numbers
+        if not student.student_whatsapp and not student.parent_whatsapp:
+            skipped_count += 1
+            continue
+        
+        try:
+            # Send to student
+            if student.student_whatsapp:
+                send_whatsapp_message(student.phone_number, 
+                    f"HI *{student.name}*\n\n"
+                    f"*{assignment.title}*\n"
+                    f"Submission is missing\n"
+                    f"Didn't submit\n\n"
+                    f"Please take care to submit your future assignments"
+                )
+            
+            # Send to parent
+            if student.parent_whatsapp:
+                send_whatsapp_message(
+                    student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{student.name}*\n\n"
+                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
+                    f"Please take care starting next submission\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
+                )
+            
+            # Record the sent message
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=assignment_id,
+                    user_id=student.id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            
+            sent_count += 1
+            
+        except Exception as e:
+            print(f"Error sending to student {student.id}: {str(e)}")
+            skipped_count += 1
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+    
+    return jsonify({
+        'status': 'success',
+        'sent_count': sent_count,
+        'skipped_count': skipped_count
+    })
+
 #Delete a submission for student (Admin route)
 @admin.route("/assignments/delete_submission/<int:submission_id>", methods=["POST"])
 def delete_submission(submission_id):
@@ -6010,6 +6208,202 @@ def send_late_message_for_submission_exam(assignment_id, student_id):
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return jsonify({'status': 'success', 'message': 'Reminder sent successfully!', 'student_late_message_sent': student_late_message_sent, 'parent_late_message_sent': parent_late_message_sent})
+
+# Bulk send reminders for exams (Admin route)
+@admin.route("/online/exam/<int:exam_id>/bulk_send_reminders", methods=["POST"])
+def bulk_send_reminders_exams(exam_id):
+    if current_user.role != "super_admin":
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    exam = Assignments.query.get_or_404(exam_id)
+    data = request.get_json()
+    student_ids = data.get('student_ids', [])
+    
+    if not student_ids:
+        return jsonify({'status': 'error', 'message': 'No students selected'}), 400
+    
+    sent_count = 0
+    skipped_count = 0
+    
+    for student_id in student_ids:
+        student = Users.query.get(student_id)
+        if not student:
+            skipped_count += 1
+            continue
+        
+        # Check if already sent
+        existing_notification = Assignments_whatsapp.query.filter_by(
+            assignment_id=exam_id,
+            user_id=student_id
+        ).first()
+        
+        if existing_notification and existing_notification.message_sent:
+            skipped_count += 1
+            continue
+        
+        # Check if student has WhatsApp numbers
+        if not student.student_whatsapp and not student.parent_whatsapp:
+            skipped_count += 1
+            continue
+        
+        try:
+            # Send to student
+            if student.student_whatsapp:
+                send_whatsapp_message(student.phone_number, 
+                    f"HI *{student.name}*\n\n"
+                    f"*{exam.title}*\n"
+                    f"Submission is missing\n"
+                    f"Didn't submit\n\n"
+                    f"Please take care to submit your future assignments"
+                )
+            
+            # Send to parent
+            if student.parent_whatsapp:
+                send_whatsapp_message(
+                    student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{student.name}*\n\n"
+                    f"Quiz *{exam.title}* due on *{exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'}*: Did not submit\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
+                )
+            
+            # Record the sent message
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=exam_id,
+                    user_id=student_id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            
+            sent_count += 1
+            
+        except Exception as e:
+            print(f"Error sending to student {student_id}: {str(e)}")
+            skipped_count += 1
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+    
+    return jsonify({
+        'status': 'success',
+        'sent_count': sent_count,
+        'skipped_count': skipped_count
+    })
+
+# Send reminders by range for exams (Admin route)
+@admin.route("/online/exam/<int:exam_id>/send_reminders_by_range", methods=["POST"])
+def send_reminders_by_range_exams(exam_id):
+    if current_user.role != "super_admin":
+        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+    
+    exam = Assignments.query.get_or_404(exam_id)
+    data = request.get_json()
+    from_index = data.get('from_index')
+    to_index = data.get('to_index')
+    
+    if from_index is None or to_index is None:
+        return jsonify({'status': 'error', 'message': 'Invalid range'}), 400
+    
+    # Get all students who didn't submit
+    submitted_student_ids = [sub.student_id for sub in exam.submissions]
+    
+    if exam.group_id:
+        not_submitted_students = Users.query.filter(
+            Users.group_id == exam.group_id,
+            ~Users.id.in_(submitted_student_ids),
+            Users.role == "student",
+            Users.activated == True
+        ).order_by(Users.id).all()
+    else:
+        not_submitted_students = Users.query.filter(
+            ~Users.id.in_(submitted_student_ids),
+            Users.role == "student",
+            Users.activated == True
+        ).order_by(Users.id).all()
+    
+    # Convert to 0-indexed
+    from_idx = from_index - 1
+    to_idx = to_index
+    
+    # Get the students in the range
+    students_in_range = not_submitted_students[from_idx:to_idx]
+    
+    sent_count = 0
+    skipped_count = 0
+    
+    for student in students_in_range:
+        # Check if already sent
+        existing_notification = Assignments_whatsapp.query.filter_by(
+            assignment_id=exam_id,
+            user_id=student.id
+        ).first()
+        
+        if existing_notification and existing_notification.message_sent:
+            skipped_count += 1
+            continue
+        
+        # Check if student has WhatsApp numbers
+        if not student.student_whatsapp and not student.parent_whatsapp:
+            skipped_count += 1
+            continue
+        
+        try:
+            # Send to student
+            if student.student_whatsapp:
+                send_whatsapp_message(student.phone_number, 
+                    f"HI *{student.name}*\n\n"
+                    f"*{exam.title}*\n"
+                    f"Submission is missing\n"
+                    f"Didn't submit\n\n"
+                    f"Please take care to submit your future assignments"
+                )
+            
+            # Send to parent
+            if student.parent_whatsapp:
+                send_whatsapp_message(
+                    student.parent_phone_number,
+                    f"Dear Parent,\n"
+                    f"*{student.name}*\n\n"
+                    f"Quiz *{exam.title}* due on *{exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'}*: Did not submit\n\n"
+                    f"_For further inquiries send to Dr. Adham_"
+                )
+            
+            # Record the sent message
+            if existing_notification:
+                existing_notification.message_sent = True
+                existing_notification.sent_date = datetime.now(GMT_PLUS_2)
+            else:
+                new_notification = Assignments_whatsapp(
+                    assignment_id=exam_id,
+                    user_id=student.id,
+                    message_sent=True
+                )
+                db.session.add(new_notification)
+            
+            sent_count += 1
+            
+        except Exception as e:
+            print(f"Error sending to student {student.id}: {str(e)}")
+            skipped_count += 1
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+    
+    return jsonify({
+        'status': 'success',
+        'sent_count': sent_count,
+        'skipped_count': skipped_count
+    })
 
 #Delete a submission for student (Admin route for EXAMS)
 @admin.route("/online/exam/delete_submission/<int:submission_id>", methods=["POST"])
