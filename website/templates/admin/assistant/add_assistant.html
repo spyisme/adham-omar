@@ -329,7 +329,7 @@
                     {% endfor %}
                 </div>
             </div>
-            <input type="hidden" name="group_ids" id="selectedGroups">
+            <div id="hiddenGroupInputsContainer"></div>
 
             <button type="submit" class="btn">Add Assistant</button>
         </form>
@@ -340,7 +340,6 @@
     const groupDropdown = document.getElementById('dropdownListGroups');
     const groupMultiSelect = document.getElementById('multiSelectGroups');
     const groupInput = document.getElementById('multiInputGroups');
-    const groupHiddenInput = document.getElementById('selectedGroups');
     let selectedGroups = [];
 
     function toggleGroupDropdown() {
@@ -389,7 +388,17 @@
             tag.innerHTML = `${s.name} <button type="button" onclick="removeGroupTag('${s.id}')">×</button>`;
             groupMultiSelect.insertBefore(tag, groupInput);
         });
-        groupHiddenInput.value = selectedGroups.map(s => s.id).join(',');
+        
+        // Update hidden inputs - create one input per group
+        const container = document.getElementById('hiddenGroupInputsContainer');
+        container.innerHTML = '';
+        selectedGroups.forEach(s => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'group_ids';
+            input.value = s.id;
+            container.appendChild(input);
+        });
     }
 
     function removeGroupTag(id) {
