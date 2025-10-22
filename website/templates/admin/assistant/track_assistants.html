@@ -234,7 +234,7 @@
                     {% for assignment_id, stats in data.assignment_stats.items() %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('admin.assignments_submissions', assignment_id=stats.assignment.id) }}">
+                            <a href="{{ url_for('admin.view_assignment_submissions', assignment_id=stats.assignment.id) }}">
                                 {{ stats.assignment.title }}
                             </a>
                         </td>
