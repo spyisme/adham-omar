@@ -125,15 +125,29 @@
             <label for="email">Email:</label>
             <input id="email" type="email" name="email" value="{{ user.email }}" required class="form-control" />
         </div>
+
+        <div class="form-group">
+            <label for="phone_number_country_code">Phone Number Country Code:</label>
+            <input id="phone_number_country_code" type="text" name="phone_number_country_code" value="{{ user.phone_number_country_code }}" required
+                class="form-control" />
+        </div>
         <div class="form-group">
             <label for="phone_number">Phone Number:</label>
             <input id="phone_number" type="text" name="phone_number" value="{{ user.phone_number }}" required
                 class="form-control" />
         </div>
+
         <div class="form-group">
             <label for="parent_phone_number">Parent Phone Number:</label>
             <input id="parent_phone_number" type="text" name="parent_phone_number"
                 value="{{ user.parent_phone_number }}" required class="form-control" />
+        </div>
+
+
+        <div class="form-group">
+            <label for="parent_phone_number_country_code">Parent Phone Number Country Code:</label>
+            <input id="parent_phone_number_country_code" type="text" name="parent_phone_number_country_code"
+                value="{{ user.parent_phone_number_country_code }}" required class="form-control" />
         </div>
 
         <div class="form-group">

@@ -1055,7 +1055,12 @@ def edit_user(user_id):
             user.name = request.form['name']
             user.email = request.form['email']
             user.phone_number = request.form['phone_number']
+            user.phone_number_country_code = request.form['phone_number_country_code']
+
             user.parent_phone_number = request.form['parent_phone_number']
+            user.parent_phone_number_country_code = request.form['parent_phone_number_country_code']
+
+
             # user.code = request.form['code']
             user.groupid = int(request.form['group']) if request.form['group'] else None
             if request.form['code'] != user.code :
