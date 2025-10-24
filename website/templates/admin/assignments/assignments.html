@@ -524,6 +524,41 @@
         color: #fff;
     }
 
+    /* --- Google Drive Picker Styles --- */
+    .attachment-type-btn.drive {
+        background: #4285f4;
+        color: white;
+    }
+    
+    .attachment-type-btn.drive:hover {
+        background: #3367d6;
+    }
+    
+    .attachment-type-btn.drive.active {
+        background: #1a73e8;
+        box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+    }
+
+    .drive-auth-status {
+        padding: 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .drive-auth-status.authorized {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .drive-auth-status.not-authorized {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
     /* --- Responsive Adjustments --- */
     @media (max-width: 768px) {
         .page-header-content {
@@ -554,6 +589,11 @@
         }
     }
 </style>
+
+<!-- Google Drive API Scripts -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+
 {% endblock %}
 
 {% block content %}
@@ -833,6 +873,11 @@
                             onclick="toggleAttachmentType('${attachmentId}', 'link')">
                         🔗 External Link
                     </button>
+                    <button type="button" 
+                            class="attachment-type-btn drive ${defaultType === 'drive' ? 'active' : ''}" 
+                            onclick="toggleAttachmentType('${attachmentId}', 'drive')">
+                        📂 Google Drive
+                    </button>
                 </div>
                 
                 <div class="attachment-input-wrapper">
@@ -847,6 +892,24 @@
                            class="form-input attachment-link-input"
                            value="${defaultUrl}"
                            style="display: ${defaultType === 'link' ? 'block' : 'none'};">
+                    
+                    <div class="attachment-drive-input" style="display: ${defaultType === 'drive' ? 'block' : 'none'};">
+                        <button type="button" 
+                                class="btn btn-primary" 
+                                onclick="openDrivePickerForAttachment('${attachmentId}')"
+                                style="width: 100%;">
+                            Select from Google Drive
+                        </button>
+                        <input type="hidden" 
+                               name="${prefix}attachment_drive_link_${counter}" 
+                               class="attachment-drive-link"
+                               value="${defaultType === 'drive' ? defaultUrl : ''}">
+                        <input type="hidden" 
+                               name="${prefix}attachment_drive_token_${counter}" 
+                               class="attachment-drive-token"
+                               value="">
+                        <div class="attachment-drive-status" style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;"></div>
+                    </div>
                 </div>
                 
                 <input type="hidden" 
@@ -871,24 +934,37 @@
         const attachmentItem = document.getElementById(attachmentId);
         if (!attachmentItem) return;
 
-        const fileBtn = attachmentItem.querySelector('.attachment-type-btn:first-child');
-        const linkBtn = attachmentItem.querySelector('.attachment-type-btn:last-child');
+        const buttons = attachmentItem.querySelectorAll('.attachment-type-btn');
+        const fileBtn = buttons[0];
+        const linkBtn = buttons[1];
+        const driveBtn = buttons[2];
+        
         const fileInput = attachmentItem.querySelector('.attachment-file-input');
         const linkInput = attachmentItem.querySelector('.attachment-link-input');
+        const driveInput = attachmentItem.querySelector('.attachment-drive-input');
         const typeInput = attachmentItem.querySelector('input[type="hidden"]');
+
+        // Reset all buttons and inputs
+        fileBtn.classList.remove('active');
+        linkBtn.classList.remove('active');
+        driveBtn.classList.remove('active');
+        fileInput.style.display = 'none';
+        linkInput.style.display = 'none';
+        driveInput.style.display = 'none';
 
         if (type === 'file') {
             fileBtn.classList.add('active');
-            linkBtn.classList.remove('active');
             fileInput.style.display = 'block';
-            linkInput.style.display = 'none';
-            linkInput.value = ''; // Clear link input
-        } else {
-            fileBtn.classList.remove('active');
+            linkInput.value = '';
+        } else if (type === 'link') {
             linkBtn.classList.add('active');
-            fileInput.style.display = 'none';
             linkInput.style.display = 'block';
-            fileInput.value = ''; // Clear file input
+            fileInput.value = '';
+        } else if (type === 'drive') {
+            driveBtn.classList.add('active');
+            driveInput.style.display = 'block';
+            fileInput.value = '';
+            linkInput.value = '';
         }
 
         typeInput.value = type;
@@ -1096,6 +1172,8 @@
                     const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
                     const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
                     const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
+                    const driveLinkInput = item.querySelector(`input[name="attachment_drive_link_${counter}"]`);
+                    const driveTokenInput = item.querySelector(`input[name="attachment_drive_token_${counter}"]`);
 
                     if (nameInput && typeInput) {
                         formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
@@ -1105,6 +1183,11 @@
                             formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
                         } else if (typeInput.value === 'link' && linkInput) {
                             formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
+                        } else if (typeInput.value === 'drive' && driveLinkInput) {
+                            formData.append(`attachments[${attachmentCount}][url]`, driveLinkInput.value);
+                            if (driveTokenInput && driveTokenInput.value) {
+                                formData.append(`attachments[${attachmentCount}][drive_token]`, driveTokenInput.value);
+                            }
                         }
                         attachmentCount++;
                     }
@@ -2062,6 +2145,151 @@
         }
     }
     document.addEventListener('DOMContentLoaded', initializePage);
+
+    // ============================================
+    // GOOGLE DRIVE PICKER INTEGRATION
+    // ============================================
+    
+    // Configuration - Replace with your actual values
+    const GOOGLE_CLIENT_ID = '409298735327-1ue4kf7g0f4se11vbjekple6t5bjq7jn.apps.googleusercontent.com';
+    const GOOGLE_API_KEY = 'AIzaSyDKCt492H5f6_KvVLgbJ3YQyTt5JEzHZWY';
+    const GOOGLE_APP_ID = '409298735327';
+    const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+    let tokenClient;
+    let accessToken = null;
+    let gapiReady = false;
+    let gisReady = false;
+    let currentAttachmentId = null;
+
+    // Initialize Google APIs
+    window.onload = function() {
+        gapi.load('client:picker', initializeGapi);
+        initializeGis();
+    };
+
+    function initializeGapi() {
+        gapi.client.load('drive', 'v3', () => {
+            gapiReady = true;
+            console.log('Google Drive API loaded');
+        });
+    }
+
+    function initializeGis() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: DRIVE_SCOPES,
+            callback: handleAuthResponse
+        });
+        gisReady = true;
+        console.log('Google Identity Services loaded');
+    }
+
+    function handleAuthResponse(response) {
+        if (response.error) {
+            showToast(`Authorization failed: ${response.error}`, 'error');
+            return;
+        }
+        accessToken = response.access_token;
+        showToast('Google Drive authorized successfully!', 'success');
+        
+        // If we have a pending attachment, open picker for it
+        if (currentAttachmentId) {
+            createPicker(currentAttachmentId);
+        }
+    }
+
+    // Function to open Drive picker for a specific attachment
+    window.openDrivePickerForAttachment = function(attachmentId) {
+        currentAttachmentId = attachmentId;
+        
+        if (!gapiReady || !gisReady) {
+            showToast('Google Drive API is still loading. Please try again.', 'error');
+            return;
+        }
+
+        if (!accessToken) {
+            // Request authorization
+            tokenClient.requestAccessToken({ prompt: '' });
+        } else {
+            // Already authorized, open picker
+            createPicker(attachmentId);
+        }
+    };
+
+    function createPicker(attachmentId) {
+        if (!accessToken) {
+            showToast('Please authorize Google Drive first', 'error');
+            return;
+        }
+
+        const view = new google.picker.View(google.picker.ViewId.DOCS);
+        
+        const picker = new google.picker.PickerBuilder()
+            .addView(view)
+            .setAppId(GOOGLE_APP_ID)
+            .setOAuthToken(accessToken)
+            .setDeveloperKey(GOOGLE_API_KEY)
+            .setCallback((data) => pickerCallback(data, attachmentId))
+            .build();
+
+        picker.setVisible(true);
+    }
+
+    async function pickerCallback(data, attachmentId) {
+        if (data.action === google.picker.Action.PICKED) {
+            const document = data[google.picker.Response.DOCUMENTS][0];
+            const fileId = document[google.picker.Document.ID];
+            
+            const attachmentItem = document.getElementById(attachmentId);
+            if (!attachmentItem) return;
+
+            const statusDiv = attachmentItem.querySelector('.attachment-drive-status');
+            statusDiv.textContent = 'Loading file information...';
+
+            try {
+                const response = await gapi.client.drive.files.get({
+                    'fileId': fileId,
+                    'fields': 'id, name, webViewLink, webContentLink'
+                });
+
+                const file = response.result;
+                const fileLink = file.webViewLink || file.webContentLink;
+
+                if (fileLink) {
+                    // Store the link and token in hidden inputs
+                    const linkInput = attachmentItem.querySelector('.attachment-drive-link');
+                    const tokenInput = attachmentItem.querySelector('.attachment-drive-token');
+                    const nameInput = attachmentItem.querySelector('.attachment-name-input');
+
+                    linkInput.value = fileLink;
+                    tokenInput.value = accessToken;
+                    
+                    // Auto-fill the attachment name if empty
+                    if (!nameInput.value) {
+                        nameInput.value = file.name;
+                    }
+
+                    statusDiv.textContent = `✓ Selected: ${file.name}`;
+                    statusDiv.style.color = '#155724';
+                    
+                    showToast('Drive file selected successfully!', 'success');
+                } else {
+                    statusDiv.textContent = 'Could not retrieve file link';
+                    statusDiv.style.color = '#721c24';
+                    showToast('Could not retrieve a usable link for the selected file', 'error');
+                }
+            } catch (err) {
+                console.error('Error fetching file metadata:', err);
+                statusDiv.textContent = 'Error fetching file information';
+                statusDiv.style.color = '#721c24';
+                showToast('Error fetching file metadata. Ensure the file is accessible.', 'error');
+            }
+        } else if (data.action === google.picker.Action.CANCEL) {
+            console.log('File selection cancelled');
+        }
+    }
+
 </script>
 </body>
 

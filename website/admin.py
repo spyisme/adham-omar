@@ -1835,6 +1835,15 @@ def assignments():
                 if attachment_url:
                     attachment_obj['url'] = attachment_url
                     attachments.append(attachment_obj)
+            elif attachment_type == 'drive':
+                attachment_url = request.form.get(f'attachments[{idx}][url]')
+                drive_token = request.form.get(f'attachments[{idx}][drive_token]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    # Optionally store the token if needed for future access
+                    if drive_token:
+                        attachment_obj['drive_token'] = drive_token
+                    attachments.append(attachment_obj)
 
 
         # creation date
@@ -3773,6 +3782,15 @@ def edit_assignment(assignment_id):
                 attachment_url = request.form.get(f'new_attachments[{idx}][url]')
                 if attachment_url:
                     attachment_obj['url'] = attachment_url
+                    existing_attachments.append(attachment_obj)
+            elif attachment_type == 'drive':
+                attachment_url = request.form.get(f'new_attachments[{idx}][url]')
+                drive_token = request.form.get(f'new_attachments[{idx}][drive_token]')
+                if attachment_url:
+                    attachment_obj['url'] = attachment_url
+                    # Optionally store the token if needed for future access
+                    if drive_token:
+                        attachment_obj['drive_token'] = drive_token
                     existing_attachments.append(attachment_obj)
 
         assignment.attachments = json.dumps(existing_attachments)
