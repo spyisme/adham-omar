@@ -751,8 +751,8 @@
         </div>
     </div>
 </div>
-
 <script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
+    
     // Global state
     let allAssignments = [];
     let groups = [];
@@ -1636,6 +1636,7 @@
                 '</div>'
             );
         }).join('');
+    } // <-- MISSING CLOSING BRACKET FIXED HERE
 
     // Make deleteExistingAttachment globally available
     window.deleteExistingAttachment = async function (event, assignmentId, attachmentIndex) {
@@ -1952,4 +1953,6 @@
     }
     document.addEventListener('DOMContentLoaded', initializePage);
 </script>
+</body>
+
 {% endblock %}
