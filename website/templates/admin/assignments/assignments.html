@@ -2114,18 +2114,18 @@
         function renderRepostGroupTags() {
             const tagContainer = document.getElementById('repost-multiSelectGroups');
             const input = document.getElementById('repost-multiInputGroups');
-            const formContainer = document.getElementById('repost-ms-groups-container');
+            const form = document.getElementById('repostAssignmentForm');
 
             // Remove existing tags (but keep the input)
             Array.from(tagContainer.children).forEach(child => {
                 if (child !== input) child.remove();
             });
 
-            // Remove existing hidden inputs from container
-            const existingHiddenInputs = formContainer.querySelectorAll('input[type="hidden"]');
+            // Remove existing hidden inputs from the form
+            const existingHiddenInputs = form.querySelectorAll('input[type="hidden"][name="groups[]"]');
             existingHiddenInputs.forEach(inp => inp.remove());
 
-            // Add new tags
+            // Add new tags inside the multi-select
             repostSelectedGroups.forEach(group => {
                 const tag = document.createElement('div');
                 tag.className = 'tag';
@@ -2136,13 +2136,13 @@
                 tagContainer.insertBefore(tag, input);
             });
 
-            // Add hidden inputs to the form container (outside the multi-select div)
+            // Add hidden inputs directly to the form (not visible in DOM structure)
             repostSelectedGroups.forEach(group => {
                 const inp = document.createElement('input');
                 inp.type = 'hidden';
                 inp.name = 'groups[]';
                 inp.value = group.id;
-                formContainer.appendChild(inp);
+                form.appendChild(inp);
             });
         }
 
