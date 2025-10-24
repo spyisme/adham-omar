@@ -524,41 +524,6 @@
         color: #fff;
     }
 
-    /* --- Google Drive Picker Styles --- */
-    .attachment-type-btn.drive {
-        background: #4285f4;
-        color: white;
-    }
-    
-    .attachment-type-btn.drive:hover {
-        background: #3367d6;
-    }
-    
-    .attachment-type-btn.drive.active {
-        background: #1a73e8;
-        box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
-    }
-
-    .drive-auth-status {
-        padding: 0.5rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
-
-    .drive-auth-status.authorized {
-        background-color: #d4edda;
-        color: #155724;
-        border: 1px solid #c3e6cb;
-    }
-
-    .drive-auth-status.not-authorized {
-        background-color: #fff3cd;
-        color: #856404;
-        border: 1px solid #ffeeba;
-    }
-
     /* --- Responsive Adjustments --- */
     @media (max-width: 768px) {
         .page-header-content {
@@ -589,11 +554,6 @@
         }
     }
 </style>
-
-<!-- Google Drive API Scripts -->
-<script src="https://apis.google.com/js/api.js"></script>
-<script src="https://accounts.google.com/gsi/client"></script>
-
 {% endblock %}
 
 {% block content %}
@@ -791,6 +751,30 @@
         </div>
     </div>
 </div>
+
+<!-- Repost Assignment Modal -->
+<div id="repostAssignmentModal" class="modal-overlay">
+    <div class="modal-content">
+        <form id="repostAssignmentForm" method="POST" enctype="multipart/form-data">
+            <div class="modal-header">
+                <h2>Repost Assignment</h2>
+                <button type="button" class="modal-close" id="repostModalClose">&times;</button>
+            </div>
+            <div class="modal-body" id="repostModalBody">
+                <div class="skeleton-form">
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                    <div class="skeleton skeleton-p"></div>
+                </div>
+            </div>
+            <div class="modal-footer" id="repostModalFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" id="repostModalCancelBtn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Repost Assignment</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     
     // Global state
@@ -804,10 +788,13 @@
     const modal = document.getElementById('assignmentModal');
     const editModal = document.getElementById('editAssignmentModal');
     const settingsModal = document.getElementById('settingsModal');
+    const repostModal = document.getElementById('repostAssignmentModal');
     const openModalBtns = [document.getElementById('openAddAssignmentDesktop')];
     const closeModalBtn = document.querySelector('.modal-close');
     const editModalCloseBtn = document.getElementById('editModalClose');
     const settingsModalCloseBtn = document.getElementById('settingsModalClose');
+    const repostModalCloseBtn = document.getElementById('repostModalClose');
+    const repostModalCancelBtn = document.getElementById('repostModalCancelBtn');
 
     openModalBtns.forEach(btn => {
         if (btn) btn.onclick = () => {
@@ -820,6 +807,8 @@
     if (closeModalBtn) closeModalBtn.onclick = () => { modal.classList.remove('show'); };
     if (editModalCloseBtn) editModalCloseBtn.onclick = () => { editModal.classList.remove('show'); };
     if (settingsModalCloseBtn) settingsModalCloseBtn.onclick = () => { settingsModal.classList.remove('show'); };
+    if (repostModalCloseBtn) repostModalCloseBtn.onclick = () => { repostModal.classList.remove('show'); };
+    if (repostModalCancelBtn) repostModalCancelBtn.onclick = () => { repostModal.classList.remove('show'); };
 
     modal.onclick = e => {
         if (e.target === modal) modal.classList.remove('show');
@@ -830,13 +819,25 @@
     settingsModal.onclick = e => {
         if (e.target === settingsModal) settingsModal.classList.remove('show');
     };
+    repostModal.onclick = e => {
+        if (e.target === repostModal) repostModal.classList.remove('show');
+    };
 
     // --- Attachment Management System ---
     let attachmentCounter = 0;
     let editAttachmentCounter = 0;
+    let repostAttachmentCounter = 0;
 
     function addAttachmentField(container, prefix = '', existingData = null) {
-        const counter = prefix === 'edit-' ? ++editAttachmentCounter : ++attachmentCounter;
+        let counter;
+        if (prefix === 'edit-') {
+            counter = ++editAttachmentCounter;
+        } else if (prefix === 'repost-') {
+            counter = ++repostAttachmentCounter;
+        } else {
+            counter = ++attachmentCounter;
+        }
+        
         const attachmentId = `${prefix}attachment-${counter}`;
 
         const attachmentItem = document.createElement('div');
@@ -873,11 +874,6 @@
                             onclick="toggleAttachmentType('${attachmentId}', 'link')">
                         🔗 External Link
                     </button>
-                    <button type="button" 
-                            class="attachment-type-btn drive ${defaultType === 'drive' ? 'active' : ''}" 
-                            onclick="toggleAttachmentType('${attachmentId}', 'drive')">
-                        📂 Google Drive
-                    </button>
                 </div>
                 
                 <div class="attachment-input-wrapper">
@@ -892,24 +888,6 @@
                            class="form-input attachment-link-input"
                            value="${defaultUrl}"
                            style="display: ${defaultType === 'link' ? 'block' : 'none'};">
-                    
-                    <div class="attachment-drive-input" style="display: ${defaultType === 'drive' ? 'block' : 'none'};">
-                        <button type="button" 
-                                class="btn btn-primary" 
-                                onclick="openDrivePickerForAttachment('${attachmentId}')"
-                                style="width: 100%;">
-                            Select from Google Drive
-                        </button>
-                        <input type="hidden" 
-                               name="${prefix}attachment_drive_link_${counter}" 
-                               class="attachment-drive-link"
-                               value="${defaultType === 'drive' ? defaultUrl : ''}">
-                        <input type="hidden" 
-                               name="${prefix}attachment_drive_token_${counter}" 
-                               class="attachment-drive-token"
-                               value="">
-                        <div class="attachment-drive-status" style="margin-top: 0.5rem; font-size: 0.85rem; color: #666;"></div>
-                    </div>
                 </div>
                 
                 <input type="hidden" 
@@ -934,37 +912,24 @@
         const attachmentItem = document.getElementById(attachmentId);
         if (!attachmentItem) return;
 
-        const buttons = attachmentItem.querySelectorAll('.attachment-type-btn');
-        const fileBtn = buttons[0];
-        const linkBtn = buttons[1];
-        const driveBtn = buttons[2];
-        
+        const fileBtn = attachmentItem.querySelector('.attachment-type-btn:first-child');
+        const linkBtn = attachmentItem.querySelector('.attachment-type-btn:last-child');
         const fileInput = attachmentItem.querySelector('.attachment-file-input');
         const linkInput = attachmentItem.querySelector('.attachment-link-input');
-        const driveInput = attachmentItem.querySelector('.attachment-drive-input');
         const typeInput = attachmentItem.querySelector('input[type="hidden"]');
-
-        // Reset all buttons and inputs
-        fileBtn.classList.remove('active');
-        linkBtn.classList.remove('active');
-        driveBtn.classList.remove('active');
-        fileInput.style.display = 'none';
-        linkInput.style.display = 'none';
-        driveInput.style.display = 'none';
 
         if (type === 'file') {
             fileBtn.classList.add('active');
+            linkBtn.classList.remove('active');
             fileInput.style.display = 'block';
-            linkInput.value = '';
-        } else if (type === 'link') {
+            linkInput.style.display = 'none';
+            linkInput.value = ''; // Clear link input
+        } else {
+            fileBtn.classList.remove('active');
             linkBtn.classList.add('active');
+            fileInput.style.display = 'none';
             linkInput.style.display = 'block';
-            fileInput.value = '';
-        } else if (type === 'drive') {
-            driveBtn.classList.add('active');
-            driveInput.style.display = 'block';
-            fileInput.value = '';
-            linkInput.value = '';
+            fileInput.value = ''; // Clear file input
         }
 
         typeInput.value = type;
@@ -1172,8 +1137,6 @@
                     const typeInput = item.querySelector(`input[name="attachment_type_${counter}"]`);
                     const fileInput = item.querySelector(`input[name="attachment_file_${counter}"]`);
                     const linkInput = item.querySelector(`input[name="attachment_link_${counter}"]`);
-                    const driveLinkInput = item.querySelector(`input[name="attachment_drive_link_${counter}"]`);
-                    const driveTokenInput = item.querySelector(`input[name="attachment_drive_token_${counter}"]`);
 
                     if (nameInput && typeInput) {
                         formData.append(`attachments[${attachmentCount}][name]`, nameInput.value);
@@ -1183,11 +1146,6 @@
                             formData.append(`attachments[${attachmentCount}][file]`, fileInput.files[0]);
                         } else if (typeInput.value === 'link' && linkInput) {
                             formData.append(`attachments[${attachmentCount}][url]`, linkInput.value);
-                        } else if (typeInput.value === 'drive' && driveLinkInput) {
-                            formData.append(`attachments[${attachmentCount}][url]`, driveLinkInput.value);
-                            if (driveTokenInput && driveTokenInput.value) {
-                                formData.append(`attachments[${attachmentCount}][drive_token]`, driveTokenInput.value);
-                            }
                         }
                         attachmentCount++;
                     }
@@ -1297,6 +1255,14 @@
                         <span>Edit Assignment</span>
                     </button>
 
+                    <button class="settings-action-btn edit-action" data-action="repost" data-id="${assignment.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                        </svg>
+                        <span>Repost Assignment</span>
+                    </button>
+
                     <button class="settings-action-btn toggle-action" data-action="toggle" data-id="${assignment.id}">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             ${assignment.status === 'Show' ? `
@@ -1336,6 +1302,9 @@
                     if (action === 'edit') {
                         settingsModal.classList.remove('show');
                         openEditModal(parseInt(id));
+                    } else if (action === 'repost') {
+                        settingsModal.classList.remove('show');
+                        openRepostModal(parseInt(id));
                     } else if (action === 'delete') {
                         const result = await Swal.fire({
                             title: 'Are you sure?',
@@ -1963,6 +1932,332 @@
         });
     });
 
+    // --- REPOST ASSIGNMENT FUNCTIONS ---
+    async function openRepostModal(assignmentId) {
+        const repostModal = document.getElementById('repostAssignmentModal');
+        const repostModalBody = document.getElementById('repostModalBody');
+        const repostModalFooter = document.getElementById('repostModalFooter');
+
+        repostModalBody.innerHTML = `
+            <div class="skeleton-form">
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+                <div class="skeleton skeleton-p"></div>
+            </div>
+        `;
+        repostModalFooter.style.display = 'none';
+        repostModal.classList.add('show');
+
+        try {
+            const response = await fetch(`/admin/api/assignment/${assignmentId}`);
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                showToast(data.message || 'Failed to fetch assignment data', 'error');
+                repostModal.classList.remove('show');
+                return;
+            }
+
+            populateRepostForm(data.assignment, assignmentId);
+            repostModalFooter.style.display = 'flex';
+        } catch (error) {
+            console.error('Error fetching assignment:', error);
+            showToast('Failed to fetch assignment data', 'error');
+            repostModal.classList.remove('show');
+        }
+    }
+
+    function populateRepostForm(assignment, originalAssignmentId) {
+        const repostModalBody = document.getElementById('repostModalBody');
+        const availableGroups = groups;
+
+        // Reset repost attachment counter
+        let repostAttachmentCounter = 0;
+
+        // Parse existing attachments
+        const existingAttachments = assignment.attachments || [];
+
+        repostModalBody.innerHTML = `
+            <input type="hidden" name="original_assignment_id" value="${originalAssignmentId}">
+            
+            <div class="form-group">
+                <label for="repost-title">Title <span style="color: #dc3545;">*</span></label>
+                <input type="text" id="repost-title" name="title" class="form-control" value="${escapeHtml(assignment.title || '')}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="repost-description">Description</label>
+                <textarea id="repost-description" name="description" class="form-control" rows="4">${escapeHtml(assignment.description || '')}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="repost-deadline">Deadline</label>
+                <input type="datetime-local" id="repost-deadline" name="deadline_date" class="form-control" value="${assignment.deadline_date ? assignment.deadline_date.replace(' ', 'T').substring(0, 16) : ''}">
+            </div>
+
+            <div class="form-group">
+                <label for="repost-out-of">Out Of (Full Mark)</label>
+                <input type="number" id="repost-out-of" name="out_of" class="form-control" value="${assignment.out_of || 0}" min="0">
+            </div>
+
+            <div class="form-group">
+                <label>Groups <span style="color: #dc3545;">*</span></label>
+                <div id="repost-ms-groups-container"></div>
+            </div>
+
+            <div class="form-group">
+                <label>Existing Attachments</label>
+                <div id="repost-existing-attachments">
+                    ${renderExistingAttachments(existingAttachments, originalAssignmentId)}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Add New Attachments</label>
+                <div id="repost-attachments-container"></div>
+                <button type="button" class="btn" id="repost-add-attachment-btn">
+                    + Add Attachment
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="student_whatsapp" value="true" ${assignment.student_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp to Students
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="parent_whatsapp" value="true" ${assignment.parent_whatsapp ? 'checked' : ''}>
+                    Send WhatsApp to Parents
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="close_after_deadline" value="true" ${assignment.close_after_deadline ? 'checked' : ''}>
+                    Close After Deadline
+                </label>
+            </div>
+        `;
+
+        setupRepostGroupMultiSelect(assignment.groups_mm || [], availableGroups);
+
+        // Add event listener for add attachment button
+        document.getElementById('repost-add-attachment-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            const container = document.getElementById('repost-attachments-container');
+            addAttachmentField(container, 'repost-');
+        });
+    }
+
+    function setupRepostGroupMultiSelect(selectedGroups, availableGroups) {
+        let repostSelectedGroups = selectedGroups.map(g => ({ id: String(g.id), name: g.name }));
+
+        const multiSelect = document.createElement('div');
+        multiSelect.className = 'multi-select';
+        multiSelect.id = 'repost-multiSelectGroups';
+        multiSelect.onclick = () => toggleRepostGroupDropdown();
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'repost-multiInputGroups';
+        input.placeholder = 'Type or select groups...';
+        input.oninput = () => filterRepostGroups();
+
+        multiSelect.appendChild(input);
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dropdown-list';
+        dropdown.id = 'repost-dropdownListGroups';
+        dropdown.style.display = 'none';
+
+        availableGroups.forEach(group => {
+            const div = document.createElement('div');
+            div.textContent = group.name;
+            div.dataset.id = group.id;
+            dropdown.appendChild(div);
+        });
+
+        dropdown.onclick = (e) => {
+            if (e.target.dataset.id) {
+                const groupId = e.target.dataset.id;
+                const groupName = e.target.textContent;
+                const exists = repostSelectedGroups.some(g => g.id === groupId);
+                if (!exists) {
+                    repostSelectedGroups.push({ id: groupId, name: groupName });
+                    renderRepostGroupTags();
+                }
+                document.getElementById('repost-multiInputGroups').value = '';
+                filterRepostGroups();
+            }
+        };
+
+        const container = document.getElementById('repost-ms-groups-container');
+        const existingMultiSelect = container.querySelector('.multi-select');
+        const existingDropdown = container.querySelector('.dropdown-list');
+
+        if (existingMultiSelect) existingMultiSelect.remove();
+        if (existingDropdown) existingDropdown.remove();
+
+        container.appendChild(multiSelect);
+        container.appendChild(dropdown);
+
+        function renderRepostGroupTags() {
+            const tagContainer = document.getElementById('repost-multiSelectGroups');
+            const input = document.getElementById('repost-multiInputGroups');
+
+            // Remove existing tags
+            Array.from(tagContainer.children).forEach(child => {
+                if (child !== input) child.remove();
+            });
+
+            // Add new tags
+            repostSelectedGroups.forEach(group => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `
+                    ${escapeHtml(group.name)}
+                    <button type="button" onclick="removeRepostGroup('${group.id}')">&times;</button>
+                `;
+                tagContainer.insertBefore(tag, input);
+            });
+
+            // Update hidden input for form submission
+            const existingInput = document.getElementById('repost-groups-hidden');
+            if (existingInput) existingInput.remove();
+
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'groups[]';
+            hiddenInput.id = 'repost-groups-hidden';
+            hiddenInput.value = repostSelectedGroups.map(g => g.id).join(',');
+            
+            // Multiple hidden inputs for each group
+            repostSelectedGroups.forEach(group => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'groups[]';
+                inp.value = group.id;
+                tagContainer.appendChild(inp);
+            });
+        }
+
+        window.toggleRepostGroupDropdown = () => {
+            const dropdown = document.getElementById('repost-dropdownListGroups');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.filterRepostGroups = () => {
+            const searchValue = document.getElementById('repost-multiInputGroups').value.toLowerCase();
+            const dropdown = document.getElementById('repost-dropdownListGroups');
+            Array.from(dropdown.children).forEach(div => {
+                const text = div.textContent.toLowerCase();
+                div.style.display = text.includes(searchValue) ? 'block' : 'none';
+            });
+        };
+
+        window.removeRepostGroup = (groupId) => {
+            repostSelectedGroups = repostSelectedGroups.filter(g => g.id !== groupId);
+            renderRepostGroupTags();
+        };
+
+        renderRepostGroupTags();
+
+        document.addEventListener('click', (e) => {
+            const container = document.getElementById('repost-ms-groups-container');
+            if (container && !container.contains(e.target)) {
+                const dropdown = document.getElementById('repost-dropdownListGroups');
+                if (dropdown) dropdown.style.display = 'none';
+            }
+        });
+    }
+
+    // Handle repost form submission
+    document.addEventListener('DOMContentLoaded', function () {
+        const repostForm = document.getElementById('repostAssignmentForm');
+        if (!repostForm) return;
+
+        repostForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const submitBtn = repostForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Reposting...';
+            }
+
+            try {
+                const formData = new FormData(repostForm);
+
+                // Process new attachments for repost form
+                const repostAttachmentItems = document.querySelectorAll('#repost-attachments-container .attachment-item');
+                let repostAttachmentCount = 0;
+                repostAttachmentItems.forEach((item) => {
+                    const itemId = item.id;
+                    const counter = itemId.replace('repost-attachment-', '');
+
+                    const nameInput = item.querySelector(`input[name="repost-attachment_name_${counter}"]`);
+                    const typeInput = item.querySelector(`input[name="repost-attachment_type_${counter}"]`);
+                    const fileInput = item.querySelector(`input[name="repost-attachment_file_${counter}"]`);
+                    const linkInput = item.querySelector(`input[name="repost-attachment_link_${counter}"]`);
+
+                    if (nameInput && typeInput) {
+                        formData.append(`new_attachments[${repostAttachmentCount}][name]`, nameInput.value);
+                        formData.append(`new_attachments[${repostAttachmentCount}][type]`, typeInput.value);
+
+                        if (typeInput.value === 'file' && fileInput && fileInput.files.length > 0) {
+                            formData.append(`new_attachments[${repostAttachmentCount}][file]`, fileInput.files[0]);
+                        } else if (typeInput.value === 'link' && linkInput) {
+                            formData.append(`new_attachments[${repostAttachmentCount}][url]`, linkInput.value);
+                        }
+                        repostAttachmentCount++;
+                    }
+                });
+
+                const resp = await fetch('/admin/assignments/repost', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+
+                if (resp.ok && data.success && data.assignment) {
+                    // Add the new assignment to the list
+                    allAssignments.unshift(data.assignment);
+                    filterAssignments();
+                    repostModal.classList.remove('show');
+                    repostForm.reset();
+                    document.getElementById('repost-attachments-container').innerHTML = '';
+                    showToast(data.message || 'Assignment reposted successfully', 'success');
+                } else {
+                    showToast((data && data.message) || 'Failed to repost assignment', 'error');
+                }
+            } catch (err) {
+                console.error('Repost assignment failed', err);
+                showToast('Failed to repost assignment', 'error');
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalText || 'Repost Assignment';
+                }
+            }
+        });
+    });
+
     // --- RENDER FUNCTION ---
     function renderAssignments(assignments) {
         const grid = document.getElementById('assignmentsGrid');
@@ -2145,151 +2440,6 @@
         }
     }
     document.addEventListener('DOMContentLoaded', initializePage);
-
-    // ============================================
-    // GOOGLE DRIVE PICKER INTEGRATION
-    // ============================================
-    
-    // Configuration - Replace with your actual values
-    const GOOGLE_CLIENT_ID = '409298735327-1ue4kf7g0f4se11vbjekple6t5bjq7jn.apps.googleusercontent.com';
-    const GOOGLE_API_KEY = 'AIzaSyDKCt492H5f6_KvVLgbJ3YQyTt5JEzHZWY';
-    const GOOGLE_APP_ID = '409298735327';
-    const DRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
-
-    let tokenClient;
-    let accessToken = null;
-    let gapiReady = false;
-    let gisReady = false;
-    let currentAttachmentId = null;
-
-    // Initialize Google APIs
-    window.onload = function() {
-        gapi.load('client:picker', initializeGapi);
-        initializeGis();
-    };
-
-    function initializeGapi() {
-        gapi.client.load('drive', 'v3', () => {
-            gapiReady = true;
-            console.log('Google Drive API loaded');
-        });
-    }
-
-    function initializeGis() {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: DRIVE_SCOPES,
-            callback: handleAuthResponse
-        });
-        gisReady = true;
-        console.log('Google Identity Services loaded');
-    }
-
-    function handleAuthResponse(response) {
-        if (response.error) {
-            showToast(`Authorization failed: ${response.error}`, 'error');
-            return;
-        }
-        accessToken = response.access_token;
-        showToast('Google Drive authorized successfully!', 'success');
-        
-        // If we have a pending attachment, open picker for it
-        if (currentAttachmentId) {
-            createPicker(currentAttachmentId);
-        }
-    }
-
-    // Function to open Drive picker for a specific attachment
-    window.openDrivePickerForAttachment = function(attachmentId) {
-        currentAttachmentId = attachmentId;
-        
-        if (!gapiReady || !gisReady) {
-            showToast('Google Drive API is still loading. Please try again.', 'error');
-            return;
-        }
-
-        if (!accessToken) {
-            // Request authorization
-            tokenClient.requestAccessToken({ prompt: '' });
-        } else {
-            // Already authorized, open picker
-            createPicker(attachmentId);
-        }
-    };
-
-    function createPicker(attachmentId) {
-        if (!accessToken) {
-            showToast('Please authorize Google Drive first', 'error');
-            return;
-        }
-
-        const view = new google.picker.View(google.picker.ViewId.DOCS);
-        
-        const picker = new google.picker.PickerBuilder()
-            .addView(view)
-            .setAppId(GOOGLE_APP_ID)
-            .setOAuthToken(accessToken)
-            .setDeveloperKey(GOOGLE_API_KEY)
-            .setCallback((data) => pickerCallback(data, attachmentId))
-            .build();
-
-        picker.setVisible(true);
-    }
-
-    async function pickerCallback(data, attachmentId) {
-        if (data.action === google.picker.Action.PICKED) {
-            const document = data[google.picker.Response.DOCUMENTS][0];
-            const fileId = document[google.picker.Document.ID];
-            
-            const attachmentItem = document.getElementById(attachmentId);
-            if (!attachmentItem) return;
-
-            const statusDiv = attachmentItem.querySelector('.attachment-drive-status');
-            statusDiv.textContent = 'Loading file information...';
-
-            try {
-                const response = await gapi.client.drive.files.get({
-                    'fileId': fileId,
-                    'fields': 'id, name, webViewLink, webContentLink'
-                });
-
-                const file = response.result;
-                const fileLink = file.webViewLink || file.webContentLink;
-
-                if (fileLink) {
-                    // Store the link and token in hidden inputs
-                    const linkInput = attachmentItem.querySelector('.attachment-drive-link');
-                    const tokenInput = attachmentItem.querySelector('.attachment-drive-token');
-                    const nameInput = attachmentItem.querySelector('.attachment-name-input');
-
-                    linkInput.value = fileLink;
-                    tokenInput.value = accessToken;
-                    
-                    // Auto-fill the attachment name if empty
-                    if (!nameInput.value) {
-                        nameInput.value = file.name;
-                    }
-
-                    statusDiv.textContent = `✓ Selected: ${file.name}`;
-                    statusDiv.style.color = '#155724';
-                    
-                    showToast('Drive file selected successfully!', 'success');
-                } else {
-                    statusDiv.textContent = 'Could not retrieve file link';
-                    statusDiv.style.color = '#721c24';
-                    showToast('Could not retrieve a usable link for the selected file', 'error');
-                }
-            } catch (err) {
-                console.error('Error fetching file metadata:', err);
-                statusDiv.textContent = 'Error fetching file information';
-                statusDiv.style.color = '#721c24';
-                showToast('Error fetching file metadata. Ensure the file is accessible.', 'error');
-            }
-        } else if (data.action === google.picker.Action.CANCEL) {
-            console.log('File selection cancelled');
-        }
-    }
-
 </script>
 </body>
 

@@ -1835,15 +1835,6 @@ def assignments():
                 if attachment_url:
                     attachment_obj['url'] = attachment_url
                     attachments.append(attachment_obj)
-            elif attachment_type == 'drive':
-                attachment_url = request.form.get(f'attachments[{idx}][url]')
-                drive_token = request.form.get(f'attachments[{idx}][drive_token]')
-                if attachment_url:
-                    attachment_obj['url'] = attachment_url
-                    # Optionally store the token if needed for future access
-                    if drive_token:
-                        attachment_obj['drive_token'] = drive_token
-                    attachments.append(attachment_obj)
 
 
         # creation date
@@ -3783,15 +3774,6 @@ def edit_assignment(assignment_id):
                 if attachment_url:
                     attachment_obj['url'] = attachment_url
                     existing_attachments.append(attachment_obj)
-            elif attachment_type == 'drive':
-                attachment_url = request.form.get(f'new_attachments[{idx}][url]')
-                drive_token = request.form.get(f'new_attachments[{idx}][drive_token]')
-                if attachment_url:
-                    attachment_obj['url'] = attachment_url
-                    # Optionally store the token if needed for future access
-                    if drive_token:
-                        attachment_obj['drive_token'] = drive_token
-                    existing_attachments.append(attachment_obj)
 
         assignment.attachments = json.dumps(existing_attachments)
         db.session.commit()
@@ -4056,6 +4038,221 @@ def remove_late_exception(assignment_id, exception_id):
 
     flash(f"Late submission exception removed for {student.name or student.email}.", "success")
     return redirect(redirect_url)
+
+
+#Repost an assignment (create a copy with modifications)
+@admin.route("/assignments/repost", methods=["POST"])
+def repost_assignment():
+    if current_user.role != "super_admin":
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "You are not allowed to repost assignments."}), 403
+        flash("You are not allowed to repost assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    # Get the original assignment ID (optional, for reference)
+    original_assignment_id = request.form.get("original_assignment_id")
+    
+    # Create a new assignment with the posted data
+    title = request.form.get("title", "").strip()
+    description = request.form.get("description", "").strip()
+    
+    if not title:
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Assignment title is required."}), 400
+        flash("Assignment title is required.", "danger")
+        return redirect(url_for("admin.assignments"))
+    
+    # Parse deadline
+    try:
+        deadline_date = parse_deadline(request.form.get("deadline_date", ""))
+    except (TypeError, ValueError):
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "Invalid deadline date. Please use the datetime picker."}), 400
+        flash("Invalid deadline date. Please use the datetime picker.", "error")
+        return redirect(url_for("admin.assignments"))
+    
+    # Get WhatsApp settings
+    student_whatsapp = request.form.get("student_whatsapp", False)
+    if student_whatsapp == "true":
+        student_whatsapp = True
+    else:
+        student_whatsapp = False
+        
+    parent_whatsapp = request.form.get("parent_whatsapp", False)
+    if parent_whatsapp == "true":
+        parent_whatsapp = True
+    else:
+        parent_whatsapp = False
+    
+    # Get close after deadline setting
+    close_after_deadline = request.form.get("close_after_deadline", False)
+    if close_after_deadline == "true":
+        close_after_deadline = True
+    else:
+        close_after_deadline = False
+    
+    # Get out_of (full mark)
+    out_of = request.form.get("out_of", 0)
+    out_of = int(out_of) if str(out_of).isdigit() else 0
+    
+    # Get group IDs
+    group_ids_mm = [int(g) for g in request.form.getlist("groups[]") if g]
+    
+    if not group_ids_mm:
+        groups = Groups.query.all()
+        group_ids_mm = [group.id for group in groups]
+    
+    # Check if admin can manage these groups
+    managed_ids = get_user_scope_ids()
+    if not can_manage(group_ids_mm, managed_ids):
+        wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+        if wants_json:
+            return jsonify({"success": False, "message": "You do not have permission to assign to these groups."}), 403
+        flash("You do not have permission to assign to these groups.", "danger")
+        return redirect(url_for("admin.assignments"))
+    
+    # Handle attachments (copy from original and add new ones)
+    upload_dir = "website/assignments/uploads/"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    # Start with existing attachments if copying from original
+    attachments = []
+    if original_assignment_id:
+        original_assignment = Assignments.query.get(original_assignment_id)
+        if original_assignment and original_assignment.attachments:
+            try:
+                attachments = json.loads(original_assignment.attachments)
+            except:
+                attachments = []
+    
+    # Process new attachments
+    new_attachment_indices = []
+    for key in request.form.keys():
+        if key.startswith('new_attachments[') and '][name]' in key:
+            index = key.split('[')[1].split(']')[0]
+            if index not in new_attachment_indices:
+                new_attachment_indices.append(index)
+    
+    for idx in new_attachment_indices:
+        attachment_name = request.form.get(f'new_attachments[{idx}][name]')
+        attachment_type = request.form.get(f'new_attachments[{idx}][type]')
+        
+        if not attachment_name:
+            continue
+            
+        attachment_obj = {
+            'name': attachment_name,
+            'type': attachment_type
+        }
+        
+        if attachment_type == 'file':
+            file = request.files.get(f'new_attachments[{idx}][file]')
+            if file and file.filename:
+                original_filename = secure_filename(file.filename)
+                filename = f"{uuid.uuid4().hex}_{original_filename}"
+                file_path = os.path.join(upload_dir, filename)
+                file.save(file_path)
+                try:
+                    with open(file_path, "rb") as f:
+                        storage.upload_file(f, folder="assignments/uploads", file_name=filename)
+                except Exception as e:
+                    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+                    if wants_json:
+                        return jsonify({"success": False, "message": f"Error uploading file to storage: {str(e)}"}), 500
+                    flash(f"Error uploading file to storage: {str(e)}", "danger")
+                    return redirect(url_for("admin.assignments"))
+                attachment_obj['url'] = f"/student/assignments/uploads/{filename}"
+                attachments.append(attachment_obj)
+        elif attachment_type == 'link':
+            attachment_url = request.form.get(f'new_attachments[{idx}][url]')
+            if attachment_url:
+                attachment_obj['url'] = attachment_url
+                attachments.append(attachment_obj)
+    
+    # Create the new assignment
+    new_assignment = Assignments(
+        title=title,
+        description=description,
+        deadline_date=deadline_date,
+        attachments=json.dumps(attachments),
+        status="Show",
+        type="Assignment",
+        created_by=current_user.id,
+        student_whatsapp=student_whatsapp,
+        parent_whatsapp=parent_whatsapp,
+        out_of=out_of,
+        close_after_deadline=close_after_deadline
+    )
+    
+    # Set groups (many-to-many)
+    if hasattr(new_assignment, "groups_mm"):
+        new_assignment.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
+    
+    db.session.add(new_assignment)
+    db.session.commit()
+    
+    # Log the repost action
+    new_log = AssistantLogs(
+        assistant_id=current_user.id,
+        action='Create',
+        log={
+            "action_name": "Repost",
+            "resource_type": "assignment",
+            "action_details": {
+                "id": new_assignment.id,
+                "title": new_assignment.title,
+                "summary": f"Assignment '{new_assignment.title}' was reposted." + (f" (copied from assignment #{original_assignment_id})" if original_assignment_id else "")
+            },
+            "data": {
+                "original_assignment_id": original_assignment_id,
+                "title": new_assignment.title,
+                "description": new_assignment.description,
+                "deadline_date": str(new_assignment.deadline_date) if new_assignment.deadline_date else None,
+                "groups_mm": [g.id for g in getattr(new_assignment, "groups_mm", [])],
+                "attachments": json.loads(new_assignment.attachments) if new_assignment.attachments else [],
+                "student_whatsapp": new_assignment.student_whatsapp,
+                "parent_whatsapp": new_assignment.parent_whatsapp,
+                "out_of": new_assignment.out_of,
+                "close_after_deadline": new_assignment.close_after_deadline,
+            },
+            "before": None,
+            "after": None
+        }
+    )
+    db.session.add(new_log)
+    db.session.commit()
+    
+    # Check if it's an AJAX request
+    wants_json = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in (request.headers.get('Accept') or '')
+    if wants_json:
+        groups_names = [g.name for g in getattr(new_assignment, 'groups_mm', [])] if getattr(new_assignment, 'groups_mm', None) else []
+        
+        qualified_count = qualified_students_count_for_assignment(new_assignment)
+        
+        created_assignment = {
+            "id": new_assignment.id,
+            "title": new_assignment.title,
+            "description": new_assignment.description,
+            "creation_date": new_assignment.creation_date.strftime('%Y-%m-%d %I:%M %p') if new_assignment.creation_date else None,
+            "deadline_date": new_assignment.deadline_date.strftime('%Y-%m-%d %I:%M %p') if new_assignment.deadline_date else None,
+            "groups": groups_names,
+            "status": new_assignment.status,
+            "points": new_assignment.points,
+            "submitted_students_count": 0,
+            "qualified_students_count": qualified_count,
+            "student_whatsapp": new_assignment.student_whatsapp,
+            "parent_whatsapp": new_assignment.parent_whatsapp,
+            "out_of": new_assignment.out_of,
+            "close_after_deadline": new_assignment.close_after_deadline,
+        }
+        
+        return jsonify({"success": True, "message": "Assignment reposted successfully!", "assignment": created_assignment})
+    
+    flash("Assignment reposted successfully!", "success")
+    return redirect(url_for("admin.assignments"))
 
 
 #Delete an assignment 
