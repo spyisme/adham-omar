@@ -1622,6 +1622,11 @@
                         <span class="existing-attachment-link">
                             <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">View</a>
                     </div>
+                    <div class="existing-attachment-actions">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteExistingAttachment(event, ${assignmentId}, ${index})">
+                            Delete
+                        </button>
+                    </div>
                 </div>
             `;
         }).join('');
