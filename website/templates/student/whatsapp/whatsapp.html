@@ -162,16 +162,19 @@
       align-items: stretch;
       justify-content: center;
     }
-    .wa-form-row select,
+    /* Remove select style, only input style needed */
     .wa-form-row input[type="text"] {
       padding: 0.5rem;
       border-radius: 6px;
       border: 1px solid #d1d5db;
       font-size: 1rem;
     }
-    .wa-form-row select {
-      min-width: 70px;
-      max-width: 84px;
+    .wa-country-code-input {
+      width: 65px;
+      text-align: right;
+    }
+    .wa-form-row input[name="phone_number"] {
+      width: 135px;
     }
     .wa-modal-content .wa-action-btn,
     .wa-modal-content .wa-cancel-btn {
@@ -226,6 +229,10 @@
         flex-direction: column;
         gap: 0.6rem;
       }
+      .wa-form-row {
+        flex-direction: column;
+        gap: 0.6rem;
+      }
     }
   </style>
 </head>
@@ -266,18 +273,31 @@
       <h2>Edit WhatsApp Number</h2>
       <form id="wa-number-form" method="post" style="margin-bottom:0;">
         <div class="wa-form-row">
-          <select name="phone_number_country_code" id="country-code-select" required>
-            <option value="">Code</option>
-            <option value="20">+20 (EG)</option>
-            <option value="966">+966 (SA)</option>
-            <option value="971">+971 (UAE)</option>
-            <option value="964">+964 (IQ)</option>
-            <option value="1">+1 (USA)</option>
-            <option value="44">+44 (UK)</option>
-            <option value="91">+91 (IN)</option>
-            <!-- more codes can be added as needed -->
-          </select>
-          <input id="waNumberInput" name="phone_number" type="text" placeholder="WhatsApp Number" maxlength="15" autocomplete="off" required style="width:135px;">
+          <input
+            id="countryCodeInput"
+            class="wa-country-code-input"
+            name="phone_number_country_code"
+            type="text"
+            placeholder="Code"
+            maxlength="5"
+            autocomplete="off"
+            required
+            pattern="^[0-9]{1,5}$"
+            inputmode="numeric"
+            style="width:65px;text-align:right;"
+          >
+          <input
+            id="waNumberInput"
+            name="phone_number"
+            type="text"
+            placeholder="WhatsApp Number"
+            maxlength="15"
+            autocomplete="off"
+            required
+            style="width:135px;"
+            inputmode="numeric"
+            pattern="^[0-9]+$"
+          >
         </div>
         <div>
           <button type="submit" class="wa-action-btn">Update</button>
@@ -295,7 +315,7 @@
     const modalCloseBtn = document.getElementById('waModalCloseBtn');
     const modalCancelBtn = document.getElementById('waModalCancelBtn');
     const waNumberForm = document.getElementById('wa-number-form');
-    const countryCodeSelect = document.getElementById('country-code-select');
+    const countryCodeInput = document.getElementById('countryCodeInput');
     const waNumberInput = document.getElementById('waNumberInput');
     const displayNumber = document.getElementById('display-number');
     const waVerifyBtn = document.getElementById('wa-verify-btn');
@@ -306,7 +326,7 @@
 
     // Fill modal fields on open
     function openModal() {
-      countryCodeSelect.value = initialCountryCode || "";
+      countryCodeInput.value = initialCountryCode || "";
       waNumberInput.value = initialPhoneNumber || "";
       waModal.classList.add('active');
       waModalBackdrop.classList.add('active');
@@ -334,9 +354,9 @@
     waNumberForm.addEventListener('submit', function (e) {
       // Allow classic POST to backend (page reload with flask)
       // But do a quick UI update for feedback:
-      let code = countryCodeSelect.value.trim();
+      let code = countryCodeInput.value.trim().replace(/^\+/, '');
       let phone = waNumberInput.value.trim().replace(/\s+/g, '');
-      if (phone && code && /^\d+$/.test(phone)) {
+      if (phone && code && /^\d{1,5}$/.test(code) && /^\d+$/.test(phone)) {
         // Update preview in case page isn't refreshed instantly
         displayNumber.textContent = "+"+code+phone;
         waVerifyBtn.href =
@@ -351,7 +371,7 @@
       // Form will actually POST as normal, page will reload
     });
 
-    // On initial load, sync selected option by initialCountryCode 
+    // On initial load, sync modal fields by initial values
     window.addEventListener('DOMContentLoaded', function() {
       // Hide modal and backdrop on first load, even if browser restores state
       waModal.classList.remove('active');
@@ -359,14 +379,8 @@
       waModal.style.display = 'none';
       waModalBackdrop.style.display = 'none';
       if (initialCountryCode) {
-        for (let opt of countryCodeSelect.options) {
-          if (opt.value === initialCountryCode) {
-            countryCodeSelect.value = initialCountryCode;
-            break;
-          }
-        }
+        countryCodeInput.value = initialCountryCode;
       }
-      // Optionally, you may want to bring focus to the WhatsApp button.
     });
   </script>
 </body>
