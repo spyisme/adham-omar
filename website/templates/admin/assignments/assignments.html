@@ -1625,13 +1625,12 @@
                         '</span>' +
                     '</div>' +
                     '<div class="existing-attachment-actions">' +
-                        '<button ' +
-                            'type="button" ' +
+                        '<div ' +
                             'class="btn btn-danger btn-sm" ' +
-                            'style="cursor:pointer;" ' +
-                            'onclick="window.deleteExistingAttachment && window.deleteExistingAttachment(event, ' + assignmentId + ', ' + index + ')">' +
+                            'style="cursor:pointer; display:inline-block;" ' +
+                            'onclick="window.handleDeleteExistingAttachment && window.handleDeleteExistingAttachment(' + assignmentId + ', ' + index + ')">' +
                             'Delete' +
-                        '</button>' +
+                        '</div>' +
                     '</div>' +
                 '</div>'
             );
