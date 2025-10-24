@@ -1623,7 +1623,54 @@
                             <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">View</a>
                     </div>
                     <div class="existing-attachment-actions">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteExistingAttachment(event, ${assignmentId}, ${index})">
+                        <button 
+                            type="button" 
+                            class="btn btn-danger btn-sm" 
+                            style="cursor:pointer;"
+                            onclick="
+                                Swal.fire({
+                                    title: 'Are you sure?',
+                                    text: 'Do you really want to delete this attachment?',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d33',
+                                    cancelButtonColor: '#3085d6',
+                                    confirmButtonText: 'Yes, delete it!',
+                                    cancelButtonText: 'Cancel'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        let filterGroupId = document.getElementById('assignmentsScript') ? document.getElementById('assignmentsScript').dataset.filterGroupId : null;
+                                        let deleteUrl;
+                                        if (filterGroupId) {
+                                            deleteUrl = `/admin/group/${filterGroupId}/assignments/delete-attachment/${assignmentId}/${index}`;
+                                        } else {
+                                            deleteUrl = `/admin/assignments/delete-attachment/${assignmentId}/${index}`;
+                                        }
+                                        fetch(deleteUrl, {
+                                            method: 'GET',
+                                            headers: {
+                                                'X-Requested-With': 'XMLHttpRequest',
+                                                'Accept': 'application/json'
+                                            }
+                                        }).then(resp => resp.json()).then(data => {
+                                            if (data.success) {
+                                                const item = document.querySelector(`#edit-existing-attachments .existing-attachment-item[data-index='${index}']`);
+                                                if (item) item.remove();
+                                                const remaining = document.querySelectorAll('#edit-existing-attachments .existing-attachment-item');
+                                                if (remaining.length === 0) {
+                                                    document.getElementById('edit-existing-attachments').innerHTML = '<p style=\'color: #94a3b8; font-style: italic;\'>No existing attachments</p>';
+                                                }
+                                                Swal.fire('Deleted!','Attachment deleted successfully','success');
+                                            } else {
+                                                Swal.fire('Error!', (data && data.message) || 'Failed to delete attachment', 'error');
+                                            }
+                                        }).catch(() => {
+                                            Swal.fire('Error!', 'Could not process request.', 'error');
+                                        });
+                                    }
+                                });
+                            "
+                        >
                             Delete
                         </button>
                     </div>
