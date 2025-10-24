@@ -1621,6 +1621,7 @@
                         <span class="existing-attachment-type">${type}</span>
                         <span class="existing-attachment-link">
                             <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">View</a>
+                        </span>
                     </div>
                     <div class="existing-attachment-actions">
                         <button 
@@ -1654,11 +1655,11 @@
                                             }
                                         }).then(resp => resp.json()).then(data => {
                                             if (data.success) {
-                                                const item = document.querySelector(`#edit-existing-attachments .existing-attachment-item[data-index='${index}']`);
+                                                const item = document.querySelector(\`#edit-existing-attachments .existing-attachment-item[data-index=\"${index}\"]\`);
                                                 if (item) item.remove();
                                                 const remaining = document.querySelectorAll('#edit-existing-attachments .existing-attachment-item');
                                                 if (remaining.length === 0) {
-                                                    document.getElementById('edit-existing-attachments').innerHTML = '<p style=\'color: #94a3b8; font-style: italic;\'>No existing attachments</p>';
+                                                    document.getElementById('edit-existing-attachments').innerHTML = '<p style=\"color: #94a3b8; font-style: italic;\">No existing attachments</p>';
                                                 }
                                                 Swal.fire('Deleted!','Attachment deleted successfully','success');
                                             } else {
