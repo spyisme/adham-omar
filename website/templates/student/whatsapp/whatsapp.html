@@ -129,7 +129,7 @@
       position: fixed;
       z-index: 100;
       left: 0; right: 0; top: 0; bottom: 0;
-      display: flex;
+      display: none;
       align-items: center;
       justify-content: center;
       pointer-events: none;
@@ -259,8 +259,8 @@
   </div>
 
   <!-- Modal and Backdrop -->
-  <div class="wa-modal-backdrop" id="waModalBackdrop"></div>
-  <div class="wa-modal" id="waModal">
+  <div class="wa-modal-backdrop" id="waModalBackdrop" style="display:none"></div>
+  <div class="wa-modal" id="waModal" style="display:none">
     <div class="wa-modal-content">
       <button class="wa-modal-close" id="waModalCloseBtn" aria-label="Close">&times;</button>
       <h2>Edit WhatsApp Number</h2>
@@ -320,6 +320,11 @@
       waModal.style.display='none';
       waModalBackdrop.style.display='none';
     }
+
+    // Ensure modal is hidden at start (redundant, but for safety)
+    waModal.style.display = 'none';
+    waModalBackdrop.style.display = 'none';
+
     editBtn.addEventListener('click', openModal);
     modalCloseBtn.addEventListener('click', closeModal);
     modalCancelBtn.addEventListener('click', closeModal);
@@ -348,6 +353,11 @@
 
     // On initial load, sync selected option by initialCountryCode 
     window.addEventListener('DOMContentLoaded', function() {
+      // Hide modal and backdrop on first load, even if browser restores state
+      waModal.classList.remove('active');
+      waModalBackdrop.classList.remove('active');
+      waModal.style.display = 'none';
+      waModalBackdrop.style.display = 'none';
       if (initialCountryCode) {
         for (let opt of countryCodeSelect.options) {
           if (opt.value === initialCountryCode) {
