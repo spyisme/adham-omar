@@ -1289,7 +1289,7 @@
                         settingsModal.classList.remove('show');
 
                         try {
-                            const resp = await fetch(`/admin/online/exam/toggle/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                            const resp = await fetch(`/admin/${itemType}/visibility/${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
                             const data = await resp.json().catch(() => ({}));
                             if (resp.ok && data.success) {
                                 const idx = allExams.findIndex(e => String(e.id) === String(id));
