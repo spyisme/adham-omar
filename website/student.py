@@ -2035,11 +2035,31 @@ def change_password():
     return redirect(url_for("student.my_account"))
 
 #===================================================
-@student.route("/whatsapp")
+@student.route("/whatsapp", methods=["GET", "POST"])
 def whatsapp():
+    if request.method == "POST":
+        new_number = request.form.get("phone_number")
+        country_code = request.form.get("phone_number_country_code", current_user.phone_number_country_code)
+
+        if new_number:
+            # Clean and basic validation
+            clean_number = new_number.replace(" ", "")
+            if not clean_number.isdigit():
+                flash("Please enter a valid phone number.", "danger")
+                return render_template("student/whatsapp/whatsapp.html", current_number=current_user.phone_number, current_country_code=current_user.phone_number_country_code)
+            # Update the user's number
+            current_user.phone_number = clean_number
+            current_user.phone_number_country_code = country_code
+            db.session.commit()
+            flash("Phone number updated successfully! Please activate WhatsApp with the new number.", "success")
+            return redirect(url_for('student.whatsapp'))
+        else:
+            flash("Phone number cannot be empty.", "danger")
+            return render_template("student/whatsapp/whatsapp.html", current_number=current_user.phone_number, current_country_code=current_user.phone_number_country_code)
+
     full_phone_number = current_user.phone_number_country_code + current_user.phone_number
     if current_user.student_whatsapp == full_phone_number:
-        flash("You have already activated WhatsApp", "warning")
+        flash("You have activated WhatsApp successfully", "success")
         return redirect(url_for("student.new_home"))
-    return render_template("student/whatsapp/whatsapp.html")
+    return render_template("student/whatsapp/whatsapp.html", current_number=current_user.phone_number, current_country_code=current_user.phone_number_country_code)
 
