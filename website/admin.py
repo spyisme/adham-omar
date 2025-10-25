@@ -3296,6 +3296,10 @@ def delete_assignment_attachment(assignment_id, attachment_index):
                     if os.path.exists(file_path):
                         try:
                             os.remove(file_path)
+                            try : 
+                                storage.delete_file(folder="assignments/uploads", file_name=filename)
+                            except Exception:
+                                pass
                         except Exception:
                             pass  # Continue even if file deletion fails
             
@@ -3356,16 +3360,22 @@ def delete_group_assignment_attachment(group_id, assignment_id, attachment_index
             # If it's a file attachment, try to delete the file
             attachment = existing_attachments[attachment_index]
             if isinstance(attachment, dict) and attachment.get('type') == 'file':
-                file_path = attachment.get('name', '')
-                if file_path:
-                    local_path = os.path.join("website/assignments/uploads", file_path)
-                    if os.path.exists(local_path):
-                        os.remove(local_path)
-                    try:
-                        storage.delete_file(folder="assignments/uploads", file_name=file_path)
-                    except Exception:
-                        pass
+                # Extract filename from URL
+                url = attachment.get('url', '')
+                if '/student/assignments/uploads/' in url:
+                    filename = url.split('/student/assignments/uploads/')[-1]
+                    file_path = os.path.join("website/assignments/uploads", filename)
+                    if os.path.exists(file_path):
+                        try:
+                            os.remove(file_path)
+                            try : 
+                                storage.delete_file(folder="assignments/uploads", file_name=filename)
+                            except Exception:
+                                pass
+                        except Exception:
+                            pass  # Continue even if file deletion fails
             
+
             # Remove the attachment from the list
             existing_attachments.pop(attachment_index)
             
@@ -7227,15 +7237,19 @@ def delete_exam_attachment(exam_id, attachment_index):
             return redirect(url_for("admin.online_exam"))
 
         attachment = attachments[attachment_index]
-        
         # If it's a file attachment, try to delete the file
         if isinstance(attachment, dict) and attachment.get('type') == 'file':
-            filename = attachment.get('url', '').split('/')[-1]  # Extract filename from URL
-            if filename:
-                local_path = os.path.join("website/assignments/uploads", filename)
-                if os.path.exists(local_path):
+            url = attachment.get('url', '')
+            if '/student/assignments/uploads/' in url:
+                filename = url.split('/student/assignments/uploads/')[-1]
+                file_path = os.path.join("website/assignments/uploads", filename)
+                if os.path.exists(file_path):
                     try:
-                        os.remove(local_path)
+                        os.remove(file_path)
+                        try:
+                            storage.delete_file(folder="assignments/uploads", file_name=filename)
+                        except Exception:
+                            pass
                     except Exception:
                         pass  # Continue even if file deletion fails
         
@@ -7295,17 +7309,21 @@ def delete_group_exam_attachment(group_id, exam_id, attachment_index):
 
         attachment = attachments[attachment_index]
         
-        # If it's a file attachment, try to delete the file
+        # If it's a file attachment, try to delete the file and also remove it from storage if possible
         if isinstance(attachment, dict) and attachment.get('type') == 'file':
-            filename = attachment.get('url', '').split('/')[-1]  # Extract filename from URL
-            if filename:
-                local_path = os.path.join("website/assignments/uploads", filename)
-                if os.path.exists(local_path):
+            url = attachment.get('url', '')
+            if '/student/assignments/uploads/' in url:
+                filename = url.split('/student/assignments/uploads/')[-1]
+                file_path = os.path.join("website/assignments/uploads", filename)
+                if os.path.exists(file_path):
                     try:
-                        os.remove(local_path)
+                        os.remove(file_path)
+                        try:
+                            storage.delete_file(folder="assignments/uploads", file_name=filename)
+                        except Exception:
+                            pass
                     except Exception:
                         pass  # Continue even if file deletion fails
-        
         # Remove the attachment from the list
         attachments.pop(attachment_index)
         exam.attachments = json.dumps(attachments)
