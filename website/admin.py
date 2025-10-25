@@ -7888,6 +7888,11 @@ def whatsapp_messages():
         phone_number = request.form.get('phone_number', '').strip()
         message_content = request.form.get('message', '').strip()
         country_code = request.form.get('country_code', '2').strip()
+        bypass = request.form.get('bypass', 'false').strip() 
+        if bypass == 'true':
+            bypass = True
+        else:
+            bypass = False
         
         if not phone_number or not message_content:
             flash("Phone number and message are required.", "danger")
@@ -7895,7 +7900,8 @@ def whatsapp_messages():
         
         try:
             # Send the WhatsApp message
-            success, result_message = send_whatsapp_message(f"{phone_number}", message_content, country_code)
+        
+            success, result_message = send_whatsapp_message(f"{phone_number}", message_content, country_code , bypass)
             
             if success:
                 flash(result_message, "success")
@@ -9177,3 +9183,5 @@ def track_assistants(group_id):
     )
 
     
+
+#-------Testing ai correction system-------
