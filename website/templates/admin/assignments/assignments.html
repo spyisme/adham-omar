@@ -481,6 +481,35 @@
         background: #f8fafc;
         color: #475569;
     }
+    
+    /* --- NEW Google Drive Button Style --- */
+    .btn-google-drive {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        background-color: #fff;
+        color: #444;
+        border: 1px solid #ddd;
+        padding: 0.625rem 1.25rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+
+    .btn-google-drive:hover {
+        background-color: #f8f8f8;
+        border-color: #ccc;
+    }
+    
+    .btn-google-drive img {
+        width: 18px;
+        height: 18px;
+    }
+    /* ------------------------------------- */
 
     .existing-attachment-item {
         background: #f0f9ff;
@@ -698,6 +727,12 @@
                     <button type="button" class="btn btn-secondary" id="add-attachment-btn" style="margin-top: 0.5rem;">
                         + Add Attachment
                     </button>
+                    <!-- NEW GOOGLE DRIVE BUTTON -->
+                    <button type="button" class="btn btn-google-drive" id="add-drive-attachment-btn">
+                        <img src="https://www.google.com/images/icons/product/drive-32.png" alt="Google Drive icon">
+                        Choose from Google Drive
+                    </button>
+                    <!-- END NEW BUTTON -->
                 </div>
                 <div>
                     <label class="form-label">Points (Optional)</label>
@@ -776,8 +811,31 @@
     </div>
 </div>
 
+<!-- NEW GOOGLE API SCRIPTS -->
+<!-- IMPORTANT: Load these *before* your main assignmentsScript -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+<!-- END GOOGLE API SCRIPTS -->
+
 <script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     
+    // --- NEW GOOGLE DRIVE PICKER CONFIG ---
+    // !!! ACTION REQUIRED: Fill these in with your credentials from Google Cloud Console
+    const GOOGLE_CLIENT_ID = '409298735327-29rmlllt8irl5kv6l6ss9jp6e4nqk85r.apps.googleusercontent.com'; // From previous chat
+    const GOOGLE_API_KEY = 'AIzaSyDKCt492H5f6_KvVLgbJ3YQyTt5JEzHZWY'; // The one starting with 'AIza...'
+    const GOOGLE_APP_ID = '409298735327'; // From previous chat
+
+    // Scopes needed for Picker and to get file metadata (like webViewLink)
+    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+
+    let googleTokenClient = null;
+    let googleAccessToken = null;
+    let googleGapiReady = false;
+    let googleGisReady = false;
+    let pendingPickerRequest = null; // Stores the picker request if auth is needed
+    // --- END NEW GOOGLE DRIVE PICKER CONFIG ---
+
+
     // Global state
     let allAssignments = [];
     let groups = [];
@@ -898,6 +956,11 @@
         `;
 
         container.appendChild(attachmentItem);
+
+        // If data came from Drive, ensure the 'link' view is active
+        if (existingData && existingData.type === 'link') {
+            toggleAttachmentType(attachmentId, 'link');
+        }
     }
 
     // Make removeAttachment globally available
@@ -924,7 +987,7 @@
             linkBtn.classList.remove('active');
             fileInput.style.display = 'block';
             linkInput.style.display = 'none';
-            linkInput.value = ''; // Clear link input
+            // Do not clear linkInput.value if it was pre-filled
         } else {
             fileBtn.classList.remove('active');
             linkBtn.classList.add('active');
@@ -953,6 +1016,20 @@
                 addAttachmentField(container, 'edit-');
             }
         }
+
+        // --- NEW GOOGLE DRIVE BUTTON HANDLERS ---
+        if (e.target && e.target.id === 'add-drive-attachment-btn') {
+            e.preventDefault();
+            // Pass the ID of the container where the attachment field should be added
+            initiatePicker('attachments-container');
+        }
+
+        if (e.target && e.target.id === 'edit-add-drive-attachment-btn') {
+            e.preventDefault();
+            // Pass the ID of the edit modal's container
+            initiatePicker('edit-attachments-container');
+        }
+        // --- END NEW GOOGLE DRIVE BUTTON HANDLERS ---
     });
 
     // --- Dropdown/Multiselect Logic ---
@@ -1098,6 +1175,192 @@
             return result.isConfirmed;
         });
     }
+
+
+    // --- NEW GOOGLE DRIVE PICKER FUNCTIONS ---
+
+    /**
+     * Called by DOMContentLoaded. Loads Google APIs and token from localStorage.
+     */
+    function initGoogleAuth() {
+        // Load token from local storage
+        googleAccessToken = localStorage.getItem('googleAuthToken');
+
+        // Load Google GAPI (for Picker and Drive API)
+        if (typeof gapi !== 'undefined') {
+            gapi.load('client:picker', gapiLoadedCallback);
+        } else {
+            console.error('gapi.js failed to load.');
+        }
+
+        // Load Google GIS (for Auth)
+        if (typeof google !== 'undefined' && google.accounts) {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: () => {} // Not used for token client
+            });
+            gisLoadedCallback();
+        } else {
+            console.error('gsi/client failed to load.');
+        }
+    }
+
+    /**
+     * GAPI library is ready. Loads the 'drive' API.
+     */
+    function gapiLoadedCallback() {
+        gapi.client.load('drive', 'v3', () => {
+            googleGapiReady = true;
+        });
+    }
+
+    /**
+     * GIS library is ready. Initializes the token client.
+     */
+    function gisLoadedCallback() {
+        googleTokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: GOOGLE_SCOPES,
+            callback: handleAuthResult, // This function is called after user signs in
+        });
+        googleGisReady = true;
+    }
+
+    /**
+     * Called when user clicks a Drive button.
+     * Stores the target container and attempts to create the picker.
+     */
+    function initiatePicker(targetContainerId) {
+        if (!googleGapiReady || !googleGisReady) {
+            showToast('Google API is still loading. Please try again in a moment.', 'info');
+            return;
+        }
+
+        // Store the target container ID for the auth callback
+        pendingPickerRequest = targetContainerId;
+        
+        if (googleAccessToken) {
+            // If we have a token, try to create the picker
+            createPicker(targetContainerId);
+        } else {
+            // If we don't have a token, request one
+            handleAuthClick();
+        }
+    }
+
+    /**
+     * Forces the Google Sign-In prompt.
+     */
+    function handleAuthClick() {
+        if (googleTokenClient) {
+            // This will open the Google sign-in popup
+            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+        } else {
+            showToast('Google Auth is not ready. Please refresh.', 'error');
+        }
+    }
+
+    /**
+     * Callback function after user authorizes.
+     * Saves the token and retries the picker.
+     */
+    function handleAuthResult(response) {
+        if (response.error) {
+            showToast(`Google Auth Error: ${response.error}`, 'error');
+            pendingPickerRequest = null; // Clear the pending request
+            return;
+        }
+        
+        // Save the new token
+        googleAccessToken = response.access_token;
+        localStorage.setItem('googleAuthToken', googleAccessToken);
+
+        // If a picker was waiting for auth, launch it now
+        if (pendingPickerRequest) {
+            createPicker(pendingPickerRequest);
+            pendingPickerRequest = null; // Clear the request
+        }
+    }
+
+    /**
+     * Creates and displays the Google Picker.
+     * Assumes `googleAccessToken` is valid.
+     */
+    function createPicker(targetContainerId) {
+        if (!googleAccessToken) {
+            // This shouldn't be called without a token, but as a safeguard:
+            initiatePicker(targetContainerId);
+            return;
+        }
+
+        const view = new google.picker.View(google.picker.ViewId.DOCS);
+        const picker = new google.picker.PickerBuilder()
+            .setAppId(GOOGLE_APP_ID)
+            .setDeveloperKey(GOOGLE_API_KEY)
+            .setOAuthToken(googleAccessToken) // Use the stored token
+            .addView(view)
+            .setCallback((data) => pickerCallback(data, targetContainerId)) // Pass containerId to callback
+            .build();
+        
+        picker.setVisible(true);
+    }
+
+    /**
+     * Callback from the Picker itself.
+     */
+    async function pickerCallback(data, targetContainerId) {
+        if (data.action === google.picker.Action.PICKED) {
+            const doc = data[google.picker.Response.DOCUMENTS][0];
+            const fileId = doc[google.picker.Document.ID];
+            
+            showToast('File selected. Fetching shareable link...', 'info');
+
+            try {
+                // Use the Drive API to get file metadata, including the webViewLink
+                const response = await gapi.client.drive.files.get({
+                    fileId: fileId,
+                    fields: 'id, name, webViewLink'
+                });
+
+                const file = response.result;
+                const link = file.webViewLink; // This is the shareable link
+                const name = file.name;
+                const container = document.getElementById(targetContainerId);
+                const prefix = (targetContainerId === 'edit-attachments-container') ? 'edit-' : '';
+
+                if (container) {
+                    // This is the magic line:
+                    // We call your *existing* function to add an attachment field,
+                    // but we pre-fill it as a 'link' type with the Drive data.
+                    addAttachmentField(container, prefix, {
+                        type: 'link',
+                        name: name,
+                        url: link
+                    });
+                }
+                
+            } catch (err) {
+                console.error('Error fetching file metadata:', err);
+                if (err.status === 401 || err.status === 403) {
+                    // Token expired or invalid!
+                    showToast('Google session expired. Please sign in again.', 'error');
+                    localStorage.removeItem('googleAuthToken');
+                    googleAccessToken = null;
+                    // Ask user to re-auth and store this request
+                    pendingPickerRequest = targetContainerId;
+                    handleAuthClick();
+                } else {
+                    showToast('Error fetching file link. See console.', 'error');
+                }
+            }
+
+        } else if (data.action === google.picker.Action.CANCEL) {
+            showToast('File selection cancelled.', 'info');
+        }
+    }
+
+    // --- END NEW GOOGLE DRIVE PICKER FUNCTIONS ---
+
 
     // --- API Calls ---
     async function fetchAssignments() {
@@ -1523,6 +1786,12 @@
                 <button type="button" class="btn btn-secondary" id="edit-add-attachment-btn" style="margin-top: 0.5rem;">
                     + Add Attachment
                 </button>
+                <!-- NEW GOOGLE DRIVE BUTTON -->
+                <button type="button" class="btn btn-google-drive" id="edit-add-drive-attachment-btn">
+                    <img src="https://www.google.com/images/icons/product/drive-32.png" alt="Google Drive icon">
+                    Choose from Google Drive
+                </button>
+                <!-- END NEW BUTTON -->
             </div>
         `;
 
@@ -2045,7 +2314,7 @@
                 </label>
             </div>
 
-            <div class="form-group">
+            <div class-="form-group">
                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="close_after_deadline" value="true" ${assignment.close_after_deadline ? 'checked' : ''}>
                     Close After Deadline
@@ -2297,7 +2566,7 @@
 
                                 <button data-settings-id="${a.id}" class="btn-action js-settings" title="Settings">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
                                         <circle cx="12" cy="12" r="3"/>
                                     </svg>
                                 </button>
@@ -2388,6 +2657,10 @@
 
     async function initializePage() {
         try {
+            // --- NEW: Initialize Google Auth First ---
+            initGoogleAuth();
+            // --- END NEW ---
+
             const [assignmentsData, filtersData] = await Promise.all([
                 fetchAssignments(),
                 fetchFilters()
