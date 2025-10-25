@@ -94,7 +94,7 @@ class Users(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     phone_number = db.Column(db.String(15), unique=True, nullable=True)
     phone_number_country_code = db.Column(db.String(5), nullable=True, default="2")
-    parent_phone_number = db.Column(db.String(15) nullable=True)
+    parent_phone_number = db.Column(db.String(15) ,nullable=True)
     parent_phone_number_country_code = db.Column(db.String(5), nullable=True, default="2")
     password = db.Column(db.String(240), nullable=False)
     
