@@ -819,14 +819,14 @@
 
 <script id="assignmentsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     
-    // --- NEW GOOGLE DRIVE PICKER CONFIG ---
     // !!! ACTION REQUIRED: Fill these in with your credentials from Google Cloud Console
     const GOOGLE_CLIENT_ID = '409298735327-1ue4kf7g0f4se11vbjekple6t5bjq7jn.apps.googleusercontent.com'; // From previous chat
     const GOOGLE_API_KEY = 'AIzaSyDKCt492H5f6_KvVLgbJ3YQyTt5JEzHZWY'; // The one starting with 'AIza...'
     const GOOGLE_APP_ID = '409298735327-fudol3iro6m13d3te0rkfhd8t5fq5o6g.apps.googleusercontent.com'; // From previous chat
 
-    // Scopes needed for Picker and to get file metadata (like webViewLink)
-    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
+    // --- SCOPE UPDATED ---
+    // We now request full drive access to be able to change permissions
+    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive';
 
     let googleTokenClient = null;
     let googleAccessToken = null;
@@ -1209,6 +1209,7 @@
      * GAPI library is ready. Loads the 'drive' API.
      */
     function gapiLoadedCallback() {
+        // We load 'drive' v3, which includes 'files' and 'permissions'
         gapi.client.load('drive', 'v3', () => {
             googleGapiReady = true;
         });
@@ -1220,7 +1221,7 @@
     function gisLoadedCallback() {
         googleTokenClient = google.accounts.oauth2.initTokenClient({
             client_id: GOOGLE_CLIENT_ID,
-            scope: GOOGLE_SCOPES,
+            scope: GOOGLE_SCOPES, // Using the new, more powerful scope
             callback: handleAuthResult, // This function is called after user signs in
         });
         googleGisReady = true;
@@ -1254,7 +1255,8 @@
     function handleAuthClick() {
         if (googleTokenClient) {
             // This will open the Google sign-in popup
-            googleTokenClient.requestAccessToken({ prompt: 'consent' });
+            // 'consent' is needed to ensure they approve the new 'drive' scope
+            googleTokenClient.requestAccessToken({ prompt: 'consent' }); 
         } else {
             showToast('Google Auth is not ready. Please refresh.', 'error');
         }
@@ -1304,61 +1306,93 @@
         
         picker.setVisible(true);
     }
+    
+    /**
+     * NEW: Helper function to handle Google API errors (like 401/403)
+     */
+    async function handleGoogleApiError(err, targetContainerId) {
+        console.error('Google API Error:', err);
+        if (err.status === 401 || err.status === 403) {
+            // Token expired or insufficient permissions!
+            showToast('Google session expired or needs new permissions. Please sign in again.', 'error');
+            localStorage.removeItem('googleAuthToken'); // Clear bad token
+            googleAccessToken = null;
+            // Ask user to re-auth and store this request
+            pendingPickerRequest = targetContainerId;
+            handleAuthClick(); // This will re-prompt for the NEW scopes
+        } else {
+            showToast('An error occurred. See console for details.', 'error');
+        }
+    }
+
 
     /**
-     * Callback from the Picker itself.
+     * --- UPDATED PICKER CALLBACK ---
+     * Handles the callback when the user interacts with the Picker.
+     * Now includes logic to auto-share the file.
      */
     async function pickerCallback(data, targetContainerId) {
         if (data.action === google.picker.Action.PICKED) {
             const doc = data[google.picker.Response.DOCUMENTS][0];
             const fileId = doc[google.picker.Document.ID];
             
-            showToast('File selected. Fetching shareable link...', 'info');
+            showToast('File selected. Fetching link and updating permissions...', 'info');
 
+            let file;
             try {
-                // Use the Drive API to get file metadata, including the webViewLink
+                // Step 1: Get file metadata (we still need this for name and link)
                 const response = await gapi.client.drive.files.get({
                     fileId: fileId,
                     fields: 'id, name, webViewLink'
                 });
+                file = response.result;
 
-                const file = response.result;
-                const link = file.webViewLink; // This is the shareable link
-                const name = file.name;
-                const container = document.getElementById(targetContainerId);
-                const prefix = (targetContainerId === 'edit-attachments-container') ? 'edit-' : '';
-
-                if (container) {
-                    // This is the magic line:
-                    // We call your *existing* function to add an attachment field,
-                    // but we pre-fill it as a 'link' type with the Drive data.
-                    addAttachmentField(container, prefix, {
-                        type: 'link',
-                        name: name,
-                        url: link
-                    });
-                }
-                
             } catch (err) {
-                console.error('Error fetching file metadata:', err);
+                return handleGoogleApiError(err, targetContainerId); // Auth error or file not found
+            }
+
+            try {
+                // Step 2: NEW - Make the file public (anyone with link can read)
+                await gapi.client.drive.permissions.create({
+                    fileId: fileId,
+                    resource: {
+                        'role': 'reader',
+                        'type': 'anyone'
+                    }
+                });
+                
+                showToast('File successfully made public!', 'success');
+
+            } catch (err) {
+                // This is the crucial part.
+                // If permissions fail (e.g., 401/403 due to scope), re-auth.
                 if (err.status === 401 || err.status === 403) {
-                    // Token expired or invalid!
-                    showToast('Google session expired. Please sign in again.', 'error');
-                    localStorage.removeItem('googleAuthToken');
-                    googleAccessToken = null;
-                    // Ask user to re-auth and store this request
-                    pendingPickerRequest = targetContainerId;
-                    handleAuthClick();
-                } else {
-                    showToast('Error fetching file link. See console.', 'error');
+                    return handleGoogleApiError(err, targetContainerId);
                 }
+                // If it's a different error (e.g., user doesn't own file, domain policy)
+                // just warn them and add the file anyway.
+                console.error('Could not auto-share file:', err);
+                showToast('Could not auto-share file. Please share it manually from Google Drive.', 'error');
+            }
+
+            // Step 3: Add the attachment to the UI
+            const link = file.webViewLink;
+            const name = file.name;
+            const container = document.getElementById(targetContainerId);
+            const prefix = (targetContainerId === 'edit-attachments-container') ? 'edit-' : '';
+
+            if (container) {
+                addAttachmentField(container, prefix, {
+                    type: 'link',
+                    name: name,
+                    url: link
+                });
             }
 
         } else if (data.action === google.picker.Action.CANCEL) {
             showToast('File selection cancelled.', 'info');
         }
     }
-
     // --- END NEW GOOGLE DRIVE PICKER FUNCTIONS ---
 
 
@@ -2314,7 +2348,7 @@
                 </label>
             </div>
 
-            <div class-="form-group">
+            <div class="form-group">
                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="close_after_deadline" value="true" ${assignment.close_after_deadline ? 'checked' : ''}>
                     Close After Deadline
@@ -2716,3 +2750,4 @@
 </body>
 
 {% endblock %}
+
