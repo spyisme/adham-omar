@@ -815,7 +815,7 @@
 
 <script id="examsScript" data-filter-group-id="{% if filter_group_id %}{{ filter_group_id }}{% endif %}">
     
-    // --- NEW GOOGLE DRIVE PICKER CONFIG ---
+
     // !!! ACTION REQUIRED: Fill these in with your credentials from Google Cloud Console
     const GOOGLE_CLIENT_ID = '409298735327-1ue4kf7g0f4se11vbjekple6t5bjq7jn.apps.googleusercontent.com'; // From previous chat
     const GOOGLE_API_KEY = 'AIzaSyDKCt492H5f6_KvVLgbJ3YQyTt5JEzHZWY'; // The one starting with 'AIza...'
@@ -1281,8 +1281,13 @@
         
         // Save the new token
         googleAccessToken = response.access_token;
-        localStorage.setItem('googleAuthToken', googleAccessToken);
-        console.log('Google access token saved to localStorage.');
+        const expiryTime = new Date().getTime() + 10 * 60 * 1000; // 10 minutes from now
+        const tokenData = {
+            token: googleAccessToken,
+            expiry: expiryTime
+        };
+        localStorage.setItem('googleAuthTokenData', JSON.stringify(tokenData));
+        console.log('Google access token saved to localStorage for 10 minutes.');
 
         // If a picker was waiting for auth, launch it now
         if (pendingPickerRequest) {

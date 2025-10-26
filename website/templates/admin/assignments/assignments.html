@@ -1274,8 +1274,15 @@
         }
         
         // Save the new token
+        // Save the new token
         googleAccessToken = response.access_token;
-        localStorage.setItem('googleAuthToken', googleAccessToken);
+        const expiryTime = new Date().getTime() + 10 * 60 * 1000; // 10 minutes from now
+        const tokenData = {
+            token: googleAccessToken,
+            expiry: expiryTime
+        };
+        localStorage.setItem('googleAuthTokenData', JSON.stringify(tokenData));
+        console.log('Google access token saved to localStorage for 10 minutes.');
 
         // If a picker was waiting for auth, launch it now
         if (pendingPickerRequest) {
