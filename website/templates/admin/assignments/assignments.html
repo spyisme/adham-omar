@@ -593,7 +593,15 @@
         <h1 class="page-title">{% if filter_group_id %}{{ group.name }} Assignments{% else %}All Assignments{% endif %}
         </h1>
         {% if current_user.role == "super_admin" %}
-        <button id="openAddAssignmentDesktop" class="btn btn-primary">Create Assignment</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button onclick="fixGoogleAuth()" class="btn" style="background: #f59e0b; color: white;" title="Fix Google Drive Authentication">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Fix Drive Auth
+            </button>
+            <button id="openAddAssignmentDesktop" class="btn btn-primary">Create Assignment</button>
+        </div>
         {% endif %}
     </div>
 </header>
@@ -1183,8 +1191,25 @@
      * Called by DOMContentLoaded. Loads Google APIs and token from localStorage.
      */
     function initGoogleAuth() {
-        // Load token from local storage
-        googleAccessToken = localStorage.getItem('googleAuthToken');
+        // Load token from local storage and check expiration
+        const tokenData = localStorage.getItem('googleAuthTokenData');
+        if (tokenData) {
+            try {
+                const parsed = JSON.parse(tokenData);
+                const now = new Date().getTime();
+                if (parsed.expiry && now < parsed.expiry) {
+                    googleAccessToken = parsed.token;
+                } else {
+                    // Token expired, clear it
+                    localStorage.removeItem('googleAuthTokenData');
+                    googleAccessToken = null;
+                    console.log('Google token expired and cleared.');
+                }
+            } catch (e) {
+                console.error('Failed to parse googleAuthTokenData:', e);
+                localStorage.removeItem('googleAuthTokenData');
+            }
+        }
 
         // Load Google GAPI (for Picker and Drive API)
         if (typeof gapi !== 'undefined') {
@@ -1273,16 +1298,16 @@
             return;
         }
         
-        // Save the new token
-        // Save the new token
+        // Save the new token with 10 minute expiration
         googleAccessToken = response.access_token;
-        const expiryTime = new Date().getTime() + 10 * 60 * 1000; // 10 minutes from now
+        const expiryTime = new Date().getTime() + (10 * 60 * 1000); // 10 minutes from now
         const tokenData = {
             token: googleAccessToken,
             expiry: expiryTime
         };
         localStorage.setItem('googleAuthTokenData', JSON.stringify(tokenData));
         console.log('Google access token saved to localStorage for 10 minutes.');
+        showToast('Successfully authenticated with Google Drive!', 'success');
 
         // If a picker was waiting for auth, launch it now
         if (pendingPickerRequest) {
@@ -1302,12 +1327,23 @@
             return;
         }
 
-        const view = new google.picker.View(google.picker.ViewId.DOCS);
+        // Create a view that allows folder navigation
+        const docsView = new google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setSelectFolderEnabled(false) // We want files, not folders
+            .setMode(google.picker.DocsViewMode.LIST);
+
         const picker = new google.picker.PickerBuilder()
             .setAppId(GOOGLE_APP_ID)
             .setDeveloperKey(GOOGLE_API_KEY)
             .setOAuthToken(googleAccessToken) // Use the stored token
-            .addView(view)
+            .addView(docsView)
+            .addView(new google.picker.DocsView()
+                .setIncludeFolders(true)
+                .setSelectFolderEnabled(false)
+                .setMode(google.picker.DocsViewMode.GRID))
+            .enableFeature(google.picker.Feature.NAV_HIDDEN)
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
             .setCallback((data) => pickerCallback(data, targetContainerId)) // Pass containerId to callback
             .build();
         
@@ -1322,7 +1358,7 @@
         if (err.status === 401 || err.status === 403) {
             // Token expired or insufficient permissions!
             showToast('Google session expired or needs new permissions. Please sign in again.', 'error');
-            localStorage.removeItem('googleAuthToken'); // Clear bad token
+            localStorage.removeItem('googleAuthTokenData'); // Clear bad token
             googleAccessToken = null;
             // Ask user to re-auth and store this request
             pendingPickerRequest = targetContainerId;
@@ -1331,6 +1367,15 @@
             showToast('An error occurred. See console for details.', 'error');
         }
     }
+
+    /**
+     * NEW: Function to manually clear Google authentication
+     */
+    window.fixGoogleAuth = function() {
+        localStorage.removeItem('googleAuthTokenData');
+        googleAccessToken = null;
+        showToast('Google Drive authentication cleared. Click the Drive button to re-authenticate.', 'success');
+    };
 
 
     /**
@@ -2717,6 +2762,26 @@
             if (document.getElementById('groupDropdown')) {
                 setupDropdown('groupDropdown', 'groupDropdownBtn', 'groupDropdownList', 'All Groups', filterAssignments);
             }
+
+            setupDropdown('statusDropdown', 'statusDropdownBtn', 'statusDropdownList', 'All Statuses', filterAssignments);
+            setupDropdown('visibilityDropdown', 'visibilityDropdownBtn', 'visibilityDropdownList', 'All Visibilities', filterAssignments);
+
+            // For the modal group selector
+            setupDropdown('ms-groups-dropdown', 'ms-groups-btn', 'ms-groups-list', 'Select Groups', null);
+
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterAssignments);
+            }
+
+            renderAssignments(allAssignments);
+            enableFilters();
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            showToast('Failed to load assignments. Please refresh the page.', 'error');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', initializePage);
             // Only setup group multi-select if it exists (not present when filtering by specific group)
             if (document.getElementById('ms-groups')) {
                 setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Groups');
