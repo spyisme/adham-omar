@@ -2776,44 +2776,33 @@
 
             renderAssignments(allAssignments);
             enableFilters();
-        } catch (error) {
-            console.error('Error initializing page:', error);
-            showToast('Failed to load assignments. Please refresh the page.', 'error');
-        }
-    }
-    document.addEventListener('DOMContentLoaded', initializePage);
-            // Only setup group multi-select if it exists (not present when filtering by specific group)
-            if (document.getElementById('ms-groups')) {
-                setupDropdown('ms-groups', 'ms-groups-btn', 'ms-groups-list', 'All Groups');
-            }
-
-            renderAssignments(allAssignments);
-            enableFilters();
-
-            document.getElementById('searchInput').addEventListener('input', filterAssignments);
 
             const gridEl = document.getElementById('assignmentsGrid');
-            gridEl.addEventListener('click', async function (e) {
-                const card = e.target.closest('.assignment-card');
+            if (gridEl) {
+                gridEl.addEventListener('click', async function (e) {
+                    const card = e.target.closest('.assignment-card');
 
-                const settingsBtn = e.target.closest('.js-settings');
-                if (settingsBtn) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    const id = settingsBtn.getAttribute('data-settings-id');
-                    openSettingsModal(parseInt(id));
-                    return;
-                }
+                    const settingsBtn = e.target.closest('.js-settings');
+                    if (settingsBtn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const id = settingsBtn.getAttribute('data-settings-id');
+                        openSettingsModal(parseInt(id));
+                        return;
+                    }
 
-                if (card && card.dataset.href) {
-                    window.location.href = card.dataset.href;
-                }
-            });
+                    if (card && card.dataset.href) {
+                        window.location.href = card.dataset.href;
+                    }
+                });
+            }
 
         } catch (error) {
             console.error('Error initializing assignments page:', error);
             const grid = document.getElementById('assignmentsGrid');
-            grid.innerHTML = `<div class="no-assignments-message"><h3>Error loading assignments.</h3><p>Please refresh the page to try again.</p></div>`;
+            if (grid) {
+                grid.innerHTML = `<div class="no-assignments-message"><h3>Error loading assignments.</h3><p>Please refresh the page to try again.</p></div>`;
+            }
             enableFilters();
         }
     }
