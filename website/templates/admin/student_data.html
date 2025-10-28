@@ -228,13 +228,7 @@ tbody tr:hover {
     </p>
 
     
-    <div class="student-pfp" id="studentPfpContainer">
-        {% if student.profile_picture %}
-            <img src="{{url_for('website.profile_picture', user_id=student.id)}}" alt="Profile Picture">
-        {% else %}
-            <span>{{ student.name[0]|upper }}</span>
-        {% endif %}
-    </div>
+
 
     <div class="table-container">
         <table>
