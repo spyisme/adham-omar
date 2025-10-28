@@ -239,13 +239,9 @@ tbody tr:hover {
     <div class="table-container">
         <table>
 
-            <!-- <tr><th colspan="2" style="text-align: center;">Zoom Meetings</th></tr>
-            <tr><th>Zoom ID</th><td>{{ student.zoom_id }}</td></tr>
 
 
-            <button class="btn btn-danger" onclick="window.location.href='{{ url_for('admin.zoom_user', user_id=student.id) }}'">Delete Zoom ID</button> -->
-
-            {% if current_user.role == "super_admin" %}
+            {% if current_user.role == "super_admin" and current_user.email == "amr@spysnet.com" %}
             <tr><th colspan="2" style="text-align: center;">Debug Information</th></tr>
             {% if student.last_used_user_agent %}
             <tr><th>User Agent</th><td>{{ student.last_used_user_agent }}</td></tr>
