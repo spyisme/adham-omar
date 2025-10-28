@@ -163,6 +163,88 @@ def get_item_if_admin_can_manage(model, item_id, admin_user):
     return query.filter(model.id == item_id).first()
 
 
+#=================================================================================================================
+#Whatsapp Messages
+#=================================================================================================================
+
+
+def send_parent_corrcted_message_with_score(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025" , student_mark = "27" , total_mark= "30"):
+
+    send_whatsapp_message(phone_number, f"Dear Parent,\n"
+                        f"*{student_name}*\n\n"
+                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+                        f"Score : *{student_mark}* / {total_mark}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+def send_parent_corrcted_message_no_score(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
+    
+    send_whatsapp_message(phone_number, f"Dear Parent,\n"
+                        f"*{student_name}*\n\n"
+                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+def send_parent_missing(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
+    
+    send_whatsapp_message(phone_number, f"Dear Parent,\n"
+                        f"*{student_name}*\n\n"
+                        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+def send_new_parent(phone_number="01010101010" ,student_name="Jake"):
+   
+    send_whatsapp_message(phone_number, f"Dear Parent,\n"
+                        f"*{student_name}*\n\n"
+                        f"You will receive follow up messages regarding your child's progress\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+
+
+
+
+
+
+
+def send_student_corrcted_message_with_score(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025" , student_mark = "27" , total_mark= "30"):
+    
+    send_whatsapp_message(phone_number, f"Dear Student,\n"
+                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+                        f"Score : *{student_mark}* / {total_mark}\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+
+def send_student_corrcted_message_no_score(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
+    
+    send_whatsapp_message(phone_number, f"Dear Student,\n"
+                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
+
+
+def send_student_missing(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
+    
+    send_whatsapp_message(phone_number, f"Dear Student,\n"
+                        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
+                        "_For further inquiries send to Dr. Adham_"
+                    )    
+    return True
+
 
 #=================================================================
 #Dashboard
@@ -238,10 +320,6 @@ def api_admin_filters():
         "groups": [{"id": g.id, "name": g.name} for g in groups]
     }
     return jsonify(filter_data)
-
-
-
-
 
 
 
@@ -498,6 +576,9 @@ def edit_announcement(announcement_id):
 #=================================================================
 @admin.route('/students', methods=['GET'])
 def students():
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
     
     page = request.args.get('page', 1, type=int)
     per_page = 51
@@ -554,6 +635,11 @@ def students():
 #=================================================================
 @admin.route('/approve/students', methods=['GET', 'POST'])
 def approve_students():
+
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
+
 
     page = request.args.get('page', 1, type=int)
     per_page = 50
@@ -637,6 +723,13 @@ def approve_students():
 
 @admin.route('/approve/student/<int:user_id>', methods=['POST'])
 def approve_student(user_id):
+
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
+
+
+
     user = Users.query.get_or_404(user_id)
     
     # Check if admin has permission to approve this student (groups only)
@@ -707,6 +800,13 @@ def approve_student(user_id):
 
 @admin.route('/approve/students/bulk', methods=['POST'])
 def bulk_approve_students():
+
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
+
+
+
     try:
         data = request.get_json()
         students = data.get('students', [])
@@ -933,6 +1033,11 @@ def edit_user(user_id):
             flash('You do not have permission to edit this user.', 'danger')
             return redirect(url_for('admin.students'))
 
+
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
+
     groups = Groups.query.all()
 
     if request.method == 'POST':
@@ -1124,7 +1229,13 @@ def edit_user(user_id):
 @admin.route('/reset_password/<int:user_id>')
 def reset_password(user_id):
     user = Users.query.get_or_404(user_id)
-    
+
+
+    if current_user.role != "super_admin" :
+        flash("You have no permission to be here !" , "danger")
+        return redirect(url_for("admin.dashboard"))
+
+
     # Check if admin has permission to reset password for this user (groups only)
     if current_user.role != "super_admin":
         group_ids = get_user_scope_ids()
@@ -1399,7 +1510,6 @@ def add_assistant():
 #=================================================================
 
 
-# --- helpers for assignments -------------------------------------------------
 
 def int_or_none(x):
     try:
@@ -1925,18 +2035,23 @@ def assignments():
         flash("Assignment added successfully!", "success")
         return redirect(url_for("admin.assignments"))
 
-
-    return render_template(
-        'admin/assignments/assignments.html'
-    )
+    return render_template('admin/assignments/assignments.html')
 
 
 
 
 @admin.route("/assignments/<int:assignment_id>/submissions", methods=["GET", "POST"])
 def view_assignment_submissions(assignment_id):
+
+
     assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
     
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
+
     # Get optional group_id from query params for back navigation
     group_id = request.args.get('group_id', type=int)
     group = None
@@ -1951,9 +2066,6 @@ def view_assignment_submissions(assignment_id):
             group_id = None
 
 
-    if not assignment:
-        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
-        return redirect(url_for("admin.assignments"))
 
     if not assignment.type == "Assignment":
         # flash("Assignment is not an assignment.", "danger")
@@ -1971,7 +2083,6 @@ def view_assignment_submissions(assignment_id):
         
         submission.mark = mark
         
-        # If super_admin is updating, auto-approve and send notifications
         if current_user.role == "super_admin":
             if mark_changed:
                 submission.corrected = True
@@ -1981,25 +2092,42 @@ def view_assignment_submissions(assignment_id):
                 submission.reviewed_by_id = current_user.id
                 submission.review_date = datetime.now(GMT_PLUS_2)
                 
-                # Send WhatsApp notifications immediately
                 try:
-                    send_whatsapp_message(submission.student.phone_number, 
-                        f"Hi {submission.student.name}👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n" 
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
-                        f"_For further inquiries send to Dr. Adham_"
-                    )
-                    
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number, 
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}* is returned on the student's account on website\n\n"
-                        f"Score : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
-                        f"_For further inquiries send to Dr. Adham_"
-                    )
-                
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Assignment", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                       
+                       
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Assignment",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
                 
                 except:
                     pass
@@ -2201,6 +2329,17 @@ def unassign_submissions(assignment_id):
 @admin.route("/assignments/annotate/<int:submission_id>")
 def edit_pdf(submission_id):
     submission = Submissions.query.get_or_404(submission_id)
+
+
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     pdfurl = f"/admin/getpdf/{submission_id}"
     filename = submission.file_url
 
@@ -2221,6 +2360,15 @@ def edit_pdf(submission_id):
 @admin.route("/assignments/annotate2/<int:submission_id>")
 def edit_pdf2(submission_id):
     submission = Submissions.query.get_or_404(submission_id)
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     pdfurl = f"/admin/getpdf2/{submission_id}"
     filename = submission.file_url
 
@@ -2245,6 +2393,24 @@ def save_pdf():
     submission_id = request.form.get("submission_id")
     grade = request.form.get("grade")
     
+
+
+
+    submission = Submissions.query.get_or_404(submission_id)
+
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+
+    if not assignment:
+        return jsonify({"error": "You are not authorized to access this assignment."}), 403
+    
+
+
+    if assignment.out_of != 0 and grade is None or grade == '':
+        return jsonify({"error": "This assignment is graded. Please enter a grade."}), 400
+
+
     # Handle chunked upload
     file_chunk = request.files.get("file_chunk")
     filename_from_form = request.form.get("filename")
@@ -2369,23 +2535,41 @@ def save_pdf():
         # If super_admin uploaded the correction, send notifications immediately
         if current_user.role == "super_admin":
             try:
-                send_whatsapp_message(submission.student.phone_number, 
-                    f"Hi *{submission.student.name}*👋,\n\n"
-                    f"*{assignment.title}*\n"
-                    f"You're correction is returned please check your account\n\n" 
-                    f"You scored : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
+                if grade is not None and grade != '':
+                    send_student_corrcted_message_with_score(
+                    phone_number=submission.student.phone_number, 
+                    type="Assignment", name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=grade, 
+                    total_mark=assignment.out_of)
                     
-                send_whatsapp_message(
-                    submission.student.parent_phone_number, 
-                    f"Dear Parent,\n"
-                    f"*{submission.student.name}*\n\n"
-                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}* is returned on the student's account on website\n\n"
-                    f"Score : *{submission.mark if submission.mark else 'N/A'}*/{assignment.out_of}\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
-            
+                    
+                    send_parent_corrcted_message_with_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name,
+                    type="Assignment", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=grade, 
+                    total_mark=assignment.out_of)
+
+                else :
+
+
+                    send_student_corrcted_message_no_score(
+                    phone_number=submission.student.phone_number,
+                    student_name=submission.student.name, 
+                    type="Assignment", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                    send_parent_corrcted_message_no_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name, 
+                    type="Assignment",
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
             
             except:
                 pass
@@ -2401,6 +2585,16 @@ def save_pdf():
 def get_pdf(submission_id):
 
     submission = Submissions.query.get_or_404(submission_id)
+
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     folder = f"student_{submission.student_id}"
     filename = submission.file_url
     file_path = os.path.join("website/submissions/uploads", folder, filename)
@@ -2425,6 +2619,15 @@ def get_pdf(submission_id):
 def get_pdf2(submission_id):
 
     submission = Submissions.query.get_or_404(submission_id)
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     folder = f"student_{submission.student_id}"
     filename = submission.file_url 
 
@@ -2450,12 +2653,26 @@ def upload_corrected_pdf_chunk(submission_id):
         }), 401
     
     submission = Submissions.query.get_or_404(submission_id)
+
+
     
     # Get chunk data from the request
     file_chunk = request.files.get("file_chunk")
     filename_from_form = request.form.get("filename")
     mark = request.form.get("mark")
     
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        return jsonify({"error": "You are not authorized to access this assignment."}), 403
+
+
+    if assignment.out_of != 0 and mark is None or mark == '':
+        return jsonify({"error": "This Assignment is graded. Please enter a grade."}), 400
+
+
+
     if not filename_from_form:
         return jsonify({
             "status": "error",
@@ -2684,6 +2901,18 @@ def upload_corrected_exam_pdf_chunk(submission_id):
     file_chunk = request.files.get("file_chunk")
     filename_from_form = request.form.get("filename")
     mark = request.form.get("mark")
+
+
+    assignment = get_item_if_admin_can_manage(Assignments, submission.assignment_id, current_user)
+    
+    if not assignment:
+        return jsonify({"error": "You are not authorized to access this assignment."}), 403
+
+
+    if assignment.out_of != 0 and mark is None or mark == '':
+        return jsonify({"error": "This Exam is graded. Please enter a grade."}), 400
+
+
     
     if not filename_from_form:
         return jsonify({
@@ -2887,23 +3116,41 @@ def upload_corrected_exam_pdf_chunk(submission_id):
         if current_user.role == "super_admin":
             exam = Assignments.query.get(submission.assignment_id)
             try:
-                send_whatsapp_message(submission.student.phone_number, 
-                    f"Hi {submission.student.name}👋,\n\n"
-                    f"*{exam.title}*\n"
-                    f"You're correction is returned please check your account\n\n"
-                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
-                    f"_for further inquiries send to Dr. Adham_"
-                )
-                
-                send_whatsapp_message(
-                    submission.student.parent_phone_number, 
-                    f"Dear Parent,\n"
-                    f"*{submission.student.name}*\n\n"
-                    f"Quiz *{exam.title}* on {exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'} correction is returned on the student's account on website\n\n"
-                    f"Scored *{submission.mark if submission.mark else 'N/A'}* / {exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
-                    f"Dr. Adham will send the gradings on the group\n_For further inquiries send to Dr. Adham_"
-                )
-            
+                if submission.mark:
+                    send_student_corrcted_message_with_score(
+                    phone_number=submission.student.phone_number, 
+                    type="Exam", name=exam.title, 
+                    date=exam.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=exam.out_of)
+                    
+                    
+                    send_parent_corrcted_message_with_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name,
+                    type="Exam", 
+                    name=exam.title, 
+                    date=exam.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=exam.out_of)
+
+                else :
+
+
+                    send_student_corrcted_message_no_score(
+                    phone_number=submission.student.phone_number,
+                    student_name=submission.student.name, 
+                    type="Exam", 
+                    name=exam.title, 
+                    date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+                    send_parent_corrcted_message_no_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name, 
+                    type="Exam",
+                    name=exam.title, 
+                    date=exam.deadline_date.strftime('%d/%m/%Y'))
             
             except:
                 pass
@@ -2931,7 +3178,18 @@ def upload_corrected_exam_pdf_chunk(submission_id):
 #Send late message for a submission (Per student) (Admin route)
 @admin.route("/assignments/<int:assignment_id>/submissions/<int:student_id>/late", methods=["POST"])
 def send_late_message_for_submission(assignment_id, student_id):
-    assignment = Assignments.query.get_or_404(assignment_id)
+    if current_user.role != "super_admin":
+        flash("You are not allowed to send late messages for assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+
+
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     student = Users.query.get(student_id)
     if not student:
         flash("Student not found.", "danger")
@@ -2956,24 +3214,32 @@ def send_late_message_for_submission(assignment_id, student_id):
 
     try:
 
-        send_whatsapp_message(student.phone_number, 
-            f"HI *{student.name}*\n\n"
-            f"*{assignment.title}*\n"
-            f"Submission is missing\n"
-            f"Didn't submit\n\n"
-            f"Please take care to submit your future assignments"
-        )
-        student_late_message_sent = True
 
-        send_whatsapp_message(
-            student.parent_phone_number,
-            f"Dear Parent,\n"
-            f"*{student.name}*\n\n"
-            f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
-            f"Please take care starting next submission\n\n"
-            f"_For further inquiries send to Dr. Adham_"
-        )
+
+        send_parent_missing(
+         phone_number=student.parent_phone_number,
+         student_name=student.name, 
+         type="Assignment", 
+         name=assignment.title, 
+         date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+        send_student_missing(
+         phone_number=student.phone_number,
+         type="Assignment", 
+         name=assignment.title, 
+         date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+
+
+
+        student_late_message_sent = True
         parent_late_message_sent = True
+
+
         
         # Record the sent message
         if student_late_message_sent or parent_late_message_sent:
@@ -3000,7 +3266,15 @@ def send_late_message_for_submission(assignment_id, student_id):
 @admin.route("/assignments/<int:assignment_id>/bulk_send_reminders", methods=["POST"])
 def bulk_send_reminders_assignments(assignment_id):
     if current_user.role != "super_admin":
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+        flash("You are not allowed to bulk send reminders for assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+
+
+    if not assignment:
+        flash("Assignment not found or you do not have permission to view its submissions.", "danger")
+        return redirect(url_for("admin.assignments"))
     
     assignment = Assignments.query.get_or_404(assignment_id)
     data = request.get_json()
@@ -3034,27 +3308,23 @@ def bulk_send_reminders_assignments(assignment_id):
             continue
         
         try:
-            # Send to student
-            if student.student_whatsapp:
-                send_whatsapp_message(student.phone_number, 
-                    f"HI *{student.name}*\n\n"
-                    f"*{assignment.title}*\n"
-                    f"Submission is missing\n"
-                    f"Didn't submit\n\n"
-                    f"Please take care to submit your future assignments"
-                )
-            
-            # Send to parent
-            if student.parent_whatsapp:
-                send_whatsapp_message(
-                    student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{student.name}*\n\n"
-                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
-                    f"Please take care starting next submission\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
-            
+            send_parent_missing(
+                phone_number=student.parent_phone_number,
+                student_name=student.name, 
+                type="Assignment", 
+                name=assignment.title, 
+                date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+            send_student_missing(
+                phone_number=student.phone_number,
+                type="Assignment", 
+                name=assignment.title, 
+                date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
             # Record the sent message
             if existing_notification:
                 existing_notification.message_sent = True
@@ -3089,9 +3359,17 @@ def bulk_send_reminders_assignments(assignment_id):
 @admin.route("/assignments/<int:assignment_id>/send_reminders_by_range", methods=["POST"])
 def send_reminders_by_range_assignments(assignment_id):
     if current_user.role != "super_admin":
-        return jsonify({'status': 'error', 'message': 'Unauthorized'}), 403
+        flash("You are not allowed to send reminders by range for assignments.", "danger")
+        return redirect(url_for("admin.assignments"))
     
-    assignment = Assignments.query.get_or_404(assignment_id)
+    assignment = get_item_if_admin_can_manage(Assignments, assignment_id, current_user)
+
+
+    if not assignment:
+        flash("Assignment not found or you do not have permission to send reminders by range for it.", "danger")
+        return redirect(url_for("admin.assignments"))
+
+
     data = request.get_json()
     from_index = data.get('from_index')
     to_index = data.get('to_index')
@@ -3148,26 +3426,24 @@ def send_reminders_by_range_assignments(assignment_id):
         
         try:
             # Send to student
-            if student.student_whatsapp:
-                send_whatsapp_message(student.phone_number, 
-                    f"HI *{student.name}*\n\n"
-                    f"*{assignment.title}*\n"
-                    f"Submission is missing\n"
-                    f"Didn't submit\n\n"
-                    f"Please take care to submit your future assignments"
-                )
-            
-            # Send to parent
-            if student.parent_whatsapp:
-                send_whatsapp_message(
-                    student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{student.name}*\n\n"
-                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
-                    f"Please take care starting next submission\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
-            
+            send_parent_missing(
+            phone_number=student.parent_phone_number,
+            student_name=student.name, 
+            type="Assignment", 
+            name=assignment.title, 
+            date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+            send_student_missing(
+            phone_number=student.phone_number,
+            type="Assignment", 
+            name=assignment.title, 
+            date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+
             # Record the sent message
             if existing_notification:
                 existing_notification.message_sent = True
@@ -4504,548 +4780,9 @@ def submission_media(submission_id):
             flash('File not found!', 'danger')
             return redirect(url_for("admin.view_assignment_submissions", assignment_id=submission.assignment_id))
         return send_from_directory(f"submissions/uploads/{folder}", filename)
-
-#=================================================================
-#Materials
-#=================================================================
-
-@admin.route('/api/folders-data', methods=["GET"])
-def folders_data():
-    folders_query = get_visible_to_admin_query(Materials_folder, current_user)
-    folders = folders_query.order_by(Materials_folder.id.desc()).all()
-
-    folders_list = []
-    for folder in folders:
-        schools_names = [s.name for s in getattr(folder, 'schools_mm', [])] if getattr(folder, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(folder, 'stages_mm', [])] if getattr(folder, 'stages_mm', None) else []
-        groups_names = [g.name for g in getattr(folder, 'groups_mm', [])] if getattr(folder, 'groups_mm', None) else []
-
-        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
-        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
-        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
-
-        # Count materials in this folder
-        material_count = Materials.query.filter_by(folderid=folder.id).count()
-
-        folders_list.append({
-            "id": folder.id,
-            "title": folder.title,
-            "description": folder.description,
-            "category": folder.category,
-            "subject": folder.subject.name if folder.subject else "N/A",
-            "subject_id": folder.subject.id if folder.subject else None,
-            "schools": schools_display,
-            "stages": stages_display,
-            "groups": groups_display,
-            "material_count": material_count
-        })
-    
-    return jsonify(folders_list)
-
-
-@admin.route('/api/folder/<int:folder_id>', methods=["GET"])
-def get_folder_data(folder_id):
-    """API endpoint to fetch single folder data for editing"""
-    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
-    if not folder:
-        return jsonify({"success": False, "message": "Folder not found or you do not have permission to view it."}), 404
-
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(folder, 'schools_mm', [])] if getattr(folder, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(folder, 'stages_mm', [])] if getattr(folder, 'stages_mm', None) else []
-    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(folder, 'groups_mm', [])] if getattr(folder, 'groups_mm', None) else []
-
-    folder_data = {
-        "id": folder.id,
-        "title": folder.title,
-        "description": folder.description,
-        "category": folder.category,
-        "subject": {
-            "id": folder.subject.id if folder.subject else None,
-            "name": folder.subject.name if folder.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
-        "groups_mm": groups_mm,
-    }
-
-    return jsonify({"success": True, "folder": folder_data})
-
-
-
-
-
-
-
-
-@admin.route("/folders", methods=["GET", "POST"])
-def folders():
-    return "Paused for now"
-
-
-    if request.method == "POST":
-
-
-        managed_group_ids = [g.id for g in getattr(current_user, "managed_groups", [])]
-        managed_stage_ids = [s.id for s in getattr(current_user, "managed_stages", [])]
-        managed_school_ids = [s.id for s in getattr(current_user, "managed_schools", [])]
-        managed_subject_ids = [s.id for s in getattr(current_user, "managed_subjects", [])]
-
-        groups = Groups.query.filter(Groups.id.in_(managed_group_ids)).all() if managed_group_ids else []
-        stages = Stages.query.filter(Stages.id.in_(managed_stage_ids)).all() if managed_stage_ids else []
-        schools = Schools.query.filter(Schools.id.in_(managed_school_ids)).all() if managed_school_ids else []
-        subjects = Subjects.query.filter(Subjects.id.in_(managed_subject_ids)).all() if managed_subject_ids else []
-
-        subject_school_map = {}
-        for subject in subjects:
-            # For each subject, get its associated schools and format them for JavaScript
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            # Sort schools to put "Online" schools first, then alphabetically
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
-
-
-
-
-
-
-        title = (request.form.get("title") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        category = request.form.get("category")
-
-        subject_id_single = int_or_none(request.form.get("subject_id"))
-
-        group_ids  = parse_multi_ids("groups_mm[]")
-        stage_ids  = parse_multi_ids("stages_mm[]")
-        school_ids = parse_multi_ids("schools_mm[]")
-
-        if not title:
-            flash("Title is required!", "danger")
-            return redirect(url_for("admin.folders"))
-
-        if not group_ids:
-            group_ids = [g.id for g in groups]
-        if not stage_ids:
-            stage_ids = [s.id for s in stages]
-        if not school_ids:
-
-            subject_id = subject_id_single
-
-            if subject_id and subject_id in subject_school_map:
-                school_ids = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                flash("Choose a subject" , "danger")
-                return redirect(url_for("admin.announcements"))
-
-        if not subject_id_single:
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.folders"))
-
-        if group_ids:
-            if not set(group_ids).issubset(set(managed_group_ids)):
-                flash("You are not allowed to create a folder for one or more selected groups.", "danger")
-                return redirect(url_for("admin.folders"))
-        if stage_ids:
-            if not set(stage_ids).issubset(set(managed_stage_ids)):
-                flash("You are not allowed to create a folder for one or more selected stages.", "danger")
-                return redirect(url_for("admin.folders"))
-        if school_ids:
-            if not set(school_ids).issubset(set(managed_school_ids)):
-                flash("You are not allowed to create a folder for one or more selected schools.", "danger")
-                return redirect(url_for("admin.folders"))
-
-
-        if subject_id_single:
-            if subject_id_single not in managed_subject_ids:
-                flash("You are not allowed to create a folder for this subject.", "danger")
-                return redirect(url_for("admin.folders"))
-
-        new_record = Materials_folder(
-            title=title,
-            description=description,
-            subjectid=subject_id_single,
-            category=category,
-        )
-
-        # IMPORTANT: add to session BEFORE assigning M2M relations
-        db.session.add(new_record)
-
-        # attach many-to-many scopes if provided
-        if group_ids:
-            new_record.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        if stage_ids:
-            new_record.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
-        if school_ids:
-            new_record.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
-        
-        db.session.commit()
-
-        # Log the action
-        new_log = AssistantLogs(
-            assistant_id=current_user.id,
-            action='Create',
-            log={
-                "action_name": "Create",
-                "resource_type": "materials_folder",
-                "action_details": {
-                    "id": new_record.id,
-                    "title": new_record.title,
-                    "summary": f"Materials folder '{new_record.title}' was created."
-                },
-                "data": {
-                    "title": new_record.title,
-                    "description": new_record.description,
-                    "category": new_record.category,
-                    "stages_mm": [s.id for s in new_record.stages_mm],
-                    "groups_mm": [g.id for g in new_record.groups_mm],
-                    "schools_mm": [s.id for s in new_record.schools_mm],
-                    "subject": new_record.subject.name
-                },
-                "before": None,
-                "after": None
-            }
-        )
-        db.session.add(new_log)
-        db.session.commit()
-
-        # AJAX response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            folder_data = {
-                "id": new_record.id,
-                "title": new_record.title,
-                "description": new_record.description,
-                "category": new_record.category,
-                "subject": new_record.subject.name if new_record.subject else "N/A",
-                "subject_id": new_record.subject.id if new_record.subject else None,
-                "schools": ', '.join([s.name for s in new_record.schools_mm]) if new_record.schools_mm else 'All Schools',
-                "stages": ', '.join([s.name for s in new_record.stages_mm]) if new_record.stages_mm else 'All Stages',
-                "groups": ', '.join([g.name for g in new_record.groups_mm]) if new_record.groups_mm else 'All Classes',
-                "material_count": 0
-            }
-            return jsonify({"success": True, "message": "Folder added successfully!", "folder": folder_data})
-
-        flash("Folder added successfully!", "success")
-        return redirect(url_for("admin.folders"))
-    
-
-    return render_template("admin/materials/folder.html")
-
-    
-@admin.route("/folders/<int:folder_id>/edit", methods=["GET", "POST"])
-def edit_folder(folder_id):
-    return "Paused for now"
-    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
-    if not folder:
-        flash("Folder not found or you do not have permission to edit it.", "danger")
-        return redirect(url_for("admin.folders"))
-
-    groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all()
-
-    if request.method == "POST":
-        old_data = {
-            "title": folder.title,
-            "description": folder.description,
-            "category": folder.category,
-            "subjectid": folder.subjectid,
-            "stages_mm": [s.id for s in folder.stages_mm],
-            "groups_mm": [g.id for g in folder.groups_mm],
-            "schools_mm": [s.id for s in folder.schools_mm]
-        }
-
-        folder.title = (request.form.get("title") or "").strip()
-        folder.description = (request.form.get("description") or "").strip()
-        folder.category = request.form.get("category")
-        
-        # Handle subject selection
-        subject_id = int_or_none(request.form.get("subject"))
-        folder.subjectid = subject_id
-
-        # legacy single-selects (kept for backward compatibility)
-        stage_id_single = int_or_none(request.form.get("stage"))
-        group_id_single = int_or_none(request.form.get("group"))
-        school_id_single = int_or_none(request.form.get("school"))
-
-        # new multi-selects
-        group_ids_mm  = parse_multi_ids("groups_mm[]")
-        stage_ids_mm  = parse_multi_ids("stages_mm[]")
-        
-        # Handle new multi-select schools format (comma-separated string)
-        school_ids_str = request.form.get("school_ids", "").strip()
-        if school_ids_str:
-            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
-        else:
-            school_ids_mm = []
-
-        folder.stageid = stage_id_single
-        folder.groupid = group_id_single
-        folder.schoolid = school_id_single
-
-        if not group_id_single and not group_ids_mm:
-            groups = Groups.query.all()
-            group_ids_mm = [group.id for group in groups]
-
-        if not stage_id_single and not stage_ids_mm:
-            stages = Stages.query.all()
-            stage_ids_mm = [stage.id for stage in stages]
-        
-        if not school_id_single and not school_ids_mm:
-            schools = Schools.query.all()
-            school_ids_mm = [school.id for school in schools]
-
-        # Update many-to-many relationships
-        if hasattr(folder, "groups_mm"):
-            folder.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
-        if hasattr(folder, "stages_mm"):
-            folder.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
-        if hasattr(folder, "schools_mm"):
-            folder.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
-
-        db.session.commit()
-
-        new_log = AssistantLogs(
-            assistant_id=current_user.id,
-            action='Edit',
-            log={
-                "action_name": "Edit",
-                "resource_type": "materials_folder",
-                "action_details": {
-                    "id": folder.id,
-                    "title": folder.title,
-                    "summary": f"Materials folder '{folder.title}' was edited."
-                },
-                "data": None,
-                "before": old_data,
-                "after": {
-                    "title": folder.title,
-                    "description": folder.description,
-                    "category": folder.category,
-                    "subjectid": folder.subjectid,
-                    "stages_mm": [s.id for s in folder.stages_mm],
-                    "groups_mm": [g.id for g in folder.groups_mm],
-                    "schools_mm": [s.id for s in folder.schools_mm]
-                }
-            }
-        )
-        db.session.add(new_log)
-        db.session.commit()
-
-        # AJAX response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            folder_data = {
-                "id": folder.id,
-                "title": folder.title,
-                "description": folder.description,
-                "category": folder.category,
-                "subject": folder.subject.name if folder.subject else "N/A",
-                "subject_id": folder.subject.id if folder.subject else None,
-                "schools": ', '.join([s.name for s in folder.schools_mm]) if folder.schools_mm else 'All Schools',
-                "stages": ', '.join([s.name for s in folder.stages_mm]) if folder.stages_mm else 'All Stages',
-                "groups": ', '.join([g.name for g in folder.groups_mm]) if folder.groups_mm else 'All Classes',
-                "material_count": Materials.query.filter_by(folderid=folder.id).count()
-            }
-            return jsonify({"success": True, "message": "Folder updated successfully!", "folder": folder_data})
-
-        flash("Folder updated successfully!", "success")
-        return redirect(url_for("admin.folders"))
-    return render_template("admin/materials/folder_edit.html", folder=folder, groups=groups, stages=stages, schools=schools, subjects=subjects)
-
-@admin.route("/folders/delete/<int:folder_id>", methods=["POST"])
-def delete_folder(folder_id):
-    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
-    if not folder:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": "Folder not found or you don't have permission."}), 404
-        flash("Folder not found or you do not have permission to delete it.", "danger")
-        return redirect(url_for("admin.folders"))
-
-    try:
-        files = Materials.query.filter_by(folderid=folder.id).all()
-        for file in files:
-            file_path = os.path.join("website/material/uploads", file.url)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-            db.session.delete(file)
-            try :
-                storage.delete_file(folder="material/uploads", file_name=file.url)
-            except Exception:
-                pass
-        
-        # Log the action before deleting
-        new_log = AssistantLogs(
-            assistant_id=current_user.id,
-            action='Delete',
-            log={
-                "action_name": "Delete",
-                "resource_type": "materials_folder",
-                "action_details": {
-                    "id": folder.id,
-                    "title": folder.title,
-                    "summary": f"Materials folder '{folder.title}' and all its files were deleted."
-                },
-                "data": None,
-                "before": {
-                    "title": folder.title,
-                    "description": folder.description,
-                    "category": folder.category,
-                    "files_count": len(files)
-                },
-                "after": None
-            }
-        )
-        db.session.add(new_log)
-        db.session.delete(folder)
-        db.session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": True, "message": "Folder and all associated files deleted successfully!"})
-        
-        flash("Folder and all associated files deleted successfully!", "success")
-    except Exception as e:
-        db.session.rollback()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": f"An error occurred while deleting the folder: {str(e)}"}), 500
-        flash(f"An error occurred while deleting the folder: {str(e)}", "danger")
-    return redirect(url_for("admin.folders"))
-
-
-@admin.route("/folders/<int:folder_id>", methods=["GET", "POST"])
-def view_material(folder_id):
-    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
-    if not folder:
-        flash("Folder not found or you do not have permission to view it.", "danger")
-        return redirect(url_for("admin.folders"))
-
-    materials_query = Materials.query.filter_by(folderid=folder_id).order_by(Materials.id.asc())
-
-    if request.method == "POST":
-        title = request.form["title"]
-
-        if 'record_file' not in request.files or request.files["record_file"].filename == '':
-            flash("No file selected.", "danger")
-            return redirect(url_for("admin.view_material", folder_id=folder_id))
-
-
-        file = request.files["record_file"]
-        original_filename = secure_filename(file.filename)
-        file_ext = os.path.splitext(original_filename)[1]
-        unique_filename = f"{uuid.uuid4().hex}{file_ext}"
-        filepath = os.path.join("website/material/uploads", unique_filename)
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        file.save(filepath)
-        with open(filepath, "rb") as f:
-            storage.upload_file(f, folder="material/uploads", file_name=unique_filename)
-        filename = unique_filename  # Ensure the db entry uses the uuid filename
-
-        new_record = Materials(title=title, url=filename, folderid=folder_id)
-        db.session.add(new_record)
-        db.session.commit()
-
-        # Log the action
-        new_log = AssistantLogs(
-            assistant_id=current_user.id,
-            action='Create',
-            log={
-                "action_name": "Create",
-                "resource_type": "material_file",
-                "action_details": {
-                    "id": new_record.id,
-                    "title": new_record.title,
-                    "summary": f"Material file '{new_record.title}' was added to folder '{folder.title}'."
-                },
-                "data": {
-                    "title": new_record.title,
-                    "filename": new_record.url,
-                    "folder_id": new_record.folderid
-                },
-                "before": None,
-                "after": None
-            }
-        )
-        db.session.add(new_log)
-        db.session.commit()
-
-        flash("File added successfully!", "success")
-        return redirect(url_for("admin.view_material", folder_id=folder_id))
-
-    materials = materials_query.all()
-    return render_template("admin/materials/material.html", material=materials, folder=folder)
-
-@admin.route("/material/delete/<int:folder_id>/<int:material_id>", methods=["POST"])
-def delete_material(folder_id, material_id):
-
-    folder = get_item_if_admin_can_manage(Materials_folder, folder_id, current_user)
-    if not folder:
-        flash("Folder not found or you do not have permission to delete it.", "danger")
-        return redirect(url_for("admin.folders"))
-
-
-    material = Materials.query.get_or_404(material_id)
-
-
-
-    file_path = os.path.join("website/material/uploads", material.url)
-
-    # Log the action before deleting
-    new_log = AssistantLogs(
-        assistant_id=current_user.id,
-        action='Delete',
-        log={
-            "action_name": "Delete",
-            "resource_type": "material_file",
-            "action_details": {
-                "id": material.id,
-                "title": material.title,
-                "summary": f"Material file '{material.title}' was deleted."
-            },
-            "data": None,
-            "before": {
-                "title": material.title,
-                "filename": material.url,
-                "folder_id": material.folderid
-            },
-            "after": None
-        }
-    )
-    db.session.add(new_log)
-
-    if os.path.isfile(file_path):
-        try:
-            os.remove(file_path)
-            try :
-                storage.delete_file(folder="material/uploads", file_name=material.url)
-            except Exception:
-                pass
-            flash("Material file deleted from the server.", "info")
-        except Exception as e:
-            flash(f"An error occurred while deleting the file: {str(e)}", "danger")
-
-    db.session.delete(material)
-    db.session.commit()
-    flash("Material deleted successfully!", "success")
-    return redirect(url_for("admin.view_material", folder_id=folder_id))
-
-
-@admin.route("/material/uploads/<int:material_id>")
-def material_media(material_id):
-    material = Materials.query.get_or_404(material_id)
-
-    filename = secure_filename(material.url)
-    file_path = os.path.join("website/material/uploads", filename)
-
-    if os.path.isfile(file_path):
-        return send_from_directory("material/uploads", filename)
-    else :
-        try :
-            storage.download_file(folder="material/uploads", file_name=filename, local_path=file_path)
-        except Exception:
-            flash("File not found", 'warning')
-            return redirect(url_for("admin.view_material", folder_id=material.folderid))
-        return send_from_directory("material/uploads", filename)
     
 #=================================================================
-#Setup Subject , School , Stage , Class (Academic Setup)
+#Setup Groups
 #================================================================= 
 
 @admin.route('/students/setup', methods=['GET', 'POST'])
@@ -5231,890 +4968,6 @@ def delete_entity(item_id):
         flash('Group not found.', 'error')
 
     return redirect(url_for('admin.students_setup'))
-
-
-#===============================================================================
-#Sessions (Sessions have videos)
-#===============================================================================
-
-
-@admin.route('/api/sessions-data', methods=["GET"])
-def sessions_data():
-    sessions_query = get_visible_to_admin_query(Sessions, current_user)
-    sessions = sessions_query.order_by(Sessions.creation_date.desc()).all()
-
-    sessions_list = []
-    for session in sessions:
-        schools_names = [s.name for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
-        groups_names = [g.name for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
-
-        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
-        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
-        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
-
-        # Count videos in this session
-        video_count = Videos.query.filter_by(session_id=session.id).count()
-
-        sessions_list.append({
-            "id": session.id,
-            "title": session.title,
-            "description": session.description,
-            "creation_date": session.creation_date.strftime('%Y-%m-%d %H:%M') if session.creation_date else None,
-            "subject": session.subject.name if session.subject else "N/A",
-            "subject_id": session.subject.id if session.subject else None,
-            "schools": schools_display,
-            "stages": stages_display,
-            "groups": groups_display,
-            "video_count": video_count
-        })
-    
-    return jsonify(sessions_list)
-
-
-@admin.route('/api/session/<int:session_id>', methods=["GET"])
-def get_session_data(session_id):
-    """API endpoint to fetch single session data for editing"""
-    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
-    if not session:
-        return jsonify({"success": False, "message": "Session not found or you do not have permission to view it."}), 404
-
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
-    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
-
-    session_data = {
-        "id": session.id,
-        "title": session.title,
-        "description": session.description,
-        "subject": {
-            "id": session.subject.id if session.subject else None,
-            "name": session.subject.name if session.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
-        "groups_mm": groups_mm,
-    }
-
-    return jsonify({"success": True, "session": session_data})
-
-
-
-
-@admin.route("/sessions", methods=["GET", "POST"])
-def manage_sessions():
-    return "Paused for now"
-    if request.method == "POST":
-
-
-        group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
-
-
-        sessions_query = get_visible_to_admin_query(Sessions, current_user)
-        sessions = sessions_query.order_by(Sessions.creation_date.desc()).all()
-        
-        groups = Groups.query.filter(Groups.id.in_(group_ids_user)).all()
-        stages = Stages.query.filter(Stages.id.in_(stage_ids_user)).all()
-        subjects = Subjects.query.filter(Subjects.id.in_(subject_ids_user)).all()
-
-
-
-
-        subject_school_map = {}
-        for subject in subjects:
-            # For each subject, get its associated schools and format them for JavaScript
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            # Sort schools to put "Online" schools first, then alphabetically
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
-
-
-
-
-
-
-        title = (request.form.get("title") or "").strip()
-        description = (request.form.get("description") or "").strip()
-
-        if not title:
-            flash("Session title is required.", "danger")
-            return redirect(url_for("admin.manage_sessions"))
-
-
-        group_id_single = int_or_none(request.form.get("group"))
-        stage_id_single = int_or_none(request.form.get("stage"))
-        school_id_single = int_or_none(request.form.get("school"))
-        subject_id_single = int_or_none(request.form.get("subject"))
-
-        # Handle multi-selects (matching assignment pattern)
-        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
-        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
-        
-        # Handle new multi-select schools format (comma-separated string)
-        school_ids_str = request.form.get("school_ids", "").strip()
-        if school_ids_str:
-            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
-        else:
-            school_ids_mm = []
-
-
-        if not group_id_single and not group_ids_mm:
-            group_ids_mm = group_ids_user[:] if group_ids_user else [g.id for g in Groups.query.all()]
-        if not stage_id_single and not stage_ids_mm:
-            stage_ids_mm = stage_ids_user[:] if stage_ids_user else [s.id for s in Stages.query.all()]
-            
-        if not school_id_single and not school_ids_mm:
-            # Default school selection logic starts here.
-
-            # Check if a specific subject was selected from the form.
-            subject_id = subject_id_single
-
-            if subject_id and subject_id in subject_school_map:
-                # If a valid subject is selected, assign all schools associated with THAT subject.
-                school_ids_mm = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                # Fallback: If no specific subject was chosen, assign all schools
-                # the user has permission for. This preserves the original "all" behavior
-                # for cases where no subject is specified.
-                if school_ids_user:
-                    school_ids_mm = school_ids_user[:]
-                else:
-                    # Super-admin case: get all unique school IDs from the map
-                    all_school_ids = set()
-                    for schools in subject_school_map.values():
-                        for school in schools:
-                            all_school_ids.add(school['id'])
-                    school_ids_mm = list(all_school_ids)
-
-
-
-
-        if (group_id_single and group_id_single not in group_ids_user) or \
-           (not can_manage(group_ids_mm, group_ids_user)):
-            flash("You do not have permission for one of the selected groups.", "danger")
-            return redirect(url_for("admin.manage_sessions"))
-        if (stage_id_single and stage_id_single not in stage_ids_user) or \
-           (not can_manage(stage_ids_mm, stage_ids_user)):
-            flash("You do not have permission for one of the selected stages.", "danger")
-            return redirect(url_for("admin.manage_sessions"))
-        if (school_id_single and school_id_single not in school_ids_user) or \
-           (not can_manage(school_ids_mm, school_ids_user)):
-            flash("You do not have permission for one of the selected schools.", "danger")
-            return redirect(url_for("admin.manage_sessions"))
-        if subject_id_single:
-            if subject_id_single not in subject_ids_user:
-                flash("You do not have permission for this subject.", "danger")
-                return redirect(url_for("admin.manage_sessions"))
-
-
-    
-
-        try:
-            new_session = Sessions(
-                title=title,
-                description=description,
-                added_by=current_user.id,
-                groupid=group_id_single,
-                stageid=stage_id_single,
-                schoolid=school_id_single,
-                subjectid=subject_id_single
-            )
-            db.session.add(new_session)
-
-
-            if group_ids_mm:
-                new_session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all()
-            if stage_ids_mm:
-                new_session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all()
-            if school_ids_mm:
-                new_session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all()
-
-            db.session.commit() 
-
-
-            if 'thumbnail' in request.files and request.files['thumbnail'].filename != '':
-                thumbnail = request.files['thumbnail']
-                filename = f'session_{new_session.id}.jpg'
-                local_path = os.path.join('website/static/sessions', filename)
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                thumbnail.save(local_path)
-                with open(local_path, "rb") as f:
-                    storage.upload_file(f, folder="sessions", file_name=filename)
-    
-            # AJAX response
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                session_data = {
-                    "id": new_session.id,
-                    "title": new_session.title,
-                    "description": new_session.description,
-                    "creation_date": new_session.creation_date.strftime('%Y-%m-%d %H:%M') if new_session.creation_date else None,
-                    "subject": new_session.subject.name if new_session.subject else "N/A",
-                    "subject_id": new_session.subject.id if new_session.subject else None,
-                    "schools": ', '.join([s.name for s in new_session.schools_mm]) if new_session.schools_mm else 'All Schools',
-                    "stages": ', '.join([s.name for s in new_session.stages_mm]) if new_session.stages_mm else 'All Stages',
-                    "groups": ', '.join([g.name for g in new_session.groups_mm]) if new_session.groups_mm else 'All Classes',
-                    "video_count": 0
-                }
-                return jsonify({"success": True, "message": "Session created successfully!", "session": session_data})
-            
-            flash("Session created successfully!", "success")
-        except Exception as e:
-            db.session.rollback()
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({"success": False, "message": f"Error creating session: {str(e)}"}), 500
-            flash(f"Error creating session: {str(e)}", "danger")
-
-        return redirect(url_for("admin.manage_sessions"))
-
-    return render_template("admin/sessions/manage_sessions.html")
-
-
-@admin.route("/session/<int:session_id>", methods=["GET", "POST"])
-def session_details(session_id):
-    return "Paused for now"
-    """
-    Displays a single session and its videos.
-    Handles adding new videos TO THIS session.
-    """
-    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
-    if not session:
-        flash("Session not found or you don't have permission.", "danger")
-        return redirect(url_for("admin.manage_sessions"))
-
-    if request.method == "POST":
-
-        title = (request.form.get("title") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        video_url = (request.form.get("video_url") or "").strip()
-
-        if not title or not video_url:
-            flash("Video title and URL are required.", "danger")
-            return redirect(url_for("admin.session_details", session_id=session_id))
-
-
-        video_url = re.sub(r'&list=[^&]+', '', video_url)
-        video_url = re.sub(r'\?list=[^&]+$', '', video_url)
-
-        try:
-            new_video = Videos(
-                title=title,
-                description=description,
-                video_url=video_url,
-                session_id=session.id  
-            )
-            db.session.add(new_video)
-            db.session.commit()
-            flash("Video added successfully!", "success")
-        except Exception as e:
-            db.session.rollback()
-            flash(f"Error adding video: {str(e)}", "danger")
-
-        return redirect(url_for("admin.session_details", session_id=session_id))
-
-    return render_template("admin/sessions/session_details.html", session=session)
-
-@admin.route("/session/edit/<int:session_id>", methods=["GET", "POST"])
-def edit_session(session_id):
-    return "Paused for now"
-
-    """
-    Handles editing the details and scope of a session.
-    """
-    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
-    if not session:
-        flash("Session not found or you don't have permission.", "danger")
-        return redirect(url_for("admin.manage_sessions"))
-
-    # Get data needed for both GET and POST
-    group_ids_user, stage_ids_user, school_ids_user, subject_ids_user = get_user_scope_ids()
-    groups = Groups.query.filter(Groups.id.in_(group_ids_user)).all()
-    stages = Stages.query.filter(Stages.id.in_(stage_ids_user)).all()
-    schools = Schools.query.filter(Schools.id.in_(school_ids_user)).all()
-    subjects = Subjects.query.filter(Subjects.id.in_(subject_ids_user)).all()
-
-    if request.method == "POST":
-        session.title = (request.form.get("title") or "").strip()
-        session.description = (request.form.get("description") or "").strip()
-
-        # Update scopes
-        session.groupid = int_or_none(request.form.get("group"))
-        session.stageid = int_or_none(request.form.get("stage"))
-        session.schoolid = int_or_none(request.form.get("school"))
-        session.subjectid = int_or_none(request.form.get("subject"))
-
-        # Handle multi-selects (matching assignment pattern)
-        group_ids_mm  = [int(g) for g in request.form.getlist("groups[]") if g]
-        stage_ids_mm  = [int(s) for s in request.form.getlist("stages[]") if s]
-        
-        # Handle new multi-select schools format (comma-separated string)
-        school_ids_str = request.form.get("school_ids", "").strip()
-        if school_ids_str:
-            school_ids_mm = [int(s.strip()) for s in school_ids_str.split(",") if s.strip()]
-        else:
-            school_ids_mm = []
-
-        if not group_ids_mm:
-            groups = Groups.query.all()
-            group_ids_mm = [group.id for group in groups]
-
-        if not stage_ids_mm:
-            stages = Stages.query.all()
-            stage_ids_mm = [stage.id for stage in stages]
-        
-        if not school_ids_mm:
-            schools = Schools.query.all()
-            school_ids_mm = [school.id for school in schools]
-
-        # Update many-to-many relationships
-        session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids_mm)).all() if group_ids_mm else []
-        session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids_mm)).all() if stage_ids_mm else []
-        session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids_mm)).all() if school_ids_mm else []
-
-        # Handle thumbnail upload
-        if 'thumbnail' in request.files and request.files['thumbnail'].filename != '':
-            thumbnail = request.files['thumbnail']
-            filename = f'session_{session.id}.jpg'
-            local_path = os.path.join('website/static/sessions', filename)
-            os.makedirs(os.path.dirname(local_path), exist_ok=True)
-            thumbnail.save(local_path)
-            with open(local_path, "rb") as f:
-                storage.upload_file(f, folder="sessions", file_name=filename)
-
-        db.session.commit()
-        
-        # AJAX response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            session_data = {
-                "id": session.id,
-                "title": session.title,
-                "description": session.description,
-                "creation_date": session.creation_date.strftime('%Y-%m-%d %H:%M') if session.creation_date else None,
-                "subject": session.subject.name if session.subject else "N/A",
-                "subject_id": session.subject.id if session.subject else None,
-                "schools": ', '.join([s.name for s in session.schools_mm]) if session.schools_mm else 'All Schools',
-                "stages": ', '.join([s.name for s in session.stages_mm]) if session.stages_mm else 'All Stages',
-                "groups": ', '.join([g.name for g in session.groups_mm]) if session.groups_mm else 'All Classes',
-                "video_count": Videos.query.filter_by(session_id=session.id).count()
-            }
-            return jsonify({"success": True, "message": "Session updated successfully!", "session": session_data})
-        
-        flash("Session updated successfully!", "success")
-        return redirect(url_for("admin.manage_sessions"))
-
-    return render_template("admin/sessions/edit_session.html", session=session,
-                           groups=groups, stages=stages, schools=schools, subjects=subjects)
-
-
-@admin.route("/session/<int:session_id>/delete", methods=["POST"])
-def delete_session(session_id):
-    return "Paused for now"
-    """
-    Deletes a session and all its associated videos.
-    """
-    session = get_item_if_admin_can_manage(Sessions, session_id, current_user)
-    if not session:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": "Session not found or you don't have permission."}), 404
-        flash("Session not found or you don't have permission.", "danger")
-        return redirect(url_for("admin.manage_sessions"))
-
-    try:
-        filename = f'session_{session.id}.jpg'
-        local_path = os.path.join('website/static/sessions', filename)
-        if os.path.exists(local_path):
-            os.remove(local_path)
-        storage.delete_file(folder="sessions", file_name=filename)
-
-        db.session.delete(session)
-        db.session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": True, "message": "Session and all its videos were deleted."})
-        
-        flash("Session and all its videos were deleted.", "success")
-    except Exception as e:
-        db.session.rollback()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": f"Error deleting session: {str(e)}"}), 500
-        flash(f"Error deleting session: {str(e)}", "danger")
-
-    return redirect(url_for("admin.manage_sessions"))
-
-
-#=================================================================
-#Video Management Routes (Updated)
-#=================================================================
-
-@admin.route("/videos/edit/<int:video_id>", methods=["GET", "POST"])
-def manage_videos(video_id):
-    return "Paused for now"
-
-    """
-    Edits an individual video. Now redirects back to its parent session.
-    Scope management is removed as it's handled by the session.
-    """
-    video = get_item_if_admin_can_manage(Videos, video_id, current_user)
-    if not video:
-        flash("Video not found or you do not have permission to edit it.", "danger")
-        return redirect(url_for("admin.manage_sessions")) # Fallback redirect
-
-    if request.method == "POST":
-        video.title = (request.form.get("title") or "").strip()
-        video.description = (request.form.get("description") or "").strip()
-        video.video_url = (request.form.get("video_url") or "").strip()
-
-        if not video.title or not video.video_url:
-            flash("Title and video URL are required.", "danger")
-            return redirect(url_for("admin.edit_video", video_id=video_id))
-
-
-        
-        db.session.commit()
-
-        flash("Video updated successfully!", "success")
-        return redirect(url_for("admin.session_details", session_id=video.session_id))
-
-    return render_template("admin/edit_video.html", video=video)
-
-
-@admin.route("/videos/<int:video_id>/delete", methods=["POST"])
-def delete_video(video_id):
-    return "Paused for now"
-
-    """
-    Deletes a single video. Now redirects back to its parent session.
-    """
-    video = get_item_if_admin_can_manage(Videos, video_id, current_user)
-    if not video:
-        flash("Video not found or you do not have permission to delete it.", "danger")
-        return redirect(url_for("admin.manage_sessions")) 
-
-    session_id_redirect = video.session_id
-
-
-    db.session.delete(video)
-    db.session.commit()
-    flash("Video deleted successfully!", "success")
-    return redirect(url_for("admin.session_details", session_id=session_id_redirect))
-
-@admin.route("/videos/play/<int:video_id>")
-def play_videos(video_id):
-    return "Paused for now"
-
-    video = Videos.query.get_or_404(video_id)
-    return render_template("admin/video_play.html", video=video)
-
-#=================================================================
-#Attendance
-#=================================================================
-
-def get_qualified_students_for_attendance_session(session):
-    """
-    Returns a list of students qualified for this attendance session.
-    Uses MM relationships if present, else legacy FKs, else global.
-    """
-    base_filters = [
-        Users.role == "student",
-        Users.code != 'nth',
-        Users.code != 'Nth',
-    ]
-
-    mm_group_ids  = [g.id for g in getattr(session, "groups_mm", [])]
-    mm_stage_ids  = [s.id for s in getattr(session, "stages_mm", [])]
-    mm_school_ids = [s.id for s in getattr(session, "schools_mm", [])]
-
-    filters = list(base_filters)
-
-    if mm_group_ids:
-        filters.append(Users.groupid.in_(mm_group_ids))
-    elif session.groupid:
-        filters.append(Users.groupid == session.groupid)
-
-    if mm_stage_ids:
-        filters.append(Users.stageid.in_(mm_stage_ids))
-    elif session.stageid:
-        filters.append(Users.stageid == session.stageid)
-
-    if mm_school_ids:
-        filters.append(Users.schoolid.in_(mm_school_ids))
-    elif session.schoolid:
-        filters.append(Users.schoolid == session.schoolid)
-
-    if getattr(session, "subjectid", None):
-        filters.append(Users.subjectid == session.subjectid)
-
-    return Users.query.filter(and_(*filters)).all()
-
-
-@admin.route('/api/attendance-data', methods=["GET"])
-def attendance_data():
-    return "Paused for now"
-
-    attendance_query = get_visible_to_admin_query(Attendance_session, current_user)
-    sessions = attendance_query.order_by(Attendance_session.session_date.desc()).all()
-
-    sessions_list = []
-    for session in sessions:
-        schools_names = [s.name for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
-        stages_names = [s.name for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
-        groups_names = [g.name for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
-
-        schools_display = ', '.join(schools_names) if schools_names else 'All Schools'
-        stages_display = ', '.join(stages_names) if stages_names else 'All Stages'
-        groups_display = ', '.join(groups_names) if groups_names else 'All Classes'
-
-        # Calculate stats
-        qualified_students = get_qualified_students_for_attendance_session(session)
-        num_entitled = len(qualified_students)
-        
-        # Count students marked as present (attendance_status = 'present')
-        num_present = Attendance_student.query.filter_by(
-            attendance_session_id=session.id,
-            attendance_status='present'
-        ).count()
-        
-        # Count students marked as absent (attendance_status = 'absent')
-        num_absent = Attendance_student.query.filter_by(
-            attendance_session_id=session.id,
-            attendance_status='absent'
-        ).count()
-
-        sessions_list.append({
-            "id": session.id,
-            "title": session.title,
-            "session_date": session.session_date.strftime('%Y-%m-%d %I:%M %p') if session.session_date else None,
-            "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
-            "subject": session.subject.name if session.subject else "N/A",
-            "subject_id": session.subject.id if session.subject else None,
-            "schools": schools_display,
-            "stages": stages_display,
-            "groups": groups_display,
-            "stats": {
-                "present": num_present,
-                "absent": num_absent,
-                "total": num_entitled
-            },
-            "points": session.points,
-        })
-    
-    return jsonify(sessions_list)
-
-
-@admin.route('/api/attendance/<int:session_id>', methods=["GET"])
-def get_attendance_data(session_id):
-    return "Paused for now"
-
-    """API endpoint to fetch single attendance session data for editing"""
-    session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
-    if not session:
-        return jsonify({"success": False, "message": "Attendance session not found or you do not have permission to view it."}), 404
-
-    schools_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'schools_mm', [])] if getattr(session, 'schools_mm', None) else []
-    stages_mm = [{"id": s.id, "name": s.name} for s in getattr(session, 'stages_mm', [])] if getattr(session, 'stages_mm', None) else []
-    groups_mm = [{"id": g.id, "name": g.name} for g in getattr(session, 'groups_mm', [])] if getattr(session, 'groups_mm', None) else []
-
-    session_data = {
-        "id": session.id,
-        "title": session.title,
-        "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
-        "subject": {
-            "id": session.subject.id if session.subject else None,
-            "name": session.subject.name if session.subject else None
-        },
-        "schools_mm": schools_mm,
-        "stages_mm": stages_mm,
-        "groups_mm": groups_mm,
-    }
-
-    return jsonify({"success": True, "session": session_data})
-
-
-
-
-
-
-
-
-
-@admin.route("/attendance", methods=["GET", "POST"])
-def attendance():
-
-    return "Paused for now"
-
-
-
-    if request.method == "POST":
-
-
-        attendance_query = get_visible_to_admin_query(Attendance_session, current_user)
-
-        groups = Groups.query.filter(Groups.id.in_([g.id for g in current_user.managed_groups])).all()
-        stages = Stages.query.filter(Stages.id.in_([s.id for s in current_user.managed_stages])).all()
-        schools = Schools.query.filter(Schools.id.in_([s.id for s in current_user.managed_schools])).all()
-        subjects = Subjects.query.filter(Subjects.id.in_([s.id for s in current_user.managed_subjects])).all()
-
-        subject_school_map = {}
-        for subject in subjects:
-            # For each subject, get its associated schools and format them for JavaScript
-            schools_list = [{"id": school.id, "name": school.name} for school in subject.schools]
-            # Sort schools to put "Online" schools first, then alphabetically
-            schools_list.sort(key=lambda school: (0 if "Online" in school["name"] else 1, school["name"].lower()))
-            subject_school_map[subject.id] = schools_list
-
-
-
-
-
-
-        # Create a new attendance session
-        title = request.form.get("title")
-        group_ids = request.form.getlist("groups[]")
-        stage_ids = request.form.getlist("stages[]")
-        school_ids = request.form.getlist("schools[]")
-        subject_id = request.form.get("subject_id")
-        points_raw = request.form.get("points", 0)
-        points = int(points_raw) if str(points_raw).isdigit() else 0
-
-        try :
-            subject_id = int(subject_id)
-        except ValueError:
-            flash("Invalid subject.", "danger")
-            return redirect(url_for("admin.attendance"))
-
-        if not group_ids:
-            group_ids = [g.id for g in groups]
-        if not stage_ids:
-            stage_ids = [s.id for s in stages]
-
-        if not school_ids:
-            if subject_id and subject_id in subject_school_map:
-                school_ids = [school['id'] for school in subject_school_map[subject_id]]
-            else:
-                flash("Choose a subject" , "danger")
-                return redirect(url_for("admin.attendance"))
-        if not subject_id:
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.attendance"))
-
-
-
-        if group_ids:
-            if not can_manage(group_ids, [g.id for g in groups]):
-                flash("You are not allowed to post to one or more selected groups.", "danger")
-                return redirect(url_for("admin.attendance"))
-
-        if stage_ids:
-            if not can_manage(stage_ids, [s.id for s in stages]):
-                flash("You are not allowed to post to one or more selected stages.", "danger")
-                return redirect(url_for("admin.attendance"))
-
-        if school_ids:
-            if not can_manage(school_ids, [s.id for s in schools]):
-                flash("You are not allowed to post to one or more selected schools.", "danger")
-                return redirect(url_for("admin.attendance"))
-
-        if subject_id:
-            if subject_id not in [s.id for s in subjects]:
-                flash("You are not allowed to post to this subject.", "danger")
-                return redirect(url_for("admin.attendance"))
-
-        try:
-            session_date = parse_deadline(request.form.get("session_date", ""))
-        except (TypeError, ValueError):
-            flash("Invalid deadline date. Please use the datetime picker.", "error")
-            return redirect(url_for("admin.attendance"))
-
-        new_session = Attendance_session(
-            title=title,
-            session_date=session_date,
-            subjectid=subject_id,
-            points=points,
-        )
-        db.session.add(new_session)
-
-        if group_ids:
-            new_session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        if stage_ids:
-            new_session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all()
-        if school_ids:
-            new_session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all()
-
-        db.session.commit()
-        
-        # AJAX response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # Calculate stats
-            qualified_students = get_qualified_students_for_attendance_session(new_session)
-            num_entitled = len(qualified_students)
-            num_marked = Attendance_student.query.filter_by(attendance_session_id=new_session.id).count()
-            
-            session_data = {
-                "id": new_session.id,
-                "title": new_session.title,
-                "session_date": new_session.session_date.strftime('%Y-%m-%d %I:%M %p') if new_session.session_date else None,
-                "session_date_iso": new_session.session_date.strftime('%Y-%m-%dT%H:%M') if new_session.session_date else None,
-                "subject": new_session.subject.name if new_session.subject else "N/A",
-                "subject_id": new_session.subject.id if new_session.subject else None,
-                "schools": ', '.join([s.name for s in new_session.schools_mm]) if new_session.schools_mm else 'All Schools',
-                "stages": ', '.join([s.name for s in new_session.stages_mm]) if new_session.stages_mm else 'All Stages',
-                "groups": ', '.join([g.name for g in new_session.groups_mm]) if new_session.groups_mm else 'All Classes',
-                "stats": {
-                    "present": num_marked,
-                    "absent": num_entitled - num_marked,
-                    "total": num_entitled
-                },
-                "points": new_session.points,
-            }
-            return jsonify({"success": True, "message": "Attendance session created successfully!", "session": session_data})
-        
-        flash("Attendance session created.", "success")
-        return redirect(url_for("admin.attendance"))
-
-
-
-    return render_template(
-        "admin/attendance/attendance.html")
-
-@admin.route("/attendance/edit/<int:session_id>", methods=["GET", "POST"])
-def edit_attendance_session(session_id):
-    return "Paused for now"
-
-    session = get_item_if_admin_can_manage(Attendance_session, session_id, current_user)
-
-    if not session:
-        flash("Attendance session not found or you do not have permission to edit it.", "danger")
-        return redirect(url_for("admin.attendance"))
-
-    groups = Groups.query.all()
-    stages = Stages.query.all()
-    schools = Schools.query.all()
-    subjects = Subjects.query.all()
-
-    if request.method == "POST":
-        session.title = request.form.get("title")
-        session_date = request.form.get("session_date")
-        group_ids = request.form.getlist("groups[]")
-        stage_ids = request.form.getlist("stages[]")
-        school_ids_str = request.form.get("school_ids", "")
-        school_ids = [id.strip() for id in school_ids_str.split(",") if id.strip()]
-        subject_id = request.form.get("subject_id")
-
-        try:
-            session_date = parse_deadline(request.form.get("session_date", ""))
-        except (TypeError, ValueError):
-            flash("Invalid deadline date. Please use the datetime picker.", "error")
-            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
-
-        if not group_ids:
-            group_ids = [g.id for g in groups]
-        if not stage_ids:
-            stage_ids = [s.id for s in stages]
-        if not school_ids:
-            school_ids = [s.id for s in schools]
-        if not subject_id:
-            flash("You must select a subject.", "danger")
-            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
-
-        try :
-            subject_id = int(subject_id)
-        except ValueError:
-            flash("Invalid subject.", "danger")
-            return redirect(url_for("admin.edit_attendance_session", session_id=session_id))
-
-        session.session_date = session_date
-        session.subjectid = subject_id
-        session.groups_mm = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        session.stages_mm = Stages.query.filter(Stages.id.in_(stage_ids)).all() 
-        session.schools_mm = Schools.query.filter(Schools.id.in_(school_ids)).all() 
-
-        db.session.commit()
-        
-        # AJAX response
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            # Calculate stats
-            qualified_students = get_qualified_students_for_attendance_session(session)
-            num_entitled = len(qualified_students)
-            num_marked = Attendance_student.query.filter_by(attendance_session_id=session.id).count()
-            
-            session_data = {
-                "id": session.id,
-                "title": session.title,
-                "session_date": session.session_date.strftime('%Y-%m-%d %I:%M %p') if session.session_date else None,
-                "session_date_iso": session.session_date.strftime('%Y-%m-%dT%H:%M') if session.session_date else None,
-                "subject": session.subject.name if session.subject else "N/A",
-                "subject_id": session.subject.id if session.subject else None,
-                "schools": ', '.join([s.name for s in session.schools_mm]) if session.schools_mm else 'All Schools',
-                "stages": ', '.join([s.name for s in session.stages_mm]) if session.stages_mm else 'All Stages',
-                "groups": ', '.join([g.name for g in session.groups_mm]) if session.groups_mm else 'All Classes',
-                "stats": {
-                    "present": num_marked,
-                    "absent": num_entitled - num_marked,
-                    "total": num_entitled
-                }
-            }
-            return jsonify({"success": True, "message": "Attendance session updated successfully!", "session": session_data})
-        
-        flash("Attendance session updated.", "success")
-        return redirect(url_for("admin.attendance"))
-
-    return render_template("admin/attendance/edit_session.html", session=session, groups=groups, stages=stages, schools=schools, subjects=subjects)
-
-@admin.route("/attendance/delete/<int:session_id>", methods=["POST"])
-def delete_attendance_session(session_id):
-    return "Paused for now"
-
-    session = Attendance_session.query.get_or_404(session_id)
-    students = session.attendance_student.all()
-    try:
-        for student in students:
-            #delete points
-            student.student.points = student.student.points - session.points
-            db.session.commit()
-            db.session.delete(student)
-        db.session.delete(session)
-        db.session.commit()
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": True, "message": "Attendance session deleted successfully!"})
-        
-        flash("Attendance session deleted.", "success")
-    except Exception as e:
-        db.session.rollback()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({"success": False, "message": f"Error deleting session: {str(e)}"}), 500
-        flash(f"Error deleting session: {str(e)}", "danger")
-    
-    return redirect(url_for("admin.attendance"))
-
-@admin.route("/attendance/<int:session_id>", methods=["GET", "POST"])
-def attendance_session_detail(session_id):
-    return "Paused for now"
-
-    session = Attendance_session.query.get_or_404(session_id)
-    students = get_qualified_students_for_attendance_session(session)
-
-    if request.method == "POST":
-        for student in students:
-            status = request.form.get(f"status_{student.id}", "absent")
-            record = Attendance_student.query.filter_by(attendance_session_id=session.id, student_id=student.id).first()
-            if not record:
-                record = Attendance_student(attendance_session_id=session.id, student_id=student.id)
-                db.session.add(record)
-            record.attendance_status = status
-        db.session.commit()
-        flash("Attendance updated.", "success")
-        return redirect(url_for("admin.attendance_session_detail", session_id=session.id))
-
-    # Separate students with and without attendance records
-    attendance_records = {a.student_id: a.attendance_status for a in Attendance_student.query.filter_by(attendance_session_id=session.id).all()}
-    students_without_records = [s for s in students if s.id not in attendance_records]
-    students_with_records = [s for s in students if s.id in attendance_records]
-    
-    return render_template("admin/attendance/session_detail.html", 
-                         session=session, 
-                         students_without_records=students_without_records,
-                         students_with_records=students_with_records,
-                         attendance_map=attendance_records)
 
 
 #=================================================================
@@ -6389,30 +5242,44 @@ def view_exam_submissions(exam_id):
                 
                 # Send WhatsApp notifications immediately
                 try:
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        (
-                            f"Hi *{submission.student.name}*👋,\n\n"
-                            f"*{exam.title}*\n"
-                            "We have received your quiz submission ✅\n\n"
-                            "Thank you for your dedication! ☺"
-                        )
-                    )
+                    #ss
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Exam", name=exam.title, 
+                        date=exam.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=exam.out_of)
+                       
+                       
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Exam", 
+                        name=exam.title, 
+                        date=exam.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=exam.out_of)
 
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        (
-                            f"Dear Parent,\n"
-                            f"*{submission.student.name}*\n\n"
-                            f"Quiz *{exam.title}* on "
-                            f"{exam.deadline_date.strftime('%d/%m/%Y') if exam.deadline_date else 'N/A'} correction is returned on the student's account on website\n\n"
-                            f"Scored *{submission.mark if submission.mark else 'N/A'}* / "
-                            f"{exam.out_of if hasattr(exam, 'out_of') else 'N/A'}\n\n"
-                            f"Dr. Adham will send the gradings on the group\n"
-                            f"_For further inquiries send to Dr. Adham_"
-                        )
-                    )
-                
+                    else :
+
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Exam", 
+                        name=exam.title, 
+                        date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Exam",
+                        name=exam.title, 
+                        date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
                 except:
                     pass
                 
@@ -6544,22 +5411,23 @@ def send_late_message_for_submission_exam(assignment_id, student_id):
 
     try:
 
-        send_whatsapp_message(student.phone_number, 
-            f"HI *{student.name}*\n\n"
-            f"*{assignment.title}*\n"
-            f"Submission is missing\n"
-            f"Didn't submit\n\n"
-            f"Please take care to submit your future assignments"
-        )
-        student_late_message_sent = True
+        send_parent_missing(
+         phone_number=student.parent_phone_number,
+         student_name=student.name, 
+         type="Assignment", 
+         name=assignment.title, 
+         date=assignment.deadline_date.strftime('%d/%m/%Y'))
 
-        send_whatsapp_message(
-            student.parent_phone_number,
-            f"Dear Parent,\n"
-            f"*{student.name}*\n\n"
-            f"Quiz *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if hasattr(assignment, 'deadline_date') and assignment.deadline_date else 'N/A'}*: Did not submit\n\n"
-            f"_For further inquiries send to Dr. Adham_"
-        )
+
+
+        send_student_missing(
+         phone_number=student.phone_number,
+         type="Assignment", 
+         name=assignment.title, 
+         date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+        student_late_message_sent = True
         parent_late_message_sent = True
         # Record the sent message
         if student_late_message_sent or parent_late_message_sent:
@@ -6620,25 +5488,24 @@ def bulk_send_reminders_exams(exam_id):
             continue
         
         try:
-            # Send to student
-            if student.student_whatsapp:
-                send_whatsapp_message(student.phone_number, 
-                    f"HI *{student.name}*\n\n"
-                    f"*{exam.title}*\n"
-                    f"Submission is missing\n"
-                    f"Didn't submit\n\n"
-                    f"Please take care to submit your future assignments"
-                )
-            
-            # Send to parent
-            if student.parent_whatsapp:
-                send_whatsapp_message(
-                    student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{student.name}*\n\n"
-                    f"Quiz *{exam.title}* due on *{exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'}*: Did not submit\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
+
+            send_parent_missing(
+            phone_number=student.parent_phone_number,
+            student_name=student.name, 
+            type="Exam", 
+            name=exam.title, 
+            date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+            send_student_missing(
+            phone_number=student.phone_number,
+            type="Exam", 
+            name=exam.title, 
+            date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+
             
             # Record the sent message
             if existing_notification:
@@ -6732,26 +5599,25 @@ def send_reminders_by_range_exams(exam_id):
             continue
         
         try:
-            # Send to student
-            if student.student_whatsapp:
-                send_whatsapp_message(student.phone_number, 
-                    f"HI *{student.name}*\n\n"
-                    f"*{exam.title}*\n"
-                    f"Submission is missing\n"
-                    f"Didn't submit\n\n"
-                    f"Please take care to submit your future assignments"
-                )
-            
-            # Send to parent
-            if student.parent_whatsapp:
-                send_whatsapp_message(
-                    student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{student.name}*\n\n"
-                    f"Quiz *{exam.title}* due on *{exam.deadline_date.strftime('%d/%m/%Y') if hasattr(exam, 'deadline_date') and exam.deadline_date else 'N/A'}*: Did not submit\n\n"
-                    f"_For further inquiries send to Dr. Adham_"
-                )
-            
+
+
+            send_parent_missing(
+            phone_number=student.parent_phone_number,
+            student_name=student.name, 
+            type="Exam", 
+            name=exam.title, 
+            date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+
+            send_student_missing(
+            phone_number=student.phone_number,
+            type="Essignment", 
+            name=exam.title, 
+            date=exam.deadline_date.strftime('%d/%m/%Y'))
+
+
+
             # Record the sent message
             if existing_notification:
                 existing_notification.message_sent = True
@@ -7644,89 +6510,6 @@ def account():
     return render_template('admin/account.html', student_count=student_count)
 
 
-
-#=================================================================
-#Leaderboard
-#=================================================================
-
-
-@admin.route('/leaderboard', methods=['GET'])
-def leaderboard():
-    return "Paused for now"
-
-    # Pagination parameters
-    try:
-        page = int(request.args.get('page', 1))
-        if page < 1:
-            page = 1
-    except ValueError:
-        page = 1
-    per_page = 30  # You can adjust this as needed
-
-    # Get filter parameters
-    school_id = request.args.get('school', type=int)
-    stage_id = request.args.get('grade', type=int)
-    group_id = request.args.get('class', type=int)
-    subject_id = request.args.get('subject', type=int)
-
-    # Get all schools, stages, groups, and subjects for filtering/sorting
-    schools = Schools.query.all()
-    stages = Stages.query.all()
-    groups = Groups.query.all()
-    subjects = Subjects.query.all()
-
-    # Get all students, sorted by points descending, with optional filters
-    users_query = Users.query.filter(
-        (Users.role == 'student') & (Users.code != 'nth') & (Users.code != 'Nth')
-    )
-
-    # Only show students the user manages
-    if current_user.role == "admin":
-        group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
-        users_query = users_query.filter(
-            Users.groupid.in_(group_ids),
-            Users.stageid.in_(stage_ids),
-            Users.schoolid.in_(school_ids),
-            Users.subjectid.in_(subject_ids)
-        )
-
-    # Apply filters if provided
-    if school_id:
-        users_query = users_query.filter(Users.schoolid == school_id)
-    if stage_id:
-        users_query = users_query.filter(Users.stageid == stage_id)
-    if group_id:
-        users_query = users_query.filter(Users.groupid == group_id)
-    if subject_id:
-        users_query = users_query.filter(Users.subjectid == subject_id)
-
-    users_query = users_query.order_by(Users.points.desc())
-    total_users = users_query.count()
-    users = users_query.offset((page - 1) * per_page).limit(per_page).all()
-
-    # Calculate total pages
-    total_pages = (total_users + per_page - 1) // per_page
-
-    # Pass all users and filter data to the template, along with pagination info
-    return render_template(
-        'admin/leaderboard.html',
-        users=users,
-        schools=schools,
-        stages=stages,
-        groups=groups,
-        subjects=subjects,
-        page=page,
-        per_page=per_page,
-        total_users=total_users,
-        total_pages=total_pages,
-        selected_school=school_id,
-        selected_stage=stage_id,
-        selected_group=group_id,
-        selected_subject=subject_id
-    )
-
-
-
 #=================================================================
 #Whatsapp
 #=================================================================
@@ -7746,49 +6529,6 @@ def whatsapp():
         Users.parent_whatsapp != ''
     ).count()
 
-    if request.method == 'POST':
-        subject_id = request.form.get('subject_id', type=int)
-        school_id = request.form.get('school_id', type=int)
-        stage_id = request.form.get('stage_id', type=int)
-        group_id = request.form.get('group_id', type=int)
-        message = request.form.get('message', '')
-
-        # Query all students matching the filters
-        query = Users.query.filter(
-            db.and_(
-                Users.role == 'student',
-                Users.role != 'Nth',
-                Users.role != 'nth'
-            )
-        )
-        if subject_id:
-            query = query.filter(Users.subjectid == subject_id)
-        if school_id:
-            query = query.filter(Users.schoolid == school_id)
-        if stage_id:
-            query = query.filter(Users.stageid == stage_id)
-        if group_id:
-            query = query.filter(Users.groupid == group_id)
-
-        students = query.all()
-        sent_count = 0
-        for student in students:
-            # Send to student if they have WhatsApp
-            if student.student_whatsapp and student.student_whatsapp.strip():
-                try:
-                    send_whatsapp_message(student.student_whatsapp, message)
-                    sent_count += 1
-                except Exception as e:
-                    pass  # Optionally log error
-            # Send to parent if they have WhatsApp
-            if student.parent_whatsapp and student.parent_whatsapp.strip():
-                try:
-                    send_whatsapp_message(student.parent_whatsapp, message)
-                    sent_count += 1
-                except Exception as e:
-                    pass  # Optionally log error
-
-        return jsonify({"success": True, "message": f"Message sent to {sent_count} WhatsApp recipients (students and parents)."})
 
     return render_template(
         'admin/whatsapp.html',
@@ -7796,56 +6536,7 @@ def whatsapp():
         parent_with_whatsapp_count=parent_with_whatsapp_count
     )
 
-@admin.route('/api/filters/recipients_count')
-def api_recipients_count():
-    """
-    Returns the count of students matching the selected subject, school, stage, and group,
-    and who have a WhatsApp number (either student or parent).
-    """
-    subject_id = request.args.get('subject_id', type=int)
-    school_id = request.args.get('school_id', type=int)
-    stage_id = request.args.get('stage_id', type=int)
-    group_id = request.args.get('group_id', type=int)
 
-    query = Users.query.filter(
-        db.and_(
-            Users.role != 'Nth',
-            Users.role != 'nth',
-            Users.role == 'student'
-        )
-    )
-
-    if subject_id:
-        query = query.filter(Users.subjectid == subject_id)
-    if school_id:
-        query = query.filter(Users.schoolid == school_id)
-    if stage_id:
-        query = query.filter(Users.stageid == stage_id)
-    if group_id:
-        query = query.filter(Users.groupid == group_id)
-
-
-    should_receive = query.filter(
-        db.or_(
-            db.and_(Users.phone_number.isnot(None), Users.phone_number != ''),
-            db.and_(Users.parent_phone_number.isnot(None), Users.parent_phone_number != '')
-        )
-    )
-
-
-    # Only count students with at least one WhatsApp number
-    query = query.filter(
-        db.or_(
-            db.and_(Users.student_whatsapp.isnot(None), Users.student_whatsapp != ''),
-            db.and_(Users.parent_whatsapp.isnot(None), Users.parent_whatsapp != '')
-        )
-    )
-
-
-
-    count = query.distinct().count()
-    should_receive_count = should_receive.distinct().count()
-    return jsonify({"count": count, "should_receive_count": should_receive_count})
 
 
 #=================================================================
@@ -7945,198 +6636,15 @@ def whatsapp_messages():
     )
 
 
-
 #=================================================================
-# Critical Students Page (Based on "Exam" Assignments <60%) & Missing Assignments >=2
+#Upload Status (Spy Only)
 #=================================================================
-
-
-@admin.route("/critical/students")
-def critical_students():
-    # Just load the HTML; the data is provided via AJAX from the API route.
-    return render_template(
-        "admin/critical_students.html",
-        critical_exam_students=[],
-        critical_assignment_students=[]
-    )
-
-
-
-
-
-
-    
-@admin.route("/critical/api")
-def critical_students_api():
-    return "Paused for now"
-
-    """
-    API endpoint: Detect critical students (low exam % and missing assignments), JSON response.
-    Uses efficient single queries and robust type checking to avoid errors.
-    Filters by assignments where the admin manages the subject AND school AND group AND stage.
-    """
-    
-    # Get current user's managed scope
-    group_ids, stage_ids, school_ids, subject_ids = get_user_scope_ids()
-    
-    # =====================================================================
-    # 1. Students with <60% in any Exam (Corrected AND Logic)
-    # =====================================================================
-    critical_exam_students = []
-
-    # If admin doesn't manage at least one of each category, they can't see anything.
-    if all([group_ids, stage_ids, school_ids, subject_ids]):
-        # Build base query for failing submissions
-        failing_submissions_query = Submissions.query.join(
-            Assignments, Submissions.assignment_id == Assignments.id
-        ).join(
-            Users, Submissions.student_id == Users.id
-        ).filter(
-            and_(
-                Users.role == "student",
-                Assignments.type == "Exam",
-                Assignments.out_of > 0,
-                Submissions.mark.isnot(None),
-                Submissions.mark.op('~')(r'^[0-9]+(\.[0-9]+)?$'), 
-                (cast(Submissions.mark, Float) / Assignments.out_of * 100) < 60
-            )
-        )
-        
-        # Build the strict AND filters for the admin's scope
-        subject_filter = Assignments.subjectid.in_(subject_ids)
-        
-        school_filter = or_(
-            Assignments.schoolid.in_(school_ids),
-            Assignments.schools_mm.any(Schools.id.in_(school_ids))
-        )
-        
-        group_filter = or_(
-            Assignments.groupid.in_(group_ids),
-            Assignments.groups_mm.any(Groups.id.in_(group_ids))
-        )
-        
-        stage_filter = or_(
-            Assignments.stageid.in_(stage_ids),
-            Assignments.stages_mm.any(Stages.id.in_(stage_ids))
-        )
-
-        # Apply all scope filters with AND
-        failing_submissions_query = failing_submissions_query.filter(
-            and_(subject_filter, school_filter, group_filter, stage_filter)
-        )
-        
-        failing_submissions = failing_submissions_query.all()
-
-        for sub in failing_submissions:
-            student = sub.student
-            assignment = sub.assignment
-            
-            student_mark = float(sub.mark)
-            full_mark = float(assignment.out_of)
-            percent = (student_mark / full_mark) * 100
-            
-            critical_exam_students.append({
-                "student_id": student.id,
-                "student_name": student.name,
-                "exam_title": assignment.title,
-                "student_mark": student_mark,
-                "full_mark": full_mark,
-                "percent": round(percent, 2),
-                "school_id": student.schoolid,
-                "subject_id": student.subjectid,
-            })
-
-    # =====================================================================
-    # 2. Students who missed 2+ Assignments (Optimized and Corrected)
-    # =====================================================================
-    critical_assignment_students = []
-    
-    # Proceed only if the admin has a valid scope
-    if all([group_ids, stage_ids, school_ids, subject_ids]):
-        # Step 1: Get all assignments matching the admin's strict AND scope ONCE
-        subject_filter = Assignments.subjectid.in_(subject_ids)
-        school_filter = or_(Assignments.schoolid.in_(school_ids), Assignments.schools_mm.any(Schools.id.in_(school_ids)))
-        group_filter = or_(Assignments.groupid.in_(group_ids), Assignments.groups_mm.any(Groups.id.in_(group_ids)))
-        stage_filter = or_(Assignments.stageid.in_(stage_ids), Assignments.stages_mm.any(Stages.id.in_(stage_ids)))
-        
-        scoped_hws = Assignments.query.filter(
-            Assignments.type == "Assignment",
-            and_(subject_filter, school_filter, group_filter, stage_filter)
-        ).all()
-
-        if scoped_hws:
-            # Step 2: Get all students within the admin's broad OR scope
-            students_query = Users.query.filter(Users.role == "student").filter(
-                or_(
-                    Users.groupid.in_(group_ids),
-                    Users.stageid.in_(stage_ids),
-                    Users.schoolid.in_(school_ids),
-                    Users.subjectid.in_(subject_ids)
-                )
-            )
-            all_students = students_query.all()
-
-            # Step 3: Get all relevant submissions in a single query
-            student_ids = [s.id for s in all_students]
-            assignment_ids = [a.id for a in scoped_hws]
-            all_submissions = Submissions.query.filter(
-                Submissions.student_id.in_(student_ids),
-                Submissions.assignment_id.in_(assignment_ids)
-            ).all()
-
-            # Map submissions to students for fast lookup
-            submissions_by_student = {}
-            for sub in all_submissions:
-                submissions_by_student.setdefault(sub.student_id, set()).add(sub.assignment_id)
-            
-            # Step 4: Process in Python (NO more database queries in the loop)
-            for student in all_students:
-                # For each student, determine which of the scoped assignments they should see
-                visible_hws = []
-                for hw in scoped_hws:
-                    # An assignment is visible if its targets match the student's profile.
-                    # An empty target list (e.g., no specific groups) means it's visible to all.
-                    g_targets = {g.id for g in hw.groups_mm} | ({hw.groupid} if hw.groupid else set())
-                    s_targets = {s.id for s in hw.stages_mm} | ({hw.stageid} if hw.stageid else set())
-                    sch_targets = {s.id for s in hw.schools_mm} | ({hw.schoolid} if hw.schoolid else set())
-                    
-                    group_match = (not g_targets) or (student.groupid in g_targets)
-                    stage_match = (not s_targets) or (student.stageid in s_targets)
-                    school_match = (not sch_targets) or (student.schoolid in sch_targets)
-                    subject_match = (hw.subjectid is None) or (student.subjectid == hw.subjectid)
-
-                    if group_match and stage_match and school_match and subject_match:
-                        visible_hws.append(hw)
-                
-                if not visible_hws:
-                    continue
-
-                total_hw = len(visible_hws)
-                submitted_ids = submissions_by_student.get(student.id, set())
-                done = sum(1 for hw in visible_hws if hw.id in submitted_ids)
-                missing = total_hw - done
-                
-                if missing >= 2:
-                    critical_assignment_students.append({
-                        "student_id": student.id,
-                        "student_name": student.name,
-                        "total_assignments": total_hw,
-                        "completed_assignments": done,
-                        "missing_assignments": missing
-                    })
-
-    # =====================================================================
-    # Final JSON Response
-    # =====================================================================
-    return jsonify({
-        "critical_exam_students": critical_exam_students,
-        "critical_assignment_students": critical_assignment_students
-    })
-
-
-#Upload status 
 @admin.route("/upload/status")
 def upload_status():
+    if current_user.role != "super_admin":
+        flash("You are not allowed to view upload status.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
     # Get all upload statuses with related user and assignment data
     uploads = Upload_status.query.join(
         Users, Upload_status.user_id == Users.id
@@ -8206,239 +6714,7 @@ def upload_status():
     
     return render_template("admin/upload_status.html", uploads=upload_data, stats=stats)
 
-#------------------------------------------------------
-@admin.route('/zoom/user/<int:user_id>')
-def zoom_user(user_id):
-    user = Users.query.get_or_404(user_id)
-    user.zoom_id = None
-    db.session.commit()
-    flash(f"Zoom ID for {user.name} has been deleted successfully!", "success")
-    return redirect(url_for('admin.zoom'))
-
-@admin.route('/zoom')
-def zoom():
-    zoom_meetings = Zoom_meeting.query.all()
-
-    groups = Groups.query.all()
-
-    
-    return render_template("admin/zoom.html", 
-                         zoom_meetings=zoom_meetings,
-
-                         groups=groups,
-            )
-
-@admin.route('/zoom/<int:meeting_id>')
-def view_zoom_meeting(meeting_id):
-    # View details of a specific Zoom meeting
-    meeting = Zoom_meeting.query.get_or_404(meeting_id)
-    
-    # Get all memberships (participants with their Zoom details)
-    memberships = ZoomMeetingMember.query.filter_by(zoom_meeting_id=meeting.id).all()
-    
-    # Filter users based on meeting scope (subject, groups, stages, schools)
-    users_query = Users.query
-    
-    # Filter by subject if specified
-    if meeting.subject_id:
-        users_query = users_query.filter(Users.subjectid == meeting.subject_id)
-    
-    # Filter by groups if specified
-    if meeting.groups:
-        group_ids = [group.id for group in meeting.groups]
-        users_query = users_query.filter(Users.groupid.in_(group_ids))
-    
-    # Filter by stages if specified
-    if meeting.stages:
-        stage_ids = [stage.id for stage in meeting.stages]
-        users_query = users_query.filter(Users.stageid.in_(stage_ids))
-    
-    # Filter by schools if specified
-    if meeting.schools:
-        school_ids = [school.id for school in meeting.schools]
-        users_query = users_query.filter(Users.schoolid.in_(school_ids))
-    
-    #Get users with no zoom_id
-    all_users = users_query.filter(Users.zoom_id.is_(None)).all()
-    
-    return render_template("admin/view_zoom_meeting.html", meeting=meeting, memberships=memberships, all_users=all_users)
-
-@admin.route('/zoom/create', methods=['POST'])
-def create_zoom_meeting():
-    return "Paused for now"
-
-    try:
-        import re
-        # Handle AJAX form submission to create a new Zoom meeting
-        meeting_input = request.form.get('meeting_id')
-        
-        # Extract meeting ID from Zoom invite link or use as is
-        # Zoom links can be like: https://zoom.us/j/1234567890 or https://us05web.zoom.us/j/1234567890
-        meeting_id = meeting_input
-        if 'zoom.us/' in meeting_input:
-            # Extract meeting ID from URL
-            match = re.search(r'/j/(\d+)', meeting_input)
-            if match:
-                meeting_id = match.group(1)
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': 'Invalid Zoom link format. Could not extract meeting ID.'
-                }), 400
-        
-        subject_id = request.form.get('subject_id')
-        creator_id = current_user.id
-        
-        # Get selected groups, stages, and schools
-        group_ids = request.form.getlist('groups[]')
-        stage_ids = request.form.getlist('stages[]')
-        school_ids = request.form.getlist('schools[]')
-        
-        # Check if meeting already exists
-        existing_meeting = Zoom_meeting.query.filter_by(meeting_id=meeting_id).first()
-        if existing_meeting:
-            return jsonify({
-                'success': False,
-                'message': 'A meeting with this ID already exists!'
-            }), 400
-        
-        # Create new Zoom meeting
-        new_meeting = Zoom_meeting(
-            meeting_id=meeting_id,
-            subject_id=subject_id if subject_id else None,
-            creator_id=creator_id
-        )
-        
-        # Add relationships
-        if group_ids:
-            new_meeting.groups = Groups.query.filter(Groups.id.in_(group_ids)).all()
-        if stage_ids:
-            new_meeting.stages = Stages.query.filter(Stages.id.in_(stage_ids)).all()
-        if school_ids:
-            new_meeting.schools = Schools.query.filter(Schools.id.in_(school_ids)).all()
-        
-        db.session.add(new_meeting)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Zoom meeting created successfully!',
-            'meeting_id': meeting_id
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 400
-
-@admin.route('/zoom/<int:meeting_id>/delete', methods=['POST'])
-def delete_zoom_meeting(meeting_id):
-    try:
-        # Find the meeting
-        meeting = Zoom_meeting.query.get_or_404(meeting_id)
-        
-        # Delete the meeting (cascade will handle memberships)
-        db.session.delete(meeting)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Zoom meeting deleted successfully!'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 400
-
-@admin.route('/zoom/link_participant', methods=['POST'])
-def link_zoom_participant():
-    try:
-        data = request.get_json()
-        zoom_id = data.get('zoom_id')
-        user_id = data.get('user_id')
-        
-        if not zoom_id or not user_id:
-            return jsonify({
-                'success': False,
-                'message': 'Missing zoom_id or user_id'
-            }), 400
-        
-        # Find the membership record by zoom_id
-        membership = ZoomMeetingMember.query.filter_by(zoom_id=zoom_id).first()
-        
-        if not membership:
-            return jsonify({
-                'success': False,
-                'message': 'Membership not found for this Zoom ID'
-            }), 404
-        
-        # Find the user
-        user = Users.query.get_or_404(user_id)
-        
-        # Link the participant to the user
-        membership.user_id = user_id
-        
-        # Update the user's zoom_id
-        user.zoom_id = zoom_id
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Participant linked to {user.name} successfully!',
-            'user_name': user.name,
-            'user_email': user.email
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 400
-
-@admin.route('/zoom/unlink_participant', methods=['POST'])
-def unlink_zoom_participant():
-    try:
-        data = request.get_json()
-        zoom_id = data.get('zoom_id')
-        
-        if not zoom_id:
-            return jsonify({
-                'success': False,
-                'message': 'Missing zoom_id'
-            }), 400
-        
-        # Find the membership record by zoom_id
-        membership = ZoomMeetingMember.query.filter_by(zoom_id=zoom_id).first()
-        
-        if not membership:
-            return jsonify({
-                'success': False,
-                'message': 'Membership not found for this Zoom ID'
-            }), 404
-        
-        # Unlink the participant by setting user_id to None
-        membership.user_id = None
-        
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Participant unlinked successfully!'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 400
-
-
 #--- Temp ---
-
 @admin.route('/temp/activate/<int:user_id>')
 def temp_activate(user_id):
     user = Users.query.get_or_404(user_id)
@@ -8610,43 +6886,79 @@ def approve_submission(submission_id):
         try:
             if assignment.type == "Exam":
                 # Student notification (unchanged, or optional: You may skip or keep)
-                send_whatsapp_message(
-                    submission.student.phone_number,
-                    f"Hi *{submission.student.name}*👋,\n\n"
-                    f"*{assignment.title}*\n"
-                    f"You're correction is returned please check your account\n\n"
-                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                    "_For further inquiries send to Dr. Adham_"
-                )
-                # Parent notification (formatted as requested)
-                send_whatsapp_message(
-                    submission.student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{submission.student.name}*\n\n"
-                    f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
-                    f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                    f"Dr. Adham will send the gradings on the group\n"
-                    "_For further inquiries send to Dr. Adham_"
-                )
+                if submission.mark:
+                    send_student_corrcted_message_with_score(
+                    phone_number=submission.student.phone_number, 
+                    type="Exam", name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=assignment.out_of)
+                    
+                    
+                    send_parent_corrcted_message_with_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name,
+                    type="Exam", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=assignment.out_of)
+
+                else :
+
+                    send_student_corrcted_message_no_score(
+                    phone_number=submission.student.phone_number,
+                    student_name=submission.student.name, 
+                    type="Exam", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                    send_parent_corrcted_message_no_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name, 
+                    type="Exam",
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
             else:
                 # Student notification (unchanged, or optional: You may skip or keep)
-                send_whatsapp_message(
-                    submission.student.phone_number,
-                    f"Hi *{submission.student.name}*👋,\n\n"
-                    f"*{assignment.title}*\n"
-                    f"You're correction is returned please check your account\n\n"
-                    f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                    "_For further inquiries send to Dr. Adham_"
-                )
-                # Parent notification for homework, as requested
-                send_whatsapp_message(
-                    submission.student.parent_phone_number,
-                    f"Dear Parent,\n"
-                    f"*{submission.student.name}*\n\n"
-                    f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
-                    f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                    "_For further inquiries send to Dr. Adham_"
-                )
+                if submission.mark:
+                    send_student_corrcted_message_with_score(
+                    phone_number=submission.student.phone_number, 
+                    type="Assignment", name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=assignment.out_of)
+                    
+                    
+                    send_parent_corrcted_message_with_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name,
+                    type="Assignment", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                    student_mark=submission.mark, 
+                    total_mark=assignment.out_of)
+
+                else :
+
+                    send_student_corrcted_message_no_score(
+                    phone_number=submission.student.phone_number,
+                    student_name=submission.student.name, 
+                    type="Assignment", 
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                    send_parent_corrcted_message_no_score(
+                    phone_number=submission.student.parent_phone_number, 
+                    student_name=submission.student.name, 
+                    type="Assignment",
+                    name=assignment.title, 
+                    date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+         
         except Exception as e:
             pass  # Don't fail if WhatsApp fails
         
@@ -8829,43 +7141,79 @@ def approve_all_submissions(assignment_id):
             try:
                 if assignment.type == "Exam":
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification (formatted as requested)
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
-                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        f"Dr. Adham will send the gradings on the group\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Exam", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Exam",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
                 else:
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification for homework, as requested
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
-                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Assignment", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Assignment",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+        
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
             approved_count += 1
@@ -8922,43 +7270,79 @@ def approve_bulk_submissions():
             try:
                 if assignment.type == "Exam":
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification (formatted as requested)
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
-                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        f"Dr. Adham will send the gradings on the group\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Exam", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Exam",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
                 else:
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification for homework, as requested
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
-                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Assignment", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Assignment",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+ 
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
             
@@ -9042,43 +7426,79 @@ def approve_range_submissions():
             try:
                 if assignment.type == "Exam":
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification (formatted as requested)
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Quiz *{assignment.title}* on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* correction is returned on the student's account on website\n\n"
-                        f"Scored *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        f"Dr. Adham will send the gradings on the group\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Exam", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Exam", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Exam",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
                 else:
                     # Student notification (unchanged, or optional: You may skip or keep)
-                    send_whatsapp_message(
-                        submission.student.phone_number,
-                        f"Hi *{submission.student.name}*👋,\n\n"
-                        f"*{assignment.title}*\n"
-                        f"You're correction is returned please check your account\n\n"
-                        f"You scored : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
-                    # Parent notification for homework, as requested
-                    send_whatsapp_message(
-                        submission.student.parent_phone_number,
-                        f"Dear Parent,\n"
-                        f"*{submission.student.name}*\n\n"
-                        f"Homework *{assignment.title}* due on *{assignment.deadline_date.strftime('%d/%m/%Y') if assignment.deadline_date else 'N/A'}* is returned on the student's account on website \n\n"
-                        f"Score : *{submission.mark if submission.mark else 'N/A'}* / {assignment.out_of if hasattr(assignment, 'out_of') else 'N/A'}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )
+                    if submission.mark:
+                        send_student_corrcted_message_with_score(
+                        phone_number=submission.student.phone_number, 
+                        type="Assignment", name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+                        
+                        
+                        send_parent_corrcted_message_with_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name,
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'), 
+                        student_mark=submission.mark, 
+                        total_mark=assignment.out_of)
+
+                    else :
+
+                        send_student_corrcted_message_no_score(
+                        phone_number=submission.student.phone_number,
+                        student_name=submission.student.name, 
+                        type="Assignment", 
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+
+                        send_parent_corrcted_message_no_score(
+                        phone_number=submission.student.parent_phone_number, 
+                        student_name=submission.student.name, 
+                        type="Assignment",
+                        name=assignment.title, 
+                        date=assignment.deadline_date.strftime('%d/%m/%Y'))
+
+ 
             except Exception as e:
                 pass  # Don't fail if WhatsApp fails
             
@@ -9182,6 +7602,3 @@ def track_assistants(group_id):
         tracking_data=tracking_data
     )
 
-    
-
-#-------Testing ai correction system-------
