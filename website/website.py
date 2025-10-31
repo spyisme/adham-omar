@@ -335,7 +335,8 @@ def send_whatsapp_message(phone_number, message, country_code=None, bypass=False
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 
-API_KEY = "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"
+API_KEY = os.getenv('SENDERGRID_API')
+
 FROM_EMAIL = 'info@adhamomaresl.com' # Must be a verified sender in SendGrid
 
 def send_email(email , subject , EMAIL_CONTENT) :
