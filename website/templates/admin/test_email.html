@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Email - Admin Panel</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/universal.css') }}">
+    <style>
+        .email-test-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .email-test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .email-test-header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .email-test-header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #34495e;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        
+        .btn-send {
+            width: 100%;
+            padding: 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn-send:hover {
+            background: #2980b9;
+        }
+        
+        .btn-send:active {
+            transform: scale(0.98);
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .status-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .status-failed {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .helper-text {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-test-container">
+        <a href="{{ url_for('admin.dashboard') }}" class="back-link">← Back to Dashboard</a>
+        
+        <div class="email-test-header">
+            <h1>📧 Email Test</h1>
+            <p>Test the email sending functionality</p>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% if email_sent == True %}
+            <div class="alert alert-success">
+                <strong>✅ Success!</strong> Email was sent successfully!
+                <span class="status-indicator status-success">SENT</span>
+            </div>
+        {% elif email_sent == False %}
+            <div class="alert alert-danger">
+                <strong>❌ Failed!</strong> Email could not be sent.
+                <span class="status-indicator status-failed">FAILED</span>
+                {% if error_message %}
+                    <br><br>
+                    <strong>Error Details:</strong> {{ error_message }}
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('admin.test_email') }}">
+            <div class="form-group">
+                <label for="recipient_email">Recipient Email Address *</label>
+                <input 
+                    type="email" 
+                    id="recipient_email" 
+                    name="recipient_email" 
+                    placeholder="example@email.com"
+                    required
+                    value="{{ request.form.get('recipient_email', '') }}"
+                >
+                <div class="helper-text">Enter the email address where you want to send the test email</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="subject">Email Subject *</label>
+                <input 
+                    type="text" 
+                    id="subject" 
+                    name="subject" 
+                    placeholder="Test Email Subject"
+                    required
+                    value="{{ request.form.get('subject', 'Test Email from Dr Adham Omar ESL') }}"
+                >
+                <div class="helper-text">Subject line that will appear in the email</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="message_content">Email Content *</label>
+                <textarea 
+                    id="message_content" 
+                    name="message_content" 
+                    placeholder="Enter your test message here..."
+                    required
+                >{{ request.form.get('message_content', 'This is a test email sent from the admin panel.\n\nIf you receive this message, the email system is working correctly.\n\n- Dr Adham Omar ESL Team') }}</textarea>
+                <div class="helper-text">The main content of the email message</div>
+            </div>
+            
+            <button type="submit" class="btn-send">
+                📨 Send Test Email
+            </button>
+        </form>
+        
+        <div class="alert alert-info" style="margin-top: 30px;">
+            <strong>ℹ️ Note:</strong> This is a test route for super admins only. Make sure your email configuration is properly set up in the environment variables.
+        </div>
+    </div>
+</body>
+</html>

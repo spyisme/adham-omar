@@ -7722,3 +7722,47 @@ def track_assistants(group_id):
         tracking_data=tracking_data
     )
 
+
+#=================================================================
+#=================================================================
+# EMAIL TEST ROUTE
+#=================================================================
+#=================================================================
+
+@admin.route('/test/email', methods=['GET', 'POST'])
+def test_email():
+    """Test route for sending emails"""
+    if current_user.role != "super_admin":
+        abort(403)
+    
+    email_sent = None
+    error_message = None
+    
+    if request.method == 'POST':
+        recipient_email = request.form.get('recipient_email', '').strip()
+        subject = request.form.get('subject', '').strip()
+        message_content = request.form.get('message_content', '').strip()
+        
+        if not recipient_email or not subject or not message_content:
+            error_message = "All fields are required!"
+        else:
+            try:
+                # Attempt to send the email
+                send_email(
+                    email=recipient_email,
+                    subject=subject,
+                    EMAIL_CONTENT=message_content
+                )
+                email_sent = True
+                flash(f"Email sent successfully to {recipient_email}!", "success")
+            except Exception as e:
+                email_sent = False
+                error_message = f"Failed to send email: {str(e)}"
+                flash(error_message, "danger")
+    
+    return render_template(
+        'admin/test_email.html',
+        email_sent=email_sent,
+        error_message=error_message
+    )
+
