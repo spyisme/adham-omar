@@ -358,7 +358,7 @@ def send_email(email , subject , EMAIL_CONTENT) :
 
 
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Error sending email: {e} , {SENDERGRID_API}")
 
 
 
