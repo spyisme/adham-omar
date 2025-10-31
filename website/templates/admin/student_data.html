@@ -251,22 +251,6 @@ tbody tr:hover {
             {% endif %}
             <tr><th>Login Count</th><td>{{ student.login_count }}</td></tr>
             {% endif %}
-            <tr><th colspan="2" style="text-align: center;">Whatsapp Status</th></tr>
-
-            <tr><th>Student WhatsApp Status</th><td>
-                {% if student.student_whatsapp %}
-                <span class="status-submitted">Active</span>
-                {% else %}
-                <span class="status-not-submitted">Inactive</span>
-                {% endif %}
-            </td></tr>
-            <tr><th>Parent WhatsApp Status</th><td>
-                {% if student.parent_whatsapp %}
-                <span class="status-submitted">Active</span>
-                {% else %}
-                <span class="status-not-submitted">Inactive</span>
-                {% endif %}
-            </td></tr>
 
 
             <tr><th colspan="2" style="text-align: center;">Student Information</th></tr>
@@ -285,6 +269,8 @@ tbody tr:hover {
             <tr><th colspan="2" style="text-align: center;">Parent Information</th></tr>
 
             <tr><th>Parent Type</th><td>{{ student.parent_type.capitalize() }}</td></tr>
+            <tr><th>Parent Email</th><td>{{ student.parent_email }}</td></tr>
+
             <tr><th>Parent Number</th><td> +{{ student.parent_phone_number_country_code }}{{ student.parent_phone_number }}</td></tr>
         </table>
     </div>

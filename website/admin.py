@@ -18,7 +18,7 @@ import uuid
 from sqlalchemy import and_ , or_ , not_
 from .student import get_all
 from dotenv import load_dotenv
-from .website import storage , send_whatsapp_message 
+from .website import storage , send_whatsapp_message  , send_email
 from sqlalchemy import and_, cast
 from sqlalchemy.types import Float
 load_dotenv()
@@ -168,81 +168,198 @@ def get_item_if_admin_can_manage(model, item_id, admin_user):
 #=================================================================================================================
 
 
-def send_parent_corrcted_message_with_score(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025" , student_mark = "27" , total_mark= "30"):
+def send_parent_corrcted_message_with_score(
+    phone_number="01010101010",
+    student_name="Jake",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025",
+    student_mark="27",
+    total_mark="30"
+):
+    content = (
+        f"Dear Parent,\n"
+        f"*{student_name}*\n\n"
+        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+        f"Score : *{student_mark}* / {total_mark}\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
 
-    send_whatsapp_message(phone_number, f"Dear Parent,\n"
-                        f"*{student_name}*\n\n"
-                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
-                        f"Score : *{student_mark}* / {total_mark}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+    # send_whatsapp_message(phone_number, content  )
+
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.parent_email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
-def send_parent_corrcted_message_no_score(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
-    
-    send_whatsapp_message(phone_number, f"Dear Parent,\n"
-                        f"*{student_name}*\n\n"
-                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+def send_parent_corrcted_message_no_score(
+    phone_number="01010101010",
+    student_name="Jake",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025"
+):
+    content = (
+        f"Dear Parent,\n"
+        f"*{student_name}*\n\n"
+        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
+
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.parent_email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
-def send_parent_missing(phone_number="01010101010" ,student_name="Jake" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
-    
-    send_whatsapp_message(phone_number, f"Dear Parent,\n"
-                        f"*{student_name}*\n\n"
-                        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+def send_parent_missing(
+    phone_number="01010101010",
+    student_name="Jake",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025"
+):
+    content = (
+        f"Dear Parent,\n"
+        f"*{student_name}*\n\n"
+        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
+
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.parent_email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
-def send_new_parent(phone_number="01010101010" ,student_name="Jake"):
-   
-    send_whatsapp_message(phone_number, f"Dear Parent,\n"
-                        f"*{student_name}*\n\n"
-                        f"You will receive follow up messages regarding your child's progress\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+def send_new_parent(
+    phone_number="01010101010",
+    student_name="Jake"
+):
+    content = (
+        f"Dear Parent,\n"
+        f"*{student_name}*\n\n"
+        f"You will receive follow up messages regarding your child's progress\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
+
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.parent_email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
+def send_student_corrcted_message_with_score(
+    phone_number="01010101010",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025",
+    student_mark="27",
+    total_mark="30"
+):
+    content = (
+        f"Dear Student,\n"
+        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+        f"Score : *{student_mark}* / {total_mark}\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
 
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
 
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
 
-
-
-
-
-def send_student_corrcted_message_with_score(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025" , student_mark = "27" , total_mark= "30"):
-    
-    send_whatsapp_message(phone_number, f"Dear Student,\n"
-                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
-                        f"Score : *{student_mark}* / {total_mark}\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+    send_email(email=user.email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
+def send_student_corrcted_message_no_score(
+    phone_number="01010101010",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025"
+):
+    content = (
+        f"Dear Student,\n"
+        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
 
-def send_student_corrcted_message_no_score(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
-    
-    send_whatsapp_message(phone_number, f"Dear Student,\n"
-                        f"*{type}* *{name}* on *{date}* is returned on the student's account on website\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
+def send_student_missing(
+    phone_number="01010101010",
+    type="Assignmnet",
+    name="Writting 1",
+    date="20/10/2025"
+):
+    content = (
+        f"Dear Student,\n"
+        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
+        "_For further inquiries send to Dr. Adham_"
+    )
 
-def send_student_missing(phone_number="01010101010" ,type="Assignmnet" , name = "Writting 1" , date = "20/10/2025"):
-    
-    send_whatsapp_message(phone_number, f"Dear Student,\n"
-                        f"*{type}* *{name}* on *{date}* is missing from the student's account on website\n\n"
-                        "_For further inquiries send to Dr. Adham_"
-                    )    
+    user = Users.query.filter(
+        or_(
+            (Users.phone_number == phone_number),
+            (Users.parent_phone_number == phone_number)
+        )
+    ).first()
+
+    if not user:
+        return False, f"User not found with phone number: {phone_number}"
+
+    send_email(email=user.email, subject="Dr Adham Omar ESL Follow Up", EMAIL_CONTENT=content)
     return True
 
 
@@ -1164,6 +1281,9 @@ def edit_user(user_id):
 
             user.parent_phone_number = request.form['parent_phone_number']
             user.parent_phone_number_country_code = request.form['parent_phone_number_country_code']
+
+
+            user.parent_email = request.form['parent_email']
 
 
             # user.code = request.form['code']

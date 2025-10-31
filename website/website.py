@@ -327,6 +327,41 @@ def send_whatsapp_message(phone_number, message, country_code=None, bypass=False
         db.session.rollback()
         return False, f"Failed to queue message: {str(e)}"
 
+
+
+
+
+
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+API_KEY = "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"
+FROM_EMAIL = 'info@adhamomaresl.com' # Must be a verified sender in SendGrid
+
+def send_email(email , subject , EMAIL_CONTENT) :
+
+    message = Mail(
+        from_email=FROM_EMAIL,
+        to_emails=email,
+        subject=subject,
+        html_content=EMAIL_CONTENT
+    )
+
+    try:
+        sg = SendGridAPIClient(API_KEY)
+        
+        response = sg.send(message)
+        
+        print(f"Email sent!")
+        print(f"Status Code: {response.status_code}")
+
+
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
+
+
+
 storage = R2Storage()
 
 website = Blueprint('website', __name__)
@@ -597,6 +632,7 @@ def register():
             parent_phone_country_code = request.form.get("parent_phone_country_code", "2")
             password = request.form.get("password", "")
             parent_type = request.form.get("parent_type", "")
+            parent_email = request.form.get("parent_email", "").lower()
             group = request.form.get("group", "")
 
 
@@ -677,6 +713,7 @@ def register():
                 parent_type=parent_type,
                 groupid=group_id,
                 role="student",
+                parent_email=parent_email,
                 profile_picture=profile_picture_filename,
                 otp = verification_code,
                 phone_number_country_code=student_phone_country_code,
@@ -778,112 +815,112 @@ def forget_password_otp():
 
 
 
-#--- Receive Whatsapp Messages (Full Corrected Route) ---
-@website.route("/backend/whatsapp", methods=["POST"])
-def activate_whatsapp():
-    data = request.get_json()
-    phone_number_raw = data.get("phone_number")
+# #--- Receive Whatsapp Messages (Full Corrected Route) ---
+# @website.route("/backend/whatsapp", methods=["POST"])
+# def activate_whatsapp():
+#     data = request.get_json()
+#     phone_number_raw = data.get("phone_number")
  
 
-    if not phone_number_raw:
-        return jsonify({"error": "Phone number is required"}), 400
+#     if not phone_number_raw:
+#         return jsonify({"error": "Phone number is required"}), 400
 
 
-    cleaned_number = phone_number_raw.replace(" ", "").lstrip("+")
+#     cleaned_number = phone_number_raw.replace(" ", "").lstrip("+")
 
 
 
-    target_user = Users.query.filter(
-        func.concat(Users.phone_number_country_code, Users.phone_number) == cleaned_number
-    ).first()
+#     target_user = Users.query.filter(
+#         func.concat(Users.phone_number_country_code, Users.phone_number) == cleaned_number
+#     ).first()
     
-    is_parent = False
+#     is_parent = False
 
-    if not target_user:
-        target_user = Users.query.filter(
-            func.concat(Users.parent_phone_number_country_code, Users.parent_phone_number) == cleaned_number
-        ).first()
-        if target_user:
-            is_parent = True
+#     if not target_user:
+#         target_user = Users.query.filter(
+#             func.concat(Users.parent_phone_number_country_code, Users.parent_phone_number) == cleaned_number
+#         ).first()
+#         if target_user:
+#             is_parent = True
 
 
-    if target_user  :
+#     if target_user  :
         
-        if is_parent:
+#         if is_parent:
             
-            if target_user.parent_whatsapp is None:
+#             if target_user.parent_whatsapp is None:
  
-                target_user.parent_whatsapp = cleaned_number
+#                 target_user.parent_whatsapp = cleaned_number
  
-                db.session.commit()
+#                 db.session.commit()
                 
-                flash("Parent Whatsapp activated successfully!", "success")
+#                 flash("Parent Whatsapp activated successfully!", "success")
  
-                try :
-                    send_whatsapp_message(
-                        cleaned_number,
-                        "شكراً\nتم تفعيل الرقم\nهيوصل لحضرتك المتابعة علي الرقم ده\n\n"
-                        "Dear parent\n\n"
-                        "Your Whatsapp are activated successfully!\n\n"
-                            "You will be receiving follow up on this number",
-                            bypass=True
-                        )
-                except :
-                    send_whatsapp_message(
-                        cleaned_number,
-                        "Dear parent\n\n"
-                        "Your Whatsapp are activated successfully!\n\n"
-                        "You will be receiving follow up on this number",
-                            bypass=True
-                        )
+#                 try :
+#                     send_whatsapp_message(
+#                         cleaned_number,
+#                         "شكراً\nتم تفعيل الرقم\nهيوصل لحضرتك المتابعة علي الرقم ده\n\n"
+#                         "Dear parent\n\n"
+#                         "Your Whatsapp are activated successfully!\n\n"
+#                             "You will be receiving follow up on this number",
+#                             bypass=True
+#                         )
+#                 except :
+#                     send_whatsapp_message(
+#                         cleaned_number,
+#                         "Dear parent\n\n"
+#                         "Your Whatsapp are activated successfully!\n\n"
+#                         "You will be receiving follow up on this number",
+#                             bypass=True
+#                         )
 
-                return jsonify({"message": "Whatsapp activated successfully!"})
-            else:
-                return jsonify({"message": "Parent Whatsapp already activated!"})
+#                 return jsonify({"message": "Whatsapp activated successfully!"})
+#             else:
+#                 return jsonify({"message": "Parent Whatsapp already activated!"})
         
-        else:
+#         else:
 
-            if target_user.student_whatsapp is None:
+#             if target_user.student_whatsapp is None:
 
-                target_user.student_whatsapp = cleaned_number
+#                 target_user.student_whatsapp = cleaned_number
 
-                db.session.commit()
+#                 db.session.commit()
 
-                flash("Student Whatsapp activated successfully!", "success")
-                send_whatsapp_message(cleaned_number, 
-                                      "Your account and Whatsapp are activated successfully!\n\n"
-                                      "Press here to view your account (https://adhamomaresl.com)", bypass=True)
+#                 flash("Student Whatsapp activated successfully!", "success")
+#                 send_whatsapp_message(cleaned_number, 
+#                                       "Your account and Whatsapp are activated successfully!\n\n"
+#                                       "Press here to view your account (https://adhamomaresl.com)", bypass=True)
 
 
                 
                 
-                return jsonify({"message": "Whatsapp activated successfully!"})
-            else:
-                return jsonify({"message": "Student Whatsapp already activated!"})
+#                 return jsonify({"message": "Whatsapp activated successfully!"})
+#             else:
+#                 return jsonify({"message": "Student Whatsapp already activated!"})
 
-    else:
-        flash("User not found or no OTP pending!", "danger")
-        return jsonify({"message": "User not found or no OTP pending!"})
-
-
-@website.route("/whatsapp" , methods=["GET" , "POST"])
-def frontend_whatsapp():
-    if request.method == "POST":
-        phone_number = request.form.get("phone_number")
-        phone_number = phone_number.replace(" ", "")
-
-        user = Users.query.filter(Users.phone_number == phone_number).first()
-        if user:
-            return jsonify({"message": "User found!" , "user_id": user.code})
-        else:
-            parent_user = Users.query.filter(Users.parent_phone_number == phone_number).first()
-            if parent_user:
-                return jsonify({"message": "Parent user found!" , "user_id": parent_user.code})
-            else:
-                return jsonify({"message": "User not found!" , "user_id": None})
+#     else:
+#         flash("User not found or no OTP pending!", "danger")
+#         return jsonify({"message": "User not found or no OTP pending!"})
 
 
-    return render_template("auth_pages/whatsapp.html")
+# @website.route("/whatsapp" , methods=["GET" , "POST"])
+# def frontend_whatsapp():
+#     if request.method == "POST":
+#         phone_number = request.form.get("phone_number")
+#         phone_number = phone_number.replace(" ", "")
+
+#         user = Users.query.filter(Users.phone_number == phone_number).first()
+#         if user:
+#             return jsonify({"message": "User found!" , "user_id": user.code})
+#         else:
+#             parent_user = Users.query.filter(Users.parent_phone_number == phone_number).first()
+#             if parent_user:
+#                 return jsonify({"message": "Parent user found!" , "user_id": parent_user.code})
+#             else:
+#                 return jsonify({"message": "User not found!" , "user_id": None})
+
+
+#     return render_template("auth_pages/whatsapp.html")
 
 
 
